@@ -156,7 +156,23 @@ index a2aa1044066c..ffa238ed1196 100644
    return await createRouter({
 ```
 
-### 5. Start frontend and backend by running below commands at the root folder of backstage in seperate terminals
+### 5. Install ansible-creator tool required for scaffolding Anisble content
+
+```bash
+pip install ansible-creator
+```
+
+### 6. Setup Github integration to publish repository
+
+Under the `integrations` section within backstage `app-config.yaml` file
+add the Github personal access token as shown below
+
+```yaml
+  github:
+    - host: github.com
+      token: <GITHUB_PAT>
+
+### 7. Start frontend and backend by running below commands at the root folder of backstage in seperate terminals
 
 Frontend
 
