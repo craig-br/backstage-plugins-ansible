@@ -169,3 +169,5 @@ knip.json
 
 # Remove me
 dynamic-plugins-info/
+dist-scalprum
+ansible/yarn.lock
