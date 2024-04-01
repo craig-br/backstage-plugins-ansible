@@ -16,13 +16,13 @@
 
 import React from 'react';
 import { ContentHeader, InfoCard } from '@backstage/core-components';
-import { CardContent, CardHeader, Grid, Typography, makeStyles, Card, CardActionArea, CardActions, Button, Box } from '@material-ui/core';
+import { Grid, Typography, makeStyles } from '@material-ui/core';
 import { useAsync } from 'react-use';
 import { CatalogFilterLayout, EntityKindPicker, EntityListProvider, EntitySearchBar, EntityTagPicker, UserListPicker, catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
-import { Content, Header, Page, Progress} from '@backstage/core-components';
+import { Content, Page, Progress} from '@backstage/core-components';
 import { Entity } from '@backstage/catalog-model';
-import { ScaffolderPageContextMenu, TemplateCategoryPicker, TemplateGroups } from '@backstage/plugin-scaffolder-react/alpha';
+import { TemplateGroups } from '@backstage/plugin-scaffolder-react/alpha';
 
 const useStyles = makeStyles({
   container: {

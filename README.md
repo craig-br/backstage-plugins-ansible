@@ -191,3 +191,45 @@ The Backstage plugin can be reached is running at the endpoint
 ```
 http://localhost:3000/ansible
 ```
+
+
+# Installing with Backstage showcase
+
+Refer to the step mentioned here <https://github.com/janus-idp/backstage-showcase/blob/main/showcase-docs/dynamic-plugins.md#installing-a-dynamic-plugin-package-in-the-showcase>
+
+To run backstage--showcase locally follow the below steps
+
+1. Clone the backstage-showcase repository and within the `dynamic-plugins-root`
+   folder run the below command
+
+```bash
+pkg=<local-clone-parent-path-replace-me>/ansible-backstage-plugins/ansible
+archive=$(npm pack $pkg)
+tar -xzf "$archive" && rm "$archive"
+mv package $(echo $archive | sed -e 's:\.tgz$::')
+```
+
+2. Add the below section in `app-config.local.yaml` file
+```yaml
+
+dynamicPlugins:
+  frontend:
+    janus-idp.backstage-plugin-ansible:
+      appIcons:
+        - name: AnsibleLogo
+          importName: AnsibleLogo
+      dynamicRoutes:
+        - path: /ansible
+          importName: AnsiblePage
+          menuItem:
+            icon: AnsibleLogo
+            text: Ansible
+
+```
+
+3. Start frontend by running the command in the root folder of `backstage-showcase`
+   cloned repository path.
+
+```bash
+LOG_LEVEL=debug yarn start
+```

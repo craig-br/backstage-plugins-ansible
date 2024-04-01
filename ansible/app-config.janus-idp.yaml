@@ -1,0 +1,12 @@
+dynamicPlugins:
+  frontend:
+    janus-idp.backstage-plugin-ansible:
+      appIcons:
+        - name: AnsibleLogo
+          importName: AnsibleLogo
+      dynamicRoutes:
+        - path: /ansible
+          importName: AnsiblePage
+          menuItem:
+            icon: AnsibleLogo
+            text: Ansible
