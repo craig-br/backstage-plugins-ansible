@@ -1,0 +1,12 @@
+dynamicPlugins:
+  backend:
+    backstage.plugin-scaffolder-backend-module-ansible:
+      mountPoints:
+        - importName: createAnsibleContentAction
+          mountPoint: entity.page.overview/cards
+catalog:
+  locations:
+    - type: file
+      target: ../../dynamic-plugins-root/scaffolder-backend-module-ansible/templates/all.yaml
+      rules:
+        - allow: [Template]
