@@ -258,7 +258,7 @@ dynamicPlugins:
           mountPoint: entity.page.overview/cards
 ```
 
-2. Update the below section in `app-config.local.yaml` file
+2.1. Register the template catalog section in `app-config.local.yaml` file
 
 ```yaml
 catalog:
@@ -267,6 +267,15 @@ catalog:
       target: ../../dynamic-plugins-root/scaffolder-backend-module-ansible/templates/all.yaml
       rules:
         - allow: [Template]
+```
+
+2.3. Update the integration section in `app-config.local.yaml` file so with your secret to push the scaffolded repo to GH.
+
+```yaml
+integrations:
+  github:
+    - host: github.com
+      token: "foo_ThisIsATopSecretTokenToPushDataInGh"
 ```
 
 3. Update the package.json at `packages/backend/package.json`
@@ -278,24 +287,46 @@ catalog:
 Note - if node version is 20.x.y please update
 
 ```diff
-% git diff package.json
-diff --git a/package.json b/package.json
-index 55c3489..f815574 100644
---- a/package.json
-+++ b/package.json
-@@ -8,8 +8,8 @@
-   "scripts": {
-     "prepare": "husky install",
-     "ci": "turbo run lint build test",
--    "start": "turbo run start --parallel",
--    "start-backend": "turbo run start --filter=backend",
-+    "start": "NODE_OPTIONS=--no-node-snapshot turbo run start --parallel",
-+    "start-backend": "NODE_OPTIONS=--no-node-snapshot turbo run start --filter=backend",
-     "build": "turbo run build",
-     "tsc": "tsc",
+diff --git a/packages/backend/package.json b/packages/backend/package.json
+index d05d495..92424f9 100644
+--- a/packages/backend/package.json
++++ b/packages/backend/package.json
+@@ -47,11 +47,11 @@
+     "@backstage/plugin-search-backend-node": "1.2.17",
+     "@internal/plugin-dynamic-plugins-info-backend": "*",
+     "@internal/plugin-scalprum-backend": "*",
++    "@backstage/plugin-scaffolder-backend-module-github": "0.2.6",
+     "@janus-idp/backstage-plugin-rbac-backend": "2.4.1",
+     "@janus-idp/backstage-plugin-rbac-node": "1.0.3",
+     "@manypkg/get-packages": "2.2.0",
+     "app": "*",
+     "better-sqlite3": "9.3.0",
+     "express": "4.19.2",
+     "express-prom-bundle": "6.6.0",
 ```
 
-4. Start the backend by running the command in the root folder of `backstage-showcase`
+4. To register action with ID 'publish:github' we need to patch backend/src/index.ts
+
+```diff
+diff --git a/packages/backend/src/index.ts b/packages/backend/src/index.ts
+index c679098..c67b5ff 100644
+--- a/packages/backend/src/index.ts
++++ b/packages/backend/src/index.ts
+@@ -65,7 +65,7 @@ backend.add(
+ );
+ backend.add(dynamicPluginsFrontendSchemas());
+ backend.add(dynamicPluginsRootLoggerServiceFactory());
+-
++backend.add(import('@backstage/plugin-scaffolder-backend-module-github'));
+ backend.add(import('@backstage/plugin-app-backend/alpha'));
+ backend.add(
+   import('@backstage/plugin-catalog-backend-module-scaffolder-entity-model'),
+```
+
+Note - ^this step is not required when testing the plugin with upstream backstage or downstream RHDH as both have the `@backstage/plugin-scaffolder-backend-module-github` pre-registered, but for testing things with midstream backstage-showcase this is needed as
+it by default does not pack the extra actions. Do run yarn-install from backstage-showcase root for the changes to be impacted.
+
+5. Start the backend by running the command in the root folder of `backstage-showcase`
    cloned repository path.
 
 ```bash
