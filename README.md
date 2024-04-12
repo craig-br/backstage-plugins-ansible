@@ -30,7 +30,7 @@ In `app-config.yaml` file add below lines at the end of `locations` sections:
     - allow: [Template]
 ```
 
-### 3. Add and Install Ansible plugins dependencies within Backstage
+### 3. Add and Install Ansible plugin dependencies within Backstage
 
 Clone the plugins from the repo in the `backstage/plugins` folder
 Install dependencies
@@ -50,7 +50,7 @@ cd ..
 Add the below line in the file `packages/app/package.json` within the `dependencies` section
 
 ```json
-   "@backstage/plugin-ansible": "^0.0.0",
+   "@janus-idp/backstage-plugin-ansible": "^0.0.0",
 ```
 
 Add Ansible plugin route in file `packages/app/src/App.tsx` as shown in diff below
@@ -65,7 +65,7 @@ index 3d8bd45e5aab..752e5e2e9190 100644
  import { customDevToolsPage } from './components/devtools/CustomDevToolsPage';
  import { CatalogUnprocessedEntitiesPage } from '@backstage/plugin-catalog-unprocessed-entities';
  import { NotificationsPage } from '@backstage/plugin-notifications';
-+import { AnsiblePage } from '@backstage/plugin-ansible';
++import { AnsiblePage } from '@janus-idp/backstage-plugin-ansible';
 
  const app = createApp({
    apis,
@@ -78,7 +78,7 @@ index 3d8bd45e5aab..752e5e2e9190 100644
  );
 ```
 
-Register the plugin in the sidebar navigation by applying below diff in file `packages/app/src/components/Root/Root.tsx`
+Register the plugin in the sidebar navigation by applying the below diff in file `packages/app/src/components/Root/Root.tsx`
 
 ```diff
 % git diff  packages/app/src/components/Root/Root.tsx
@@ -90,7 +90,7 @@ index 6294aa785671..f23085e4e0cb 100644
  import { useApp } from '@backstage/core-plugin-api';
  import BuildIcon from '@material-ui/icons/Build';
  import { NotificationsSidebarItem } from '@backstage/plugin-notifications';
-+import { AnsibleLogo } from '@backstage/plugin-ansible'
++import { AnsibleLogo } from '@janus-idp/backstage-plugin-ansible'
 
  const useSidebarLogoStyles = makeStyles({
    root: {
@@ -124,7 +124,7 @@ index 48d7d7255217..65e7ecbea28f 100644
      "@backstage/plugin-proxy-backend": "workspace:^",
      "@backstage/plugin-rollbar-backend": "workspace:^",
      "@backstage/plugin-scaffolder-backend": "workspace:^",
-+    "@backstage/plugin-scaffolder-backend-module-ansible": "^0.0.0",
++    "@janus-idp/backstage-plugin-scaffolder-backend-module-ansible": "^0.0.0",
      "@backstage/plugin-scaffolder-backend-module-confluence-to-markdown": "workspace:^",
      "@backstage/plugin-scaffolder-backend-module-gitlab": "workspace:^",
      "@backstage/plugin-scaffolder-backend-module-rails": "workspace:^"
@@ -142,7 +142,7 @@ index a2aa1044066c..ffa238ed1196 100644
  import type { PluginEnvironment } from '../types';
  import { ScmIntegrations } from '@backstage/integration';
  import { createConfluenceToMarkdownAction } from '@backstage/plugin-scaffolder-backend-module-confluence-to-markdown';
-+import { createAnsibleContentAction } from '@backstage/plugin-scaffolder-backend-module-ansible';
++import { createAnsibleContentAction } from '@janus-idp/backstage-plugin-scaffolder-backend-module-ansible';
 
  export default async function createPlugin(
    env: PluginEnvironment,
@@ -202,6 +202,7 @@ folder run the below command
 ## Frontend plugin
 
 Install frontend plugin dependency in the Ansible plugins path by running below command in `ansible-backstage-plugins/ansible` folder
+
 ```bash
 yarn install
 ```
@@ -235,7 +236,7 @@ dynamicPlugins:
 ```
 
 - Start frontend by running the command in the root folder of `backstage-showcase`
-   cloned repository path.
+  cloned repository path.
 
 ```bash
 LOG_LEVEL=debug yarn start
@@ -368,6 +369,7 @@ echo "Integrity Hash: $INTEGRITY_HASH"
 ```
 
 - Create scaffolder plugin tar
+
 ```bash
 cd ansible-backstage-plugins/scaffolder-backend-module-ansible
 yarn install
@@ -377,7 +379,6 @@ ls -l $DYNAMIC_PLUGIN_ROOT_DIR
 echo "Integrity Hash: $INTEGRITY_HASH"
 ```
 
-
 #### Note: Integrity check is currently not working, hence to disable it set an environment for plugin-registry to disable integrity check
 
 ```bash
@@ -385,6 +386,7 @@ kubectl set env deployment/rhdh-backstage -c install-dynamic-plugins -e SKIP_INT
 ```
 
 - Upload to the tar to plugin registry
+
 ```bash
 oc project <YOUR_PROJECT_OR_NAMESPACE_CHANGEME>
 oc new-build httpd --name=plugin-registry --binary
@@ -394,6 +396,7 @@ oc new-app --image-stream=plugin-registry
 
 Ensure the tar files are uploaded to plugin registry by connecting to the plugin-registry
 pod terminal. Sample output:
+
 ```bash
 sh-4.4$ ls
 janus-idp-backstage-plugin-ansible-0.0.0.tgz  janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.0.tgz
@@ -401,31 +404,32 @@ janus-idp-backstage-plugin-ansible-0.0.0.tgz  janus-idp-backstage-plugin-scaffol
 
 In the helm chart releases for the project, click on `Actions->Upgrade` and in the YAML view
 append the below config under `dynamic.plugins` section
+
 ```yaml
-      - disabled: false
-        package: >-
-          http://plugin-registry:8080/janus-idp-backstage-plugin-ansible-0.0.0.tgz
-        pluginConfig:
-          dynamicPlugins:
-            frontend:
-              janus-idp.backstage-plugin-ansible:
-                appIcons:
-                  - importName: AnsibleLogo
-                    name: AnsibleLogo
-                dynamicRoutes:
-                  - importName: AnsiblePage
-                    menuItem:
-                      icon: AnsibleLogo
-                      text: Ansible
-                    path: /ansible
-      - disabled: false
-        package: >-
-          http://plugin-registry:8080/janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.0.tgz
-        pluginConfig:
-          dynamicPlugins:
-            backend:
-              janus-idp.backstage-plugin-scaffolder-backend-module-ansible:
-                mountPoints:
-                  - importName: createAnsibleContentAction
-                    mountPoint: entity.page.overview/cards
+- disabled: false
+  package: >-
+    http://plugin-registry:8080/janus-idp-backstage-plugin-ansible-0.0.0.tgz
+  pluginConfig:
+    dynamicPlugins:
+      frontend:
+        janus-idp.backstage-plugin-ansible:
+          appIcons:
+            - importName: AnsibleLogo
+              name: AnsibleLogo
+          dynamicRoutes:
+            - importName: AnsiblePage
+              menuItem:
+                icon: AnsibleLogo
+                text: Ansible
+              path: /ansible
+- disabled: false
+  package: >-
+    http://plugin-registry:8080/janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.0.tgz
+  pluginConfig:
+    dynamicPlugins:
+      backend:
+        janus-idp.backstage-plugin-scaffolder-backend-module-ansible:
+          mountPoints:
+            - importName: createAnsibleContentAction
+              mountPoint: entity.page.overview/cards
 ```
