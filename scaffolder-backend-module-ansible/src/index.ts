@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 
-export { scaffolderModuleAnsible as default } from './module';
-export { createAnsibleContentAction } from './actions';
-export * from './dynamic/index';
+export { scaffolderModuleAnsible as default } from "./module";
+export { createAnsibleContentAction } from "./actions";
+export * from "./dynamic/index";

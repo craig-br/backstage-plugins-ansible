@@ -28,7 +28,7 @@ export function withInterpreter(
   runExecutable: string,
   cmdArgs: string,
   interpreterPath?: string,
-  activationScript?: string,
+  activationScript?: string
 ): [string, NodeJS.ProcessEnv | undefined] {
   let command = `${runExecutable} ${cmdArgs}`; // base case
 

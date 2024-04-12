@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { ansibleCreatorRun } from './ansibleContentCreate';
-import { Logger } from 'winston';
+import { createTemplateAction } from "@backstage/plugin-scaffolder-node";
+import { ansibleCreatorRun } from "./ansibleContentCreate";
+import { Logger } from "winston";
 
 export function createAnsibleContentAction() {
   return createTemplateAction<{
@@ -25,38 +25,43 @@ export function createAnsibleContentAction() {
     collectionGroup: string;
     collectionName: string;
   }>({
-    id: 'ansible:content:create',
-    description: 'Runs Ansible creator to scaffold Ansible content',
+    id: "ansible:content:create",
+    description: "Runs Ansible creator to scaffold Ansible content",
     schema: {
       input: {
-        type: 'object',
-        required: ['repoUrl', 'collectionGroup', 'collectionName'],
+        type: "object",
+        required: ["repoUrl", "collectionGroup", "collectionName"],
         properties: {
           repoUrl: {
-            title: 'Repository URL',
-            description: 'The URL of the repository to create the Ansible content',
-            type: 'RepoUrlPicker',
+            title: "Repository URL",
+            description:
+              "The URL of the repository to create the Ansible content",
+            type: "RepoUrlPicker",
           },
           collectionGroup: {
-            title: 'Collection',
-            description: 'The "collectionOrg" part of "collectionOrg.collectionName',
-            type: 'string',
+            title: "Collection",
+            description:
+              'The "collectionOrg" part of "collectionOrg.collectionName',
+            type: "string",
           },
           collectionName: {
-            title: 'Collection name',
-            description: 'The "collectionName" part of "collectionOrg.collectionName"',
-            type: 'string',
+            title: "Collection name",
+            description:
+              'The "collectionName" part of "collectionOrg.collectionName"',
+            type: "string",
           },
           description: {
-            title: 'Description',
-            description: 'Describe this Collection and its purpose to help other users know what to use it for',
-            type: 'string',
+            title: "Description",
+            description:
+              "Describe this Collection and its purpose to help other users know what to use it for",
+            type: "string",
           },
         },
       },
     },
     async handler(ctx) {
-      const { repoUrl, description, collectionGroup, collectionName} = ctx.input;
+      const { repoUrl, description, collectionGroup, collectionName } =
+        ctx.input;
       ctx.logger.info(
         `Creating Ansible content within ${collectionGroup}.${collectionName} collection at ${repoUrl} with description: ${description}`
       );
@@ -67,7 +72,7 @@ export function createAnsibleContentAction() {
         repoUrl,
         description,
         collectionGroup,
-        collectionName,
+        collectionName
       );
     },
   });
