@@ -7,7 +7,7 @@ export type AnsibleDetails = {
 };
 
 function generateInitUrl(baseUrl: string, port: number): string {
-  return `${baseUrl}:${port}/init?`;
+  return `http://${baseUrl}:${port}/init?`;
 }
 
 export const getAnsibleConfig = (config: Config): AnsibleDetails => {

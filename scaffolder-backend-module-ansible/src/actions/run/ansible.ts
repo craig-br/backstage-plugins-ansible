@@ -77,8 +77,6 @@ export function createAnsibleContentAction(config: Config) {
         `Creating Ansible content within ${collectionGroup}.${collectionName} collection at ${repoUrl} with description: ${description}`,
       );
 
-      const ansibleDetails = getAllAnsibleConfig(config);
-
       await ansibleCreatorRun(
         ctx.workspacePath,
         ctx.input.applicationType,
