@@ -19,8 +19,9 @@ import { ansibleCreatorRun } from "./ansibleContentCreate";
 import { readAnsibleConfigs } from "../utils/config";
 import { ConfigReader } from "@backstage/config";
 import { Logger } from "winston";
+import { Config } from "@backstage/config";
 
-export function createAnsibleContentAction() {
+export function createAnsibleContentAction(config: Config) {
   return createTemplateAction<{
     repoUrl: string;
     description: string;
@@ -88,6 +89,7 @@ export function createAnsibleContentAction() {
           },
         },
       });
+      const test = config.getOptionalString("catalog.providers.ansible.port");
       const ansibleDetails = readAnsibleConfigs(configuration);
 
       await ansibleCreatorRun(

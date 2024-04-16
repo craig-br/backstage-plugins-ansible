@@ -3,5 +3,8 @@ import { createAnsibleContentAction } from "../actions/run";
 
 export const dynamicPluginInstaller: BackendDynamicPluginInstaller = {
   kind: "legacy",
-  scaffolder: () => [createAnsibleContentAction()],
+  scaffolder: (env) => {
+    const config = env.config;
+    return [createAnsibleContentAction(config)];
+  },
 };
