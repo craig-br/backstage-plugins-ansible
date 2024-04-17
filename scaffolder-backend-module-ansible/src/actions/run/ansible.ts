@@ -16,9 +16,11 @@
 
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import { ansibleCreatorRun } from './ansibleContentCreate';
+import { getServiceUrlFromAnsibleConfig, getDevSpacesUrlFromAnsibleConfig } from '../utils/config';
 import { Logger } from 'winston';
+import { Config } from '@backstage/config';
 
-export function createAnsibleContentAction() {
+export function createAnsibleContentAction(config: Config) {
   return createTemplateAction<{
     repoUrl: string;
     description: string;
@@ -34,39 +36,60 @@ export function createAnsibleContentAction() {
         properties: {
           repoUrl: {
             title: 'Repository URL',
-            description: 'The URL of the repository to create the Ansible content',
+            description:
+              'The URL of the repository to create the Ansible content',
             type: 'RepoUrlPicker',
           },
           collectionGroup: {
             title: 'Collection',
-            description: 'The "collectionOrg" part of "collectionOrg.collectionName',
+            description:
+              'The "collectionOrg" part of "collectionOrg.collectionName"',
             type: 'string',
           },
           collectionName: {
             title: 'Collection name',
-            description: 'The "collectionName" part of "collectionOrg.collectionName"',
+            description:
+              'The "collectionName" part of "collectionOrg.collectionName"',
             type: 'string',
           },
           description: {
             title: 'Description',
-            description: 'Describe this Collection and its purpose to help other users know what to use it for',
+            description:
+              'Describe this Collection and its purpose to help other users know what to use it for',
+            type: 'string',
+          },
+        },
+      },
+      output: {
+        type: 'object',
+        required: ['repoUrl', 'collectionGroup', 'collectionName'],
+        properties: {
+          devSpacesBaseUrl: {
             type: 'string',
           },
         },
       },
     },
     async handler(ctx) {
-      const { repoUrl, description, collectionGroup, collectionName } = ctx.input;
+      const { repoUrl, description, collectionGroup, collectionName } =
+        ctx.input;
       ctx.logger.info(
-        `Creating Ansible content within ${collectionGroup}.${collectionName} collection at ${repoUrl} with description: ${description}`
+        `Creating Ansible content within ${collectionGroup}.${collectionName} collection at ${repoUrl} with description: ${description}`,
       );
+
       await ansibleCreatorRun(
         ctx.workspacePath,
+        ctx.input.applicationType,
         ctx.logger as Logger,
         repoUrl,
         description,
         collectionGroup,
         collectionName,
+        getServiceUrlFromAnsibleConfig(config)
+      );
+      ctx.output(
+        'devSpacesBaseUrl',
+        getDevSpacesUrlFromAnsibleConfig(config),
       );
     },
   });

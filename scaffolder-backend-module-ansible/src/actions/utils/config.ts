@@ -1,0 +1,32 @@
+import { Config } from '@backstage/config';
+
+export type AnsibleDetails = {
+  devSpacesBaseUrl: string;
+  port?: number;
+  baseUrl?: string;
+};
+
+function generateInitUrl(baseUrl: string, port: number): string {
+  return `http://${baseUrl}:${port}/init?`;
+}
+
+export const getAnsibleConfig = (config: Config): AnsibleDetails => {
+  return {
+    devSpacesBaseUrl: config.getString('ansible.devSpacesBaseUrl'),
+    baseUrl: config.getString('ansible.creatorService.baseUrl'),
+    port: parseInt(config.getString('ansible.creatorService.port')),
+  };
+};
+
+export const getAllAnsibleConfig = (config: Config): AnsibleDetails => {
+  return getAnsibleConfig(config);
+};
+
+export const getDevSpacesUrlFromAnsibleConfig = (config: Config): string => {
+  return config.getString('ansible.devSpacesBaseUrl');
+};
+
+export const getServiceUrlFromAnsibleConfig = (config: Config): string => {
+  return generateInitUrl(config.getString('ansible.creatorService.baseUrl'),
+        parseInt(config.getString('ansible.creatorService.port')) );
+};

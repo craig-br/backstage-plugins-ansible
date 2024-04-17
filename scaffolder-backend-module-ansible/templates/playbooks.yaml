@@ -1,12 +1,13 @@
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: collection-template
-  title: Create a Ansible Collection Project
-  description: Create a starter Ansible collection project preconfigured for tests and pipelines. Includes Development settings and configuration for building an execution environment
+  name: playbook-template
+  title: Create a Ansible Playbook Project
+  description: Create a starter Ansible Playbook project preconfigured for tests and pipelines. Includes Development settings and configuration for building an execution environment
   tags:
     - recommended
     - ansible
+    - playbook
 spec:
   owner: ansible-authors
   system: ansible
@@ -65,7 +66,7 @@ spec:
         description: '${{ parameters.description }}'
         collectionGroup: '${{ parameters.collectionGroup }}'
         collectionName: '${{ parameters.collectionName }}'
-        applicationType: collection-project
+        applicationType: playbook-project
         sourceControl: github.com
 
     - id: catalogTemplate
@@ -77,7 +78,7 @@ spec:
           repoUrl: '${{ parameters.repoUrl }}'
           owner: ${{ parameters.owner }}
           system: ${{ parameters.system }}
-          applicationType: collection-project
+          applicationType: playbook-project
           description: ${{ parameters.description }}
           collectionGroup: ${{ parameters.collectionGroup }}
           collectionName: ${{ parameters.collectionName }}
