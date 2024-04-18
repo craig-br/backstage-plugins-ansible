@@ -26,9 +26,11 @@ metadata:
     dev.azure.com/project-repo: ${{ values.repoUrl | projectSlug }}
     {%- endif %}
   links:
-    - url: https://workspaces.openshift.com/#https://github.com/${{ values.repoUrl.split("=")[1].split("&")[0] }}/${{ values.repoUrl.split("=")|last}}
+    {%- if values.devSpacesBaseUrl %}
+    - url: ${{ values.devSpacesBaseUrl }}${{ values.repoUrl.split("=")[1].split("&")[0] }}/${{ values.repoUrl.split("=")|last}}
       title: OpenShift Dev Spaces
       icon: web
+    {%- endif %}
 spec:
   type: ${{ values.applicationType }}
   {%- if values.system %}

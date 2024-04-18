@@ -16,4 +16,3 @@
 
 export { scaffolderModuleAnsible as default } from './module';
 export { createAnsibleContentAction } from './actions';
-export * from './dynamic/index';

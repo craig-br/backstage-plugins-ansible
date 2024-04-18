@@ -13,36 +13,106 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as os from "os";
+import * as os from 'os';
 
 import { Logger } from 'winston';
 import { executeShellCommand } from '@backstage/plugin-scaffolder-node';
+import fetch from 'node-fetch';
+import fs from 'fs';
+
+async function downloadFromCreatorService(
+  workspacePath: string,
+  logger: Logger,
+  creatorServiceUrl: string,
+  collectionOrgName: string
+) {
+  const requestOptions = {
+    method: 'GET',
+  };
+
+  try {
+    logger.debug(
+      `[ansible-creator] Running ansible-creator-service args: ${collectionOrgName}`
+    );
+    const response = await fetch(creatorServiceUrl, requestOptions);
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch data');
+    }
+
+    const fileStream = fs.createWriteStream(
+      workspacePath + '/' + collectionOrgName
+    );
+    await new Promise((resolve, reject) => {
+      response.body.pipe(fileStream);
+      response.body.on('error', (err) => {
+        reject(err);
+      });
+      fileStream.on('finish', function () {
+        resolve(true);
+      });
+    });
+    console.log('File downloaded successfully');
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
 
 export async function ansibleCreatorRun(
   workspacePath: string,
+  applicationType: string,
   logger: Logger,
   _repoUrl: string,
   _description: string,
   collectionGroup: string,
   collectionName: string,
-
+  creatorServiceUrl: string,
 ) {
-  logger.info(`Running ansible collection create for ${collectionGroup}.${collectionName}`);
-  const scaffoldPath = workspacePath
-  ? workspacePath
-  : `${os.homedir()}/.ansible/collections/ansible_collections`;
-  const logFilePathUrl = `${os.tmpdir()}/ansible-creator.log`;
+  creatorServiceUrl +=
+    applicationType === 'playbook-project'
+      ? `project=ansible-project&scm_org=${collectionGroup}&scm_project=${collectionName}`
+      : `collection=${collectionGroup}.${collectionName}`;
 
-  const args = ['init', `${collectionGroup}.${collectionName}`, '--no-ansi', `--init-path=${scaffoldPath}`, `--lf=${logFilePathUrl}`];
-  logger.debug(`[ansible-creator] Running ansible-creator with args: ${args.join(' ')}`);
+  logger.info(
+    `Running ansible collection create for ${collectionGroup}.${collectionName}`
+  );
+
+  const scaffoldPath = workspacePath
+    ? workspacePath
+    : `${os.homedir()}/.ansible/collections/ansible_collections`;
+
+  const collection_name = `${collectionGroup}-${collectionName}.tar`;
+
+  logger.debug(
+    `[ansible-creator] Invoking ansible-creator service with collection args: ${collection_name}`
+  );
+  await downloadFromCreatorService(
+    scaffoldPath,
+    logger,
+    creatorServiceUrl,
+    collection_name
+  );
+  logger.info(`Out of file download operation`);
+
+  // untar the scaffolded collection
   await executeShellCommand({
-    command: 'ansible-creator',
-    args: args,
+    command: 'tar',
+    args: ['-xvf', collection_name],
     options: {
       cwd: scaffoldPath,
     },
-    logStream: logger
+    logStream: logger,
   });
-  logger.info(`[ansible-creator] Completed ansible-creator init for ${collectionGroup}.${collectionName}`);
-
+  // delete the tarball as it must not be published in Source Control
+  await executeShellCommand({
+    command: 'rm',
+    args: [collection_name],
+    options: {
+      cwd: scaffoldPath,
+    },
+    logStream: logger,
+  });
+  logger.info(
+    `[ansible-creator] Completed ansible-creator service invocation for ${collection_name}`
+  );
 }
