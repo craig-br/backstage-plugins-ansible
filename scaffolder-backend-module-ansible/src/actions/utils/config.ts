@@ -10,6 +10,18 @@ function generateInitUrl(baseUrl: string, port: number): string {
   return `http://${baseUrl}:${port}/init?`;
 }
 
+function generateDevSpacesUrl(
+  devSpacesBaseUrl: string,
+  repoOwner: string,
+  repoName: string,
+): string {
+  return `${devSpacesBaseUrl}#https://github.com/${repoOwner}/${repoName}`;
+}
+
+export function generateRepoUrl(repoOwner: string, repoName: string): string {
+  return `github.com?owner=${repoOwner}&repo=${repoName}`;
+}
+
 export const getAnsibleConfig = (config: Config): AnsibleDetails => {
   return {
     devSpacesBaseUrl: config.getString('ansible.devSpacesBaseUrl'),
@@ -27,6 +39,20 @@ export const getDevSpacesUrlFromAnsibleConfig = (config: Config): string => {
 };
 
 export const getServiceUrlFromAnsibleConfig = (config: Config): string => {
-  return generateInitUrl(config.getString('ansible.creatorService.baseUrl'),
-        parseInt(config.getString('ansible.creatorService.port')) );
+  return generateInitUrl(
+    config.getString('ansible.creatorService.baseUrl'),
+    parseInt(config.getString('ansible.creatorService.port')),
+  );
+};
+
+export const getDevspacesUrlFromAnsibleConfig = (
+  config: Config,
+  repoOwner: string,
+  repoName: string,
+): string => {
+  return generateDevSpacesUrl(
+    config.getString('ansible.devSpacesBaseUrl'),
+    repoOwner,
+    repoName,
+  );
 };

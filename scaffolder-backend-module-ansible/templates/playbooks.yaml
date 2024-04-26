@@ -2,8 +2,8 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: playbook-template
-  title: Create a Ansible Playbook Project
-  description: Create a starter Ansible Playbook project preconfigured for tests and pipelines. Includes Development settings and configuration for building an execution environment
+  title: Create Ansible Playbook Project
+  description: Create a new starter Ansible playbook project Git repository preconfigured with best practices.
   tags:
     - recommended
     - ansible
@@ -15,30 +15,31 @@ spec:
   parameters:
     - title: Provide information about the new component
       required:
-        - repoUrl
-        - system
+        - repoOwner
+        - repoName
         - owner
         - collectionGroup
         - collectionName
       properties:
-        repoUrl:
-          title: Repository Location
+        repoOwner:
+          title: Source code Git repository owner
           type: string
-          ui:field: RepoUrlPicker
-          ui:options:
-            allowedHosts:
-              - github.com
+          description: The organization name or username of your source code repository. For example “my-github-username”.
+        repoName:
+          title: Playbook Git repository name
+          description: The name of the new playbook project Git repository. For example “my-new-playbook-repo”
+          type: string
         description:
           title: Description
           type: string
-          description: Describe this Collection and its purpose to help other users know what to use it for
+          description: Describe the playbook and its purpose to help other users understand what to use it for.
         collectionGroup:
-          title: Collection group name
-          description: The 'collectionOrg' part of 'collectionOrg.collectionName'
+          title: Playbook project group name
+          description: The 'playProjOrg' part of 'playPorjOrg.playProjName'
           type: string
         collectionName:
-          title: Collection name
-          description: The 'collectionName' part of 'collectionOrg.collectionName'
+          title: Playbook project name
+          description: The 'playProjName' part of 'playProjOrg.playProjName'
           type: string
         owner:
           title: Owner
@@ -58,24 +59,37 @@ spec:
               kind:
                 - System
   steps:
+    - id: log
+      name: Parse Entity Reference
+      action: debug:log
+      input:
+        extra: 'github.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.repoName }}'
+
     - id: ansible
       name: Generating the Ansible Source Code Component
       action: ansible:content:create
       input:
-        repoUrl: '${{ parameters.repoUrl }}'
+        repoOwner: '${{ parameters.repoOwner }}'
+        repoName: '${{ parameters.repoName }}'
         description: '${{ parameters.description }}'
         collectionGroup: '${{ parameters.collectionGroup }}'
         collectionName: '${{ parameters.collectionName }}'
         applicationType: playbook-project
         sourceControl: github.com
 
+    - id: log
+      name: Parse Entity Reference
+      action: debug:log
+      input:
+        extra: ${{ steps.ansible.output.repoUrl }}
+
     - id: catalogTemplate
       name: Generating the Catalog Info Component
       action: fetch:template
       input:
-        url: ./catalog-info/
+        url: ../skeletons/catalog-info/
         values:
-          repoUrl: '${{ parameters.repoUrl }}'
+          repoUrl: ${{ steps.ansible.output.repoUrl }}
           owner: ${{ parameters.owner }}
           system: ${{ parameters.system }}
           applicationType: playbook-project
@@ -92,8 +106,9 @@ spec:
         allowedHosts:
           - github.com
         description: ${{ parameters.description }}
-        repoUrl: ${{ parameters.repoUrl }}
+        repoUrl: ${{ steps.ansible.output.repoUrl }}
         repoVisibility: 'public'
+        defaultBranch: main
 
     - id: register
       name: Register
@@ -106,6 +121,7 @@ spec:
     links:
       - title: Repository
         url: ${{ steps.publish.output.remoteUrl }}
+
       - title: Open in catalog
         icon: catalog
         entityRef: ${{ steps.register.output.entityRef }}

@@ -16,13 +16,18 @@
 
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import { ansibleCreatorRun } from './ansibleContentCreate';
-import { getServiceUrlFromAnsibleConfig, getDevSpacesUrlFromAnsibleConfig } from '../utils/config';
+import {
+  getServiceUrlFromAnsibleConfig,
+  getDevspacesUrlFromAnsibleConfig,
+  generateRepoUrl,
+} from '../utils/config';
 import { Logger } from 'winston';
 import { Config } from '@backstage/config';
 
 export function createAnsibleContentAction(config: Config) {
   return createTemplateAction<{
-    repoUrl: string;
+    repoOwner: string;
+    repoName: string;
     description: string;
     collectionGroup: string;
     collectionName: string;
@@ -32,13 +37,23 @@ export function createAnsibleContentAction(config: Config) {
     schema: {
       input: {
         type: 'object',
-        required: ['repoUrl', 'collectionGroup', 'collectionName'],
+        required: [
+          'repoOwner',
+          'repoName',
+          'collectionGroup',
+          'collectionName',
+        ],
         properties: {
-          repoUrl: {
-            title: 'Repository URL',
+          repoOwner: {
+            title: 'Source code Git repository owner',
             description:
-              'The URL of the repository to create the Ansible content',
-            type: 'RepoUrlPicker',
+              'The organization name or username of your source code repository.',
+            type: 'string',
+          },
+          repoName: {
+            title: 'Git repository name',
+            description: 'The name of the new playbook project Git repository.',
+            type: 'string',
           },
           collectionGroup: {
             title: 'Collection',
@@ -62,35 +77,48 @@ export function createAnsibleContentAction(config: Config) {
       },
       output: {
         type: 'object',
-        required: ['repoUrl', 'collectionGroup', 'collectionName'],
+        required: [
+          'repoOwner',
+          'repoName',
+          'collectionGroup',
+          'collectionName',
+        ],
         properties: {
           devSpacesBaseUrl: {
+            type: 'string',
+          },
+          repoUrl: {
             type: 'string',
           },
         },
       },
     },
     async handler(ctx) {
-      const { repoUrl, description, collectionGroup, collectionName } =
-        ctx.input;
+      const {
+        repoOwner,
+        repoName,
+        description,
+        collectionGroup,
+        collectionName,
+      } = ctx.input;
       ctx.logger.info(
-        `Creating Ansible content within ${collectionGroup}.${collectionName} collection at ${repoUrl} with description: ${description}`,
+        `Creating Ansible content within ${collectionGroup}.${collectionName} collection with description: ${description}`,
       );
 
       await ansibleCreatorRun(
         ctx.workspacePath,
         ctx.input.applicationType,
         ctx.logger as Logger,
-        repoUrl,
         description,
         collectionGroup,
         collectionName,
-        getServiceUrlFromAnsibleConfig(config)
+        getServiceUrlFromAnsibleConfig(config),
       );
       ctx.output(
         'devSpacesBaseUrl',
-        getDevSpacesUrlFromAnsibleConfig(config),
+        getDevspacesUrlFromAnsibleConfig(config, repoOwner, repoName),
       );
+      ctx.output('repoUrl', generateRepoUrl(repoOwner, repoName));
     },
   });
 }

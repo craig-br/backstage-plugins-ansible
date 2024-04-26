@@ -24,7 +24,7 @@ async function downloadFromCreatorService(
   workspacePath: string,
   logger: Logger,
   creatorServiceUrl: string,
-  collectionOrgName: string
+  collectionOrgName: string,
 ) {
   const requestOptions = {
     method: 'GET',
@@ -32,7 +32,7 @@ async function downloadFromCreatorService(
 
   try {
     logger.debug(
-      `[ansible-creator] Running ansible-creator-service args: ${collectionOrgName}`
+      `[ansible-creator] Running ansible-creator-service args: ${collectionOrgName}`,
     );
     const response = await fetch(creatorServiceUrl, requestOptions);
 
@@ -41,11 +41,11 @@ async function downloadFromCreatorService(
     }
 
     const fileStream = fs.createWriteStream(
-      workspacePath + '/' + collectionOrgName
+      workspacePath + '/' + collectionOrgName,
     );
     await new Promise((resolve, reject) => {
       response.body.pipe(fileStream);
-      response.body.on('error', (err) => {
+      response.body.on('error', err => {
         reject(err);
       });
       fileStream.on('finish', function () {
@@ -62,7 +62,6 @@ export async function ansibleCreatorRun(
   workspacePath: string,
   applicationType: string,
   logger: Logger,
-  _repoUrl: string,
   _description: string,
   collectionGroup: string,
   collectionName: string,
@@ -74,7 +73,7 @@ export async function ansibleCreatorRun(
       : `collection=${collectionGroup}.${collectionName}`;
 
   logger.info(
-    `Running ansible collection create for ${collectionGroup}.${collectionName}`
+    `Running ansible collection create for ${collectionGroup}.${collectionName}`,
   );
 
   const scaffoldPath = workspacePath
@@ -84,13 +83,13 @@ export async function ansibleCreatorRun(
   const collection_name = `${collectionGroup}-${collectionName}.tar`;
 
   logger.debug(
-    `[ansible-creator] Invoking ansible-creator service with collection args: ${collection_name}`
+    `[ansible-creator] Invoking ansible-creator service with collection args: ${collection_name}`,
   );
   await downloadFromCreatorService(
     scaffoldPath,
     logger,
     creatorServiceUrl,
-    collection_name
+    collection_name,
   );
   logger.info(`Out of file download operation`);
 
@@ -113,6 +112,6 @@ export async function ansibleCreatorRun(
     logStream: logger,
   });
   logger.info(
-    `[ansible-creator] Completed ansible-creator service invocation for ${collection_name}`
+    `[ansible-creator] Completed ansible-creator service invocation for ${collection_name}`,
   );
 }
