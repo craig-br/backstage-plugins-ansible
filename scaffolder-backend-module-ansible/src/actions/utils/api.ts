@@ -1,5 +1,22 @@
+/*
+ * Copyright 2024 The Ansible plugin Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import * as fs from 'fs';
 import fetch from 'node-fetch';
+import { Logger } from 'winston';
 
 export class BackendServiceAPI {
   private async sendPostRequest(url: string, data: any) {
@@ -26,22 +43,12 @@ export class BackendServiceAPI {
 
   private async downloadFile(
     response: Response,
-    logger: any,
+    logger: Logger,
     workspacePath: string,
-    collectionOrgName: string,
-    applicationType: string,
+    tarName: string,
   ) {
     try {
-      const contentDisposition = response.headers.get('content-disposition');
-      const filenamePattern = /filename="(.+?)"/;
-      let fileName = collectionOrgName + '.tar.gz';
-      if (applicationType === 'collection-project') {
-        let fileName = contentDisposition
-          ? contentDisposition.match(filenamePattern)[1]
-          : collectionOrgName + '.tar.gz';
-      }
-
-      const fileStream = fs.createWriteStream(`${workspacePath}/${fileName}`);
+      const fileStream = fs.createWriteStream(`${workspacePath}/${tarName}`);
       await new Promise((resolve, reject) => {
         response.body.pipe(fileStream);
         response.body.on('error', (err: any) => {
@@ -59,10 +66,11 @@ export class BackendServiceAPI {
 
   public async downloadPlaybookProject(
     workspacePath: string,
-    logger: any,
+    logger: Logger,
     creatorServiceUrl: string,
     collectionOrgName: string,
     collectionName: string,
+    tarName: string,
   ) {
     try {
       logger.debug(
@@ -79,13 +87,7 @@ export class BackendServiceAPI {
         creatorServiceUrl + 'v1/creator/playbook',
         postData,
       );
-      await this.downloadFile(
-        response,
-        logger,
-        workspacePath,
-        collectionOrgName,
-        'playbook-project',
-      );
+      await this.downloadFile(response, logger, workspacePath, tarName);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -93,10 +95,11 @@ export class BackendServiceAPI {
 
   public async downloadCollectionProject(
     workspacePath: string,
-    logger: any,
+    logger: Logger,
     creatorServiceUrl: string,
     collectionOrgName: string,
     collectionName: string,
+    tarName: string,
   ) {
     try {
       logger.debug(
@@ -112,13 +115,7 @@ export class BackendServiceAPI {
         creatorServiceUrl + 'v1/creator/collection',
         postData,
       );
-      await this.downloadFile(
-        response,
-        logger,
-        workspacePath,
-        collectionOrgName,
-        'collection-project',
-      );
+      await this.downloadFile(response, logger, workspacePath, tarName);
     } catch (error) {
       console.error('Error:', error);
     }

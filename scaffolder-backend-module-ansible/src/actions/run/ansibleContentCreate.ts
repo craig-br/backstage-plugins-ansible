@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Ansible plugin Authors
+ * Copyright 2024 The Ansible plugin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,11 +36,9 @@ export async function ansibleCreatorRun(
     ? workspacePath
     : `${os.homedir()}/.ansible/collections/ansible_collections`;
 
-  const collection_name = `${collectionGroup}-${collectionName}.tar.gz`;
+  const tarName = `${collectionGroup}-${applicationType}.tar.gz`;
 
-  logger.debug(
-    `[ansible-creator] Invoking ansible-creator service with collection args: ${collection_name}`,
-  );
+  logger.debug(`[ansible-creator] Invoking ansible-creator service`);
   if (applicationType === 'playbook-project') {
     await fileDownloader.downloadPlaybookProject(
       workspacePath,
@@ -48,6 +46,7 @@ export async function ansibleCreatorRun(
       creatorServiceUrl,
       collectionGroup,
       collectionName,
+      tarName,
     );
   } else if (applicationType === 'collection-project') {
     await fileDownloader.downloadCollectionProject(
@@ -56,6 +55,7 @@ export async function ansibleCreatorRun(
       creatorServiceUrl,
       collectionGroup,
       collectionName,
+      tarName,
     );
   }
   logger.info(`Out of file download operation`);
@@ -63,7 +63,7 @@ export async function ansibleCreatorRun(
   // untar the scaffolded collection
   await executeShellCommand({
     command: 'tar',
-    args: ['-xvf', collection_name],
+    args: ['-xvf', tarName],
     options: {
       cwd: scaffoldPath,
     },
@@ -72,13 +72,11 @@ export async function ansibleCreatorRun(
   // delete the tarball as it must not be published in Source Control
   await executeShellCommand({
     command: 'rm',
-    args: [collection_name],
+    args: [tarName],
     options: {
       cwd: scaffoldPath,
     },
     logStream: logger,
   });
-  logger.info(
-    `[ansible-creator] Completed ansible-creator service invocation for ${collection_name}`,
-  );
+  logger.info(`[ansible-creator] Completed ansible-creator service invocation`);
 }

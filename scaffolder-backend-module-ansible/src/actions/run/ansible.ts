@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Ansible plugin Authors
+ * Copyright 2024 The Ansible plugin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,32 +45,32 @@ export function createAnsibleContentAction(config: Config) {
         ],
         properties: {
           repoOwner: {
-            title: 'Source code Git repository owner',
+            title: ' Source code repository organization name or username',
             description:
-              'The organization name or username of your source code repository.',
+              'The organization name or username of your source code repository. For example, “my-github-username”.',
             type: 'string',
           },
           repoName: {
-            title: 'Git repository name',
-            description: 'The name of the new playbook project Git repository.',
+            title: 'Repository name',
+            description: 'The name of the new playbook project repository. For example, “my-new-playbook-repo”.',
             type: 'string',
           },
           collectionGroup: {
-            title: 'Collection',
+            title: 'Collection Namespace',
             description:
-              'The "collectionOrg" part of "collectionOrg.collectionName"',
+              'The collection namespace in your new playbook repository. For example, “my-new-collection-namespace”.',
             type: 'string',
           },
           collectionName: {
             title: 'Collection name',
             description:
-              'The "collectionName" part of "collectionOrg.collectionName"',
+              'The collection name in your new playbook repository. For example, “my-new-collection-name”.',
             type: 'string',
           },
           description: {
             title: 'Description',
             description:
-              'Describe this Collection and its purpose to help other users know what to use it for',
+              'Describe the playbook or collection and its purpose to help other users understand what to use it for.',
             type: 'string',
           },
         },
