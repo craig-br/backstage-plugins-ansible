@@ -14,22 +14,23 @@
  * limitations under the License.
  */
 
-import React from 'react';
-import {
-  Grid,
-} from '@material-ui/core';
-import { QuickAccessCard } from './QuickAccessCard';
-import { Favourites } from './Favourites';
+export interface Config {
+  /** Configurations for the Ansible plugin */
+  ansible: {
+    /**
+     * The devspacesBaseUrl for Openshift Dev Spaces Dashboard.
+     * @visibility frontend
+     */
+    devSpacesBaseUrl: string;
 
-export const EntityOverviewContent = () => {
-  return (
-    <Grid container spacing={2} justifyContent="space-between">
-      <Grid item xs={9}>
-        <QuickAccessCard />
-      </Grid>
-      <Grid item xs={3}>
-        <Favourites />
-      </Grid>
-    </Grid>
-  );
-};
+    /**
+     * @visibility frontend
+     */
+    pahUrl: string;
+
+    /**
+     * @visibility frontend
+     */
+    aapUrl: string;
+  };
+}
