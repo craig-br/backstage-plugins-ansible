@@ -106,6 +106,8 @@ const QuickAccessAccordion = ({ data, index, expanded, config }: QuickAccessProp
   if (btnUrl && btnUrl.includes('app-config')) {
     const configKey = btnUrl.split(':')[1];
     btnUrl = config.getOptionalString(configKey)
+    if (!btnUrl)
+      btnUrl = data.button?.fallbackUrl;
   }
 
   const btnProps: ButtonProps = {

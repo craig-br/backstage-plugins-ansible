@@ -27,6 +27,7 @@ export interface IQuickAccessLinks {
     button?: {
         text?: string;
         url?: string;
+        fallbackUrl?: string;
         isExternalUrl?: boolean;
     }
     showDocsLink?: boolean;
@@ -60,11 +61,12 @@ export const learn: IQuickAccessLinks = {
 
 export const discoverContent: IQuickAccessLinks = {
     name: 'Discover existing collections',
-    description: 'Leverage existing collections and execution environments from Private Automation Hub. Private Automation Hub is a self-hosted Ansible content management system. Organizations can host provate hubs on their own infrastructure and manage it themselves.',
+    description: 'Leverage existing collections and execution environments from Automation Hub. Private Automation Hub is a self-hosted Ansible content management system. Organizations can host provate hubs on their own infrastructure and manage it themselves.',
     showButton: true,
     button: {
-        text: 'Go to Private Automation Hub',
+        text: 'Go to Automation Hub',
         url: 'app-config:ansible.pahUrl',
+        fallbackUrl: 'https://console.redhat.com/ansible/automation-hub/',
         isExternalUrl: true
     },
     showDocsLink: true,
@@ -102,6 +104,7 @@ export const develop: IQuickAccessLinks = {
     button: {
         text: 'Go to OpenShift Dev Spaces Dashboard',
         url: 'app-config:ansible.devSpacesBaseUrl',
+        fallbackUrl: 'https://red.ht/aap-developer-tools',
         isExternalUrl: true
     },
     showDocsLink: true,
@@ -118,6 +121,7 @@ export const operate: IQuickAccessLinks = {
     button: {
         text: 'Go to Ansible Automation Platform',
         url: 'app-config:ansible.aapUrl',
+        fallbackUrl: 'https://www.redhat.com/en/technologies/management/ansible/trial',
         isExternalUrl: true
     },
     showDocsLink: true,
