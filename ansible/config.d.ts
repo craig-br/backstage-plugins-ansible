@@ -16,21 +16,21 @@
 
 export interface Config {
   /** Configurations for the Ansible plugin */
-  ansible: {
+  ansible?: {
     /**
      * The devspacesBaseUrl for Openshift Dev Spaces Dashboard.
      * @visibility frontend
      */
-    devSpacesBaseUrl: string;
+    devSpacesBaseUrl?: string;
 
     /**
      * @visibility frontend
      */
-    pahUrl: string;
+    pahUrl?: string;
 
     /**
      * @visibility frontend
      */
-    aapUrl: string;
+    aapUrl?: string;
   };
 }
