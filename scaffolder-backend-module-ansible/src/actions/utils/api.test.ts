@@ -54,7 +54,7 @@ describe('BackendServiceAPI', () => {
       );
 
     // Assert
-    expect(privateFuncdownloadFile).toHaveBeenCalled(); //With(, mockLogger, '/tmp/workspace', 'my-collection-playbook-project.tar.gz');
+    expect(privateFuncdownloadFile).toHaveBeenCalled();
     expect(privateFuncsendPostRequest).toHaveBeenCalledWith('http://localhost:8000v1/creator/playbook', {'project': 'ansible-project', 'scm_org': 'my-org', 'scm_project': 'my-collection'});
   });
 
