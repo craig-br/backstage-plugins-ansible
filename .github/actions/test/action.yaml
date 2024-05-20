@@ -1,10 +1,7 @@
 ---
 name: Test
-description: Test Node.js package
+description: Test plugins
 inputs:
-  args:
-    description: Backstage CLI repo build arguments
-    default: '@janus-idp/*'
   node-version:
     description: Node.js version
     required: true
@@ -42,10 +39,10 @@ runs:
       shell: bash
       run: |
         cd scaffolder-backend-module-ansible
-        yarn lint --filter=${{ inputs.args }}
+        yarn lint
 
     - name: Run tests for scaffolder-backend-module-ansible
       shell: bash
       run: |
         cd scaffolder-backend-module-ansible
-        yarn test --filter=${{ inputs.args }}
+        yarn test

@@ -1,7 +1,20 @@
 ---
 name: Pull request
 
-on: pull_request
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '!*' # Do not execute on tags
+    paths:
+      - src/*
+      - test/*
+      - '*.json'
+      - yarn.lock
+  pull_request:
+    paths:
+      - '!*.md'
 
 jobs:
   test:
@@ -19,11 +32,10 @@ jobs:
       - name: Test
         uses: ./.github/actions/test
         with:
-          args: '[HEAD^1]'
           node-version: ${{ matrix.node-version }}
 
   build:
-    name: Build all packages with Node.js ${{ matrix.node-version }}
+    name: Build scaffolder packages with Node.js ${{ matrix.node-version }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -37,4 +49,21 @@ jobs:
       - name: Build
         uses: ./.github/actions/build
         with:
-          args: '[HEAD^1]'
+          node-version: ${{ matrix.node-version }}
+
+  coverage:
+    name: Check code coverage ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+        with:
+          fetch-depth: 0
+
+      - name: Build
+        uses: ./.github/actions/coverage
+        with:
+          node-version: ${{ matrix.node-version }}
