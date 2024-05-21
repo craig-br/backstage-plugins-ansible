@@ -1,0 +1,90 @@
+---
+name: Pull request
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '!*' # Do not execute on tags
+    paths:
+      - src/*
+      - test/*
+      - '*.json'
+      - yarn.lock
+  pull_request:
+    paths:
+      - '!*.md'
+
+jobs:
+  test:
+    name: Test with Node.js ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+        with:
+          fetch-depth: 0
+
+      - name: Test
+        uses: ./.github/actions/test
+        with:
+          node-version: ${{ matrix.node-version }}
+          plugin: "scaffolder-backend-moudule-ansible"
+
+  build-backend:
+    name: Build scaffolder-backend packages with Node.js ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+        with:
+          fetch-depth: 0
+
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+          node-version: ${{ matrix.node-version }}
+          plugin: "scaffolder-backend-moudule-ansible"
+
+  build-frontend:
+    name: Build frontend packages with Node.js ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+        with:
+          fetch-depth: 0
+
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+          node-version: ${{ matrix.node-version }}
+          plugin: "ansible"
+
+  coverage:
+    name: Check code coverage ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+        with:
+          fetch-depth: 0
+
+      - name: Coverage
+        uses: ./.github/actions/coverage
+        with:
+          node-version: ${{ matrix.node-version }}
+          plugin: "scaffolder-backend-moudule-ansible"

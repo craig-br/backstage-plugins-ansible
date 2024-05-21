@@ -54,7 +54,7 @@ export class BackendServiceAPI {
         response.body.on('error', (err: any) => {
           reject(err);
         });
-        fileStream.on('finish', function () {
+        fileStream.on('finish', () => {
           resolve(true);
         });
       });
