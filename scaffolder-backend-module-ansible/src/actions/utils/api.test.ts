@@ -55,7 +55,7 @@ describe('BackendServiceAPI', () => {
 
     // Assert
     expect(privateFuncdownloadFile).toHaveBeenCalled();
-    expect(privateFuncsendPostRequest).toHaveBeenCalledWith('http://localhost:8000v1/creator/playbook', {'project': 'ansible-project', 'scm_org': 'my-org', 'scm_project': 'my-collection'});
+    expect(privateFuncsendPostRequest).toHaveBeenCalledWith('http://localhost:8000/v1/creator/playbook', {'project': 'ansible-project', 'scm_org': 'my-org', 'scm_project': 'my-collection'});
   });
 
   it('tests collection project call', async () => {
@@ -84,6 +84,6 @@ describe('BackendServiceAPI', () => {
 
     // Assert
     expect(privateFuncdownloadFile).toHaveBeenCalled();
-    expect(privateFuncsendPostRequest).toHaveBeenCalledWith('http://localhost:8000v1/creator/collection', {'collection': 'my-org.my-collection', 'project': 'collection'});
+    expect(privateFuncsendPostRequest).toHaveBeenCalledWith('http://localhost:8000/v1/creator/collection', {'collection': 'my-org.my-collection', 'project': 'collection'});
   });
 });

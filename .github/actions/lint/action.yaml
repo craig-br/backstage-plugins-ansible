@@ -1,6 +1,6 @@
 ---
-name: Test
-description: Test plugins
+name: Lint
+description: Lint plugins
 inputs:
   plugin:
     description: Name of the plugin to build
@@ -34,8 +34,9 @@ runs:
           exit 42
         fi
 
-    - name: Run tests for ${{ inputs.plugin }}
+    - name: Run lint for ${{ inputs.plugin }}
       shell: bash
       working-directory: ${{ inputs.plugin }}
       run: |
-        yarn test
+        yarn lint
+
