@@ -1,6 +1,6 @@
 ---
 name: Pack
-description: Pack plugin and upload aritfact
+description: Pack plugin and upload artifact
 inputs:
   plugin:
     description: Name of the plugin to build
@@ -45,17 +45,16 @@ runs:
       shell: bash
       working-directory: ${{ inputs.plugin }}
       run: |
-        INTEGRITY_HASH=$(npm pack --pack-destination ./build-${{ inputs.plugin }} --json | jq -r '.[0].integrity')
+        npm pack --pack-destination ./build-${{ inputs.plugin }}
 
-    - name: Notify integrity hash
+    - name: Notify files packed
       shell: bash
       working-directory: build-${{ inputs.plugin }}
       run: |
         ls -l
-        echo "Integrity Hash: $INTEGRITY_HASH"
 
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v2
       with:
         name: janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.3.tgz
-        path: build-${{ inputs.plugin }}/janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.3.tgz
+        path: ./build-${{ inputs.plugin }}/janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.3.tgz
