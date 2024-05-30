@@ -61,4 +61,4 @@ runs:
       uses: actions/upload-artifact@v2
       with:
         name: janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.3.tgz
-        path: janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.3.tgz
+        path: scaffolder-backend-module-ansible/janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.3.tgz
