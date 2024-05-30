@@ -52,6 +52,11 @@ runs:
       run: |
         ls -l
 
+    - name: Notify files packed again
+      shell: bash
+      run: |
+        ls -l
+
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v2
       with:
