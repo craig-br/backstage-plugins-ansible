@@ -13,3 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import { TestApiProvider, renderInTestApp } from '@backstage/test-utils';
+import React from 'react';
+import { EntityOverviewContent } from './OverviewContent';
+import { configApiRef } from '@backstage/core-plugin-api';
+import {
+  MockStarredEntitiesApi,
+  catalogApiRef,
+  starredEntitiesApiRef,
+} from '@backstage/plugin-catalog-react';
+import { catalogApi, configApi, mockEntity } from '../../tests/test_utils';
+
+const render = (children: JSX.Element) => {
+  const mockApi = new MockStarredEntitiesApi();
+  mockApi.toggleStarred('test')
+  return (
+    <TestApiProvider
+      apis={[
+        [configApiRef, configApi],
+        [catalogApiRef, catalogApi],
+        [starredEntitiesApiRef, mockApi],
+      ]}
+    >
+      {children}
+    </TestApiProvider>
+  );
+};
+
+describe('Overview Page Content', () => {
+  it('render Overview Page', async () => {
+    const { getByTestId } = await renderInTestApp(
+      render(<EntityOverviewContent />),
+    );
+    expect(getByTestId('overview-content')).toBeInTheDocument();
+    expect(getByTestId('quick-access-card')).toBeInTheDocument();
+    expect(getByTestId('starred-entities')).toBeInTheDocument();
+    expect(getByTestId('no-starred-list')).toBeInTheDocument();
+  });
+});

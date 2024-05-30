@@ -13,3 +13,61 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import React from 'react';
+import { TestApiProvider, renderInTestApp } from '@backstage/test-utils';
+import {
+  MockSearchApi,
+  searchApiRef,
+} from '@backstage/plugin-search-react';
+import { EntityLearnContent } from './LearnContent';
+
+const setTermMock = jest.fn();
+const setFiltersMock = jest.fn();
+
+jest.mock('@backstage/plugin-search-react', () => ({
+  ...jest.requireActual('@backstage/plugin-search-react'),
+  useSearch: jest.fn().mockReturnValue({
+    term: '',
+    setTerm: (term: any) => setTermMock(term),
+    filters: {types: ['Learning Paths', 'Labs']},
+    setFilters: (filters: any) => setFiltersMock(filters),
+  })
+  .mockReturnValueOnce({
+    term: '',
+    setTerm: (term: any) => setTermMock(term),
+    filters: {types: ['Learning Paths', 'Labs']},
+    setFilters: (filters: any) => setFiltersMock(filters),
+  })
+  .mockReturnValueOnce({
+    term: 'yaml',
+    setTerm: (term: any) => setTermMock(term),
+    filters: {types: ['Learning Paths', 'Labs']},
+    setFilters: (filters: any) => setFiltersMock(filters),
+  }),
+}));
+
+const render = (children: JSX.Element) => {
+  return (
+    <TestApiProvider apis={[[searchApiRef, new MockSearchApi()]]}>
+      {children}
+    </TestApiProvider>
+  );
+};
+
+describe('Learn Tab Content', () => {
+  it('render Learn Tab', async () => {
+    const { getByTestId } = await renderInTestApp(
+      render(<EntityLearnContent />),
+    );
+    expect(getByTestId('learn-content')).toBeInTheDocument();
+  });
+
+  it('with search term', async () => {
+    const { getByTestId } = await renderInTestApp(
+      render(<EntityLearnContent />),
+    );
+
+    expect(getByTestId('learning-paths')).toBeInTheDocument();
+  });
+});

@@ -93,9 +93,10 @@ const RenderCourses = ({ data }) => {
 
   const getFormat = (item: ILearningPath) => {
     if(item.minutes)
-      return item.hours === 1 ? 'minute' : 'minutes'
+      return item.minutes === 1 ? 'minute' : 'minutes'
     if(item.hours)
       return item.hours === 1 ? 'hour' : 'hours'
+    /* istanbul ignore next */
     return null
   }
 
@@ -134,6 +135,7 @@ const EntityLearnIntroCard = () => {
     learningPaths: learningPaths,
     labs: labs,
   });
+  console.log({term});
 
   useEffect(() => {
     if (term.length > 1) {
@@ -155,7 +157,7 @@ const EntityLearnIntroCard = () => {
 
   return (
     <>
-      <Grid container spacing={3}>
+      <Grid container spacing={3} data-testid="learn-content">
         <Grid item xs={2}>
           <SearchBar
             debounceTime={100}
@@ -169,22 +171,22 @@ const EntityLearnIntroCard = () => {
             defaultValue={['Learning Paths', 'Labs']}
           />
 
-          <Typography style={{marginTop: '32px'}}>
+          <Typography style={{marginTop: '32px'}} component="div">
             Useful links:<br />
 
-            <Typography style={{marginTop: '16px', fontSize: '14px'}}>
+            <Typography style={{marginTop: '16px', fontSize: '14px'}} component="div">
               <Link to="https://red.ht/aap-rhd-learning-paths">
                 Ansible learning paths on <br /> Red Hat Developer website
                 <OpenInNew fontSize='small' style={{marginLeft: '5px', fontSize: '14px'}}/>
               </Link>
             </Typography>
-            <Typography style={{marginTop: '16px', fontSize: '14px'}}>
+            <Typography style={{marginTop: '16px', fontSize: '14px'}} component="div">
               <Link to="https://red.ht/rhdh-rh-learning-subscription">
                 Red Hat Learning Subscription
                 <OpenInNew fontSize='small' style={{marginLeft: '5px', fontSize: '14px'}}/>
               </Link>
             </Typography>
-            <Typography style={{marginTop: '16px', fontSize: '14px'}}>
+            <Typography style={{marginTop: '16px', fontSize: '14px'}} component="div">
               <Link to="https://docs.ansible.com/ansible/latest/reference_appendices/glossary.html">
                 Ansible definitions
                 <OpenInNew fontSize='small' style={{marginLeft: '5px', fontSize: '14px'}}/>
@@ -195,7 +197,7 @@ const EntityLearnIntroCard = () => {
         <Grid item xs={10}>
           {filters?.types?.includes('Learning Paths') &&
             filteredData.learningPaths.length > 0 && (
-              <div style={{ marginBottom: '35px' }}>
+              <div style={{ marginBottom: '35px' }} data-testid="learning-paths">
                 <Typography paragraph>
                   <Typography component="span">LEARNING PATHS <br /> </Typography>
                   <Typography component="span" className={classes.fontSize14}>

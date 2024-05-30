@@ -24,7 +24,7 @@ export const ansiblePlugin = createPlugin({
   id: 'ansible',
   routes: {
     root: rootRouteRef
-  },
+  }
 });
 
 export const AnsiblePage = ansiblePlugin.provide(
