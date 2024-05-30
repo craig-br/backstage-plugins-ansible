@@ -39,17 +39,16 @@ runs:
       run: |
         yarn tsc
         yarn build
-        mkdir ./build-${{ inputs.plugin }}
 
     - name: Pack - ${{ inputs.plugin }}
       shell: bash
       working-directory: ${{ inputs.plugin }}
       run: |
-        npm pack --pack-destination ./build-${{ inputs.plugin }}
+        npm pack --pack-destination .
 
     - name: Notify files packed
       shell: bash
-      working-directory: build-${{ inputs.plugin }}
+      working-directory: ${{ inputs.plugin }}
       run: |
         ls -l
 
@@ -57,4 +56,4 @@ runs:
       uses: actions/upload-artifact@v2
       with:
         name: janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.3.tgz
-        path: ./build-${{ inputs.plugin }}/janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.3.tgz
+        path: janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.3.tgz
