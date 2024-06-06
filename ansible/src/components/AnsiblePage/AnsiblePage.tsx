@@ -27,14 +27,15 @@ import {
   useNavigate,
   useParams,
 } from 'react-router';
+import { Typography } from '@material-ui/core';
 
 
-const AnisbleHeader = () => {
+export const AnsibleHeader = () => {
   const headerTitle = "Welcome to the Ansible plug-ins for Red Hat Developer Hub"
   const headerSubtitle = (
-    <>
+    <Typography component="span" variant='subtitle1' data-testid="ansible-header">
       This Ansible out-of-the-box experience accelerates content creation and meets you where you are in the development process.
-    </>
+    </Typography>
   );
 
   return (
@@ -76,7 +77,7 @@ export const AnsiblePage = () => {
   return (
     section === '' ? <Navigate to='overview'/> : (
     <Page themeId="app">
-      <AnisbleHeader />
+      <AnsibleHeader />
       <HeaderTabs
         selectedIndex={selectedTab.id}
         onChange={onTabSelect}

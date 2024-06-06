@@ -20,7 +20,7 @@ import {
   catalogApiRef,
   useStarredEntities,
 } from '@backstage/plugin-catalog-react';
-import { Typography, makeStyles, withStyles } from '@material-ui/core';
+import {Typography, makeStyles, withStyles } from '@material-ui/core';
 import Star from '@material-ui/icons/Star';
 import useAsync from 'react-use/esm/useAsync';
 import { InfoCard, Link } from '@backstage/core-components';
@@ -38,7 +38,9 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export const YellowStar = withStyles({
+// type Props = React.ComponentType<{}> & Element
+
+export const YellowStar: React.ComponentType = withStyles({
   root: {
     color: '#f3ba37',
   },
@@ -98,11 +100,11 @@ export const Favourites = () => {
   return (
     <InfoCard title="Starred Ansible Items">
       {starredEntities && starredEntities?.length > 0 ? (
-        <ul style={{ listStyle: 'none', paddingLeft: 10 }}>
+        <ul style={{ listStyle: 'none', paddingLeft: 10 }} data-testid="starred-list">
           {getStarredList()}
         </ul>
       ) : (
-        <Typography className={classes.kind}>
+        <Typography className={classes.kind} data-testid="no-starred-list">
           Click the star beside an Ansible entity name to add it to this list!
         </Typography>
       )}

@@ -31,10 +31,10 @@ import {
   IQuickAccessLinks,
   allData
 } from './quickAccessData';
-import { useNavigate } from 'react-router';
 import OpenInNew from '@material-ui/icons/OpenInNew';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { Config } from '@backstage/config';
+import { useNavigate } from 'react-router';
 
 export type QuickAccessProps = {
   config: Config;
@@ -149,8 +149,8 @@ const QuickAccessAccordion = ({ data, index, expanded, config }: QuickAccessProp
           )}
           <div>
             {data.items && <ul className={classes.link}>
-              {(data.items || []).map((item, index) => (
-                <li key={index} className={classes.t_align_c}>
+              {(data.items || []).map((item, idx) => (
+                <li key={idx} className={classes.t_align_c}>
                   <a
                     href={item.url}
                     target="_blank"

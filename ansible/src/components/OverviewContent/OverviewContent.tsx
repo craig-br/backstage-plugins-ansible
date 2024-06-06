@@ -23,11 +23,11 @@ import { Favourites } from './Favourites';
 
 export const EntityOverviewContent = () => {
   return (
-    <Grid container spacing={2} justifyContent="space-between">
-      <Grid item xs={9}>
+    <Grid container spacing={2} justifyContent="space-between" data-testid="overview-content">
+      <Grid item xs={9} data-testid="quick-access-card">
         <QuickAccessCard />
       </Grid>
-      <Grid item xs={3}>
+      <Grid item xs={3} data-testid="starred-entities">
         <Favourites />
       </Grid>
     </Grid>

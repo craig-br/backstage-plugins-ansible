@@ -98,7 +98,7 @@ export const AnsibleComponents = () => {
       setAnsibleComponents(allEntities.filter(e => isStarredEntity(e)))
     else if (filters.user?.value === 'all')
       setAnsibleComponents(allEntities);
-  }, [filters.user])
+  }, [filters.user, allEntities, isStarredEntity])
 
   if (loading) {
     return (
@@ -153,11 +153,9 @@ export const AnsibleComponents = () => {
             <Tooltip title={starredTitle}>
               <div>
                 <Typography style={visuallyHidden}>{starredTitle}</Typography>
-                {isStarred ? (
-                  <YellowStar onClick={() => toggleStarredEntity(entity)} />
-                ) : (
-                  <StarBorder onClick={() => toggleStarredEntity(entity)} />
-                )}
+                <Typography component="span" onClick={() => toggleStarredEntity(entity)}>
+                  {isStarred ? <YellowStar /> : <StarBorder  />}
+                </Typography>
               </div>
             </Tooltip>
             <Tooltip title="Edit">
