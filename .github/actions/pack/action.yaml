@@ -54,9 +54,10 @@ runs:
         package_version=$(jq -r '.version' package.json)
         pack_artifact_name="${package_name}-${package_version}.tgz"
         echo "Package name: $pack_artifact_name"
+        echo "::set-output name=pack_artifact_name::$pack_artifact_name"
 
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v2
       with:
-        name: ${{ pack_artifact_name }}
-        path: ${{ inputs.plugin }}/${{ pack_artifact_name }}
+        name: ${{ steps.set_var.outputs.pack_artifact_name }}
+        path: ${{ inputs.plugin }}/${{ steps.set_var.outputs.pack_artifact_name }}
