@@ -60,4 +60,4 @@ runs:
       uses: actions/upload-artifact@v2
       with:
         name: ${{ steps.set_var.outputs.pack_artifact_name }}
-        path: ${{ inputs.plugin }}/${{ steps.set_var.outputs.pack_artifact_name }}
+        path: ${{ inputs.plugin }}/steps.set_var.outputs.pack_artifact_name
