@@ -60,6 +60,7 @@ runs:
       uses: actions/upload-artifact@v2
       with:
         name: $PACK_NAME
-        path: ${{ inputs.plugin }}/$PACK_NAME
+        path: $PACK_PATH
       env:
         PACK_NAME: ${{ steps.set_var.outputs.pack_artifact_name }}
+        PACK_PATH: ${{ inputs.plugin }}/${{ steps.set_var.outputs.pack_artifact_name }}
