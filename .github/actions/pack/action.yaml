@@ -59,5 +59,7 @@ runs:
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v2
       with:
-        name: steps.set_var.outputs.pack_artifact_name
-        path: ${{ inputs.plugin }}/steps.set_var.outputs.pack_artifact_name
+        name: $PACK_NAME
+        path: ${{ inputs.plugin }}/$PACK_NAME
+      env:
+        PACK_NAME: ${{ steps.set_var.outputs.pack_artifact_name }}
