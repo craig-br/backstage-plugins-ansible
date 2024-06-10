@@ -1,5 +1,5 @@
 ---
-name: Pack
+name: Pack-artifact
 description: Pack plugin and upload artifact
 inputs:
   plugin:
@@ -46,19 +46,17 @@ runs:
       run: |
         npm pack --pack-destination .
 
-    - name: Notify files packed
+    - name: Get package name from package.json
       shell: bash
       working-directory: ${{ inputs.plugin }}
       run: |
-        ls -l
-
-    - name: Notify files packed again
-      shell: bash
-      run: |
-        ls -l
+        package_name=$(jq -r '.name' package.json | sed 's/@//' | tr '/' '-')
+        package_version=$(jq -r '.version' package.json)
+        pack_artifact_name="${package_name}-${package_version}.tgz"
+        echo "Package name: $pack_artifact_name"
 
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v2
       with:
-        name: janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.3.tgz
-        path: scaffolder-backend-module-ansible/janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.3.tgz
+        name: ${{ pack_artifact_name }}
+        path: ${{ inputs.plugin }}/${{ pack_artifact_name }}
