@@ -22,6 +22,7 @@ runs:
       uses: dtinth/setup-github-actions-caching-for-turbo@a0e976d970c2a94366a26984efcef3030e2c0115 # v1
 
     - name: Create archive destination folder
+      shell: bash
       run:
         mkdir -p ${{ github.workspace }}/dynamic-plugins-archives
 
