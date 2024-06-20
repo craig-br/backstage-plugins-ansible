@@ -2355,7 +2355,7 @@
     semver "^7.5.3"
     zod "^3.22.4"
 
-"@backstage/cli@^0.26.2":
+"@backstage/cli@^0.26.9":
   version "0.26.9"
   resolved "https://registry.yarnpkg.com/@backstage/cli/-/cli-0.26.9.tgz#6614c6d4e7808d2ac23bf8f69de0657709ce5e58"
   integrity sha512-lfGaFJd7koGO2WpUhy/hDa9oHgPHR/84Ev4I+RBFsTEmyi3SqOWV68kJzOE6u4LRXPoSCcmSUxDv982cBkwYGQ==

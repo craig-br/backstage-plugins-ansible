@@ -10,7 +10,11 @@
     "types": "dist/index.d.ts"
   },
   "backstage": {
-    "role": "frontend-plugin"
+    "role": "frontend-plugin",
+    "pluginId": "ansible",
+    "pluginPackages": [
+      "@janus-idp/backstage-plugin-ansible"
+    ]
   },
   "sideEffects": false,
   "scripts": {
@@ -21,6 +25,7 @@
     "clean": "backstage-cli package clean",
     "prepack": "backstage-cli package prepack",
     "postpack": "backstage-cli package postpack",
+    "fix": "backstage-cli repo fix --publish",
     "export-dynamic": "janus-cli package export-dynamic-plugin"
   },
   "dependencies": {
