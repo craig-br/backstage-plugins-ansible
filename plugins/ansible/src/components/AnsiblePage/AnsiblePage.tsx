@@ -27,7 +27,21 @@ import {
   useNavigate,
   useParams,
 } from 'react-router';
-import { Typography } from '@material-ui/core';
+import { Fab, Typography, makeStyles } from '@material-ui/core';
+import Comment from '@material-ui/icons/Comment';
+import RatingsFeedbackModal from './RatingsFeedbackModal';
+
+const feedbackStyles = makeStyles({
+  feedback_btn: {
+    position: 'fixed',
+    bottom: '24px',
+    right: '30px',
+    zIndex: 99999,
+  },
+  mb_2: {
+    marginBottom: '2px'
+  }
+});
 
 
 export const AnsibleHeader = () => {
@@ -55,9 +69,13 @@ const tabs = [
 ];
 
 export const AnsiblePage = () => {
+  const classes = feedbackStyles();
+  const navigate = useNavigate();
   const param = useParams();
   const section = param['*'];
-  const navigate = useNavigate();
+  const [open, setOpen] = React.useState(false);
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
 
   const selectedTabIndex = tabs.findIndex(
     item => item.nav === section,
@@ -81,8 +99,8 @@ export const AnsiblePage = () => {
       <HeaderTabs
         selectedIndex={selectedTab.id}
         onChange={onTabSelect}
-        tabs={tabs.map(({ id, label }) => ({
-          id: id.toString(),
+        tabs={tabs.map(({ nav, label }) => ({
+          id: nav,
           label,
         }))}
       />
@@ -99,6 +117,18 @@ export const AnsiblePage = () => {
             <Route path="learn" element={<EntityLearnContent />} />
           </Route>
         </Routes>
+        <Fab 
+          variant="extended" 
+          size="small" 
+          color="primary" 
+          className={classes.feedback_btn}
+          onClick={handleOpen}>
+          <Comment />&nbsp;
+          <Typography component="span" className={classes.mb_2}>
+            Feedback
+          </Typography>
+        </Fab>
+        {open && <RatingsFeedbackModal handleClose={handleClose}/>}
       </Content>
     </Page>
   ));
