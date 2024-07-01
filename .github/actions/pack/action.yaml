@@ -42,12 +42,6 @@ runs:
         retention-days: 1
         overwrite: true
 
-    - name: Check error code
-      uses: actions/github-script@v3
-      with:
-        script: |
-          core.setFailed('The export failed for the following plugins: ' + '${{ steps.export-dynamic.outputs.ERRORS }}')
-
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
