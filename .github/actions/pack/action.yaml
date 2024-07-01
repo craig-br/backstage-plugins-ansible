@@ -24,14 +24,14 @@ runs:
     - name: Run the pack script
       id: run-export-dynamic
       shell: bash
-      working-directory: ${{ inputs.plugin }}
+      working-directory: ${{ github.workspace }}
       run:
         ls -la
         ${{ github.action_path }}/pack.sh
 
     - name: Check dir
       shell: bash
-      working-directory: ${{ inputs.plugin }}
+      working-directory: ${{ github.workspace }}
       run:
         ls -la ${{ github.workspace }}/ansible-plugins-pack
 
