@@ -21,62 +21,27 @@ runs:
     - name: Setup local Turbo cache
       uses: dtinth/setup-github-actions-caching-for-turbo@a0e976d970c2a94366a26984efcef3030e2c0115 # v1
 
-    - name: Create archive destination folder
+    - name: Run the pack script
+      id: run-export-dynamic
       shell: bash
+      working-directory: ${{ inputs.plugin }}
       run:
-        mkdir -p ${{ github.workspace }}/dynamic-plugins-archives
+        ls -la
+        ${{ github.action_path }}/pack.sh
 
-    - name: Install dependencies for - ansible frontend-plugin
+    - name: Check dir
       shell: bash
-      working-directory: plugins/ansible
-      run: |
-        yarn install
-        if [[ $(git diff --name-only . || true) ]]; then
-          echo "After 'yarn install', workspace is dirty! The following files have changed:"
-          echo
-          git diff --name-only . || true
-          exit 42
-        fi
-
-    - name: Build - ${{ inputs.plugin }}
-      shell: bash
-      working-directory: plugins/ansible
-      run: |
-        yarn tsc
-        yarn build
-
-    - name: Pack - ${{ inputs.plugin }}
-      shell: bash
-      working-directory: plugins/ansible
-      run: |
-        npm pack --pack-destination ${{ github.workspace }}/dynamic-plugins-archives
-
-    # - name: Get package name from package.json
-    #   shell: bash
-    #   working-directory: ${{ inputs.plugin }}
-    #   run: |
-    #     package_name=$(jq -r '.name' package.json | sed 's/@//' | tr '/' '-')
-    #     package_version=$(jq -r '.version' package.json)
-    #     pack_artifact_name="${package_name}-${package_version}.tgz"
-    #     echo "Package name: $pack_artifact_name"
-    #     echo "::set-output name=pack_artifact_name::$pack_artifact_name"
-
-    # - name: Upload artifact for deployment job
-    #   uses: actions/upload-artifact@v4
-    #   with:
-    #     name: $PACK_NAME
-    #     path: $PACK_PATH
-    #   env:
-    #     PACK_NAME: ${{ steps.set_var.outputs.pack_artifact_name }}
-    #     PACK_PATH: ${{ inputs.plugin }}/${{ steps.set_var.outputs.pack_artifact_name }}
+      working-directory: ${{ inputs.plugin }}
+      run:
+        ls -la ${{ github.workspace }}/ansible-plugins-pack
 
     - uses: actions/upload-artifact@v4
       with:
-          name: dynamic plugin packages
-          path: ${{ github.workspace }}/dynamic-plugins-archives/
-          if-no-files-found: error
-          retention-days: 1
-          overwrite: true
+        name: dynamic plugin packages
+        path: ${{ github.workspace }}/ansible-plugins-pack/
+        if-no-files-found: error
+        retention-days: 1
+        overwrite: true
 
     - name: Check error code
       uses: actions/github-script@v3
@@ -87,7 +52,7 @@ runs:
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
-          body:
-            Dynamic Plugins (for Red Hat Developer Hub) built from the ${{ steps.set-env-vars.outputs.BACKSTAGE_RELEASE }} release of Backstage.
-          files: ${{ github.workspace }}/dynamic-plugins-archives/*
-          repository: ${{ github.repository }}
+        body:
+          Dynamic Plugins (for Red Hat Developer Hub)
+        files: ${{ github.workspace }}/ansible-plugins-pack/*
+        repository: ${{ github.repository }}

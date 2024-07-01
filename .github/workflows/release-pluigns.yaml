@@ -1,5 +1,5 @@
 ---
-name: Export Dynamic Plugin Packages
+name: Release plugins package
 on:
   workflow_dispatch:
     inputs:

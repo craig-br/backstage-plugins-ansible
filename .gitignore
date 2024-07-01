@@ -77,3 +77,5 @@ playwright/.cache/
 
 # js files when yarn tsc is ran
 *.js*
+ansible-plugins-pack/
+dynamic-plugins-archives/
