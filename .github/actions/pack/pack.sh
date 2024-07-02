@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Define the directories
+# Variables
 pluginsDir="plugins"
 packDestination="dynamic-plugins-archives"
 finalPackDir="ansible-plugins-pack"
@@ -11,10 +11,10 @@ if [ ! -d "$pluginsDir" ]; then
   exit 1
 fi
 
-# Create the pack destination directory if it doesn't exist
+# Create the pack destination directory
 mkdir -p "$packDestination"
 
-# Loop through each subdirectory in the plugins directory
+# Loop through each subdirectory in the ./plugins directory
 for pluginDir in "$pluginsDir"/*; do
   if [ -d "$pluginDir" ]; then
     echo "Processing $pluginDir..."
@@ -22,7 +22,7 @@ for pluginDir in "$pluginsDir"/*; do
     # Change to the plugin directory
     pushd "$pluginDir" > /dev/null
 
-    # Run the set of commands
+    # Run the build/export/pack commands
     echo "Running yarn install in $pluginDir"
     yarn install
     if [ $? -ne 0 ]; then
@@ -76,7 +76,7 @@ echo "Completed processing all plugin directories."
 mkdir -p "$finalPackDir"
 
 # Create a tarball of the dynamic-plugins-archives directory
-tarballName="dynamic-plugins-archives.tar.gz"
+tarballName="ansible-plugin-packages.tar.gz"
 tar -czvf "$tarballName" -C "$packDestination" .
 
 # Move the tarball to the final pack directory

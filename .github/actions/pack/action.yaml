@@ -1,11 +1,7 @@
 ---
-name: Pack-artifact
+name: Pack
 description: Pack plugin and upload artifact
 inputs:
-  plugin:
-    description: Name of the plugin to build
-    required: true
-    default: ""
   node-version:
     description: Node.js version
     required: true
@@ -28,24 +24,25 @@ runs:
       run:
         ${{ github.action_path }}/pack.sh
 
-    - name: Check dir
+    - name: Check if the packages exists
       shell: bash
       working-directory: ${{ github.workspace }}
       run:
         ls -la ${{ github.workspace }}/ansible-plugins-pack
 
-    - uses: actions/upload-artifact@v4
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
       with:
-        name: dynamic plugin packages
+        name: ansible-plugin-packages
         path: ${{ github.workspace }}/ansible-plugins-pack/
         if-no-files-found: error
         retention-days: 1
         overwrite: true
 
-    - name: Release
+    - name: Release and add to GH UI
       uses: softprops/action-gh-release@v2
       with:
         body:
-          Dynamic Plugins (for Red Hat Developer Hub)
+          Backstage/Ansible Dynamic Plugins, for Red Hat Developer Hub
         files: ${{ github.workspace }}/ansible-plugins-pack/*
         repository: ${{ github.repository }}
