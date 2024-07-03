@@ -1,17 +1,17 @@
 dynamicPlugins:
   backend:
-    janus-idp.backstage-plugin-scaffolder-backend-module-ansible:
+    ansible.plugin-scaffolder-backend-module-backstage-rhaap:
       mountPoints:
         - importName: createAnsibleContentAction
           mountPoint: entity.page.overview/cards
 catalog:
   locations:
-    - type: file
-      target: ../../dynamic-plugins-root/scaffolder-backend-module-ansible/templates/all.yaml
+    - type: url
+      target: https://github.com/ansible/ansible-rhdh-templates/blob/main/all.yaml
       rules:
         - allow: [Template]
 ansible:
-  devSpacesBaseUrl: "https://devspaces.apps.ansible-rhdh.testing.ansible.com/#https://github.com/"
+  devSpacesBaseUrl: "https://devspaces.apps.ansible-rhdh.testing.ansible.com/"
   creatorService:
     baseUrl: "localhost"
     port: "5000"

@@ -1,4 +1,4 @@
-# @backstage/plugin-scaffolder-backend-module-ansible
+# @ansible/plugin-scaffolder-backend-module-backstage-rhaap
 
 The ansible backend module for the scaffolder plugin.
 

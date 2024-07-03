@@ -23,11 +23,11 @@ Note: Tested with node v16.20.2 version
 
 Refer <https://backstage.io/docs/auth/github/provider>
 
-In `app-config.yaml` file add below lines at the end of `locations` sections:
+In `app-config.yaml` file add the below lines at the end of `locations` sections:
 
 ```yaml
-- type: file
-  target: ../../plugins/scaffolder-backend-module-ansible/templates/all.yaml
+- type: url
+  target: https://github.com/ansible/ansible-rhdh-templates/blob/main/all.yaml
   rules:
     - allow: [Template]
 ```
@@ -42,7 +42,7 @@ cd ansible
 yarn install
 cd ../ansible-backend
 yarn install
-cd ../scaffolder-backend-module-ansible
+cd ../plugin-scaffolder-backend-module-backstage-rhaap
 yarn install
 cd ..
 ```
@@ -52,7 +52,7 @@ cd ..
 Add the below line in the file `packages/app/package.json` within the `dependencies` section
 
 ```json
-   "@janus-idp/backstage-plugin-ansible": "^0.0.0",
+   "@ansible.plugin-backstage-rhaap": "^x.y.z",
 ```
 
 Add Ansible plugin route in file `packages/app/src/App.tsx` as shown in diff below
@@ -67,7 +67,7 @@ index 3d8bd45e5aab..752e5e2e9190 100644
  import { customDevToolsPage } from './components/devtools/CustomDevToolsPage';
  import { CatalogUnprocessedEntitiesPage } from '@backstage/plugin-catalog-unprocessed-entities';
  import { NotificationsPage } from '@backstage/plugin-notifications';
-+import { AnsiblePage } from '@janus-idp/backstage-plugin-ansible';
++import { AnsiblePage } from '@ansible.plugin-backstage-rhaap';
 
  const app = createApp({
    apis,
@@ -92,7 +92,7 @@ index 6294aa785671..f23085e4e0cb 100644
  import { useApp } from '@backstage/core-plugin-api';
  import BuildIcon from '@material-ui/icons/Build';
  import { NotificationsSidebarItem } from '@backstage/plugin-notifications';
-+import { AnsibleLogo } from '@janus-idp/backstage-plugin-ansible'
++import { AnsibleLogo } from '@ansible.plugin-backstage-rhaap'
 
  const useSidebarLogoStyles = makeStyles({
    root: {
@@ -106,7 +106,7 @@ index 6294aa785671..f23085e4e0cb 100644
          <Shortcuts allowExternalLinks />
 ```
 
-Register `ansible-backend` and `scaffolder-backend-module-ansible` plugins by applying below diff in file `packages/backend/package.json`
+Register `ansible-backend` and `plugin-scaffolder-backend-module-backstage-rhaap` plugins by applying below diff in file `packages/backend/package.json`
 
 ```diff
 % git diff packages/backend/package.json
@@ -118,7 +118,7 @@ index 48d7d7255217..65e7ecbea28f 100644
      "@backstage/config": "workspace:^",
      "@backstage/integration": "workspace:^",
      "@backstage/plugin-adr-backend": "workspace:^",
-+    "@backstage/plugin-ansible-backend": "^0.0.0",
++    @backstage/plugin-ansible-backend": "^0.0.0",
      "@backstage/plugin-app-backend": "workspace:^",
      "@backstage/plugin-auth-backend": "workspace:^",
      "@backstage/plugin-auth-node": "workspace:^",
@@ -126,13 +126,13 @@ index 48d7d7255217..65e7ecbea28f 100644
      "@backstage/plugin-proxy-backend": "workspace:^",
      "@backstage/plugin-rollbar-backend": "workspace:^",
      "@backstage/plugin-scaffolder-backend": "workspace:^",
-+    "@janus-idp/backstage-plugin-scaffolder-backend-module-ansible": "^0.0.0",
++    "@ansible/plugin-scaffolder-backend-module-backstage-rhaap": "^0.0.0",
      "@backstage/plugin-scaffolder-backend-module-confluence-to-markdown": "workspace:^",
      "@backstage/plugin-scaffolder-backend-module-gitlab": "workspace:^",
      "@backstage/plugin-scaffolder-backend-module-rails": "workspace:^"
 ```
 
-Register custom action provided by `scaffolder-backend-module-ansible` in scaffolder backend by applying the below diff in file `packages/backend-legacy/src/plugins`
+Register custom action provided by `plugin-scaffolder-backend-module-backstage-rhaap` in scaffolder backend by applying the below diff in file `packages/backend-legacy/src/plugins`
 
 ```diff
 % git diff packages/backend-legacy/src/plugins/scaffolder.ts
@@ -145,7 +145,7 @@ index a2aa1044066c..191ab4fcfa4f 100644
  import { ScmIntegrations } from '@backstage/integration';
  import { createConfluenceToMarkdownAction } from '@backstage/plugin-scaffolder-backend-module-confluence-to-markdown';
 -
-+import { createAnsibleContentAction } from '@janus-idp/backstage-plugin-scaffolder-backend-module-ansible';
++import { createAnsibleContentAction } from '@ansible/plugin-scaffolder-backend-module-backstage-rhaap';
  export default async function createPlugin(
    env: PluginEnvironment,
  ): Promise<Router> {
@@ -178,7 +178,7 @@ index a4acd19cf207..39ec727dbc18 100644
  backend.add(import('@backstage/plugin-signals-backend'));
  backend.add(import('@backstage/plugin-notifications-backend'));
 +backend.add(
-+  import('@janus-idp/backstage-plugin-scaffolder-backend-module-ansible'),
++  import('@ansible/plugin-scaffolder-backend-module-backstage-rhaap'),
 +);
 
  backend.start();
@@ -251,7 +251,7 @@ mv package $(echo $archive | sed -e 's:\.tgz$::')
 ```yaml
 dynamicPlugins:
   frontend:
-    janus-idp.backstage-plugin-ansible:
+    ansible.plugin-backstage-rhaap:
       appIcons:
         - name: AnsibleLogo
           importName: AnsibleLogo
@@ -277,7 +277,7 @@ To load the backend plugin with backstage-showcase locally follow the below step
 - Run the following commands
 
 ```bash
-cd scaffolder-backend-module-ansible
+cd plugin-scaffolder-backend-module-backstage-rhaap
 yarn export-dynamic
 ```
 
@@ -286,7 +286,7 @@ yarn export-dynamic
 ```yaml
 dynamicPlugins:
   backend:
-    backstage.plugin-scaffolder-backend-module-ansible:
+    ansible.plugin-scaffolder-backend-module-backstage-rhaap:
       mountPoints:
         - importName: createAnsibleContentAction
           mountPoint: entity.page.overview/cards
@@ -297,8 +297,8 @@ and register the template catalog section in `app-config.local.yaml` file
 ```yaml
 catalog:
   locations:
-    - type: file
-      target: ../../dynamic-plugins-root/scaffolder-backend-module-ansible/templates/all.yaml
+    - type: url
+      target: https://github.com/ansible/ansible-rhdh-templates/blob/main/all.yaml
       rules:
         - allow: [Template]
 ```
@@ -315,7 +315,7 @@ integrations:
 - Update the package.json at `packages/backend/package.json`
 
 ```json
-"@backstage/plugin-scaffolder-backend-module-ansible": "^0.0.0",
+"@ansible/plugin-scaffolder-backend-module-backstage-rhaap": "^0.0.0",
 ```
 
 Note - if node version is 20.x.y please update
@@ -399,7 +399,7 @@ echo "Integrity Hash: $INTEGRITY_HASH"
 - Create scaffolder plugin tar
 
 ```bash
-cd ansible-backstage-plugins/scaffolder-backend-module-ansible
+cd ansible-backstage-plugins/plugin-scaffolder-backend-module-backstage-rhaap
 yarn install
 yarn export-dynamic
 INTEGRITY_HASH=$(npm pack --pack-destination $DYNAMIC_PLUGIN_ROOT_DIR --json | jq -r '.[0].integrity')
@@ -427,20 +427,20 @@ pod terminal. Sample output:
 
 ```bash
 sh-4.4$ ls
-janus-idp-backstage-plugin-ansible-0.0.0.tgz  janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.0.tgz
+ansible-backstage-plugin-ansible-0.0.0.tgz  ansible-plugin-scaffolder-backend-module-backstage-rhaap-0.0.0.tgz
 ```
 
-In the helm chart releases for the project, click on `Actions->Upgrade` and in the YAML view
+In the Helm chart releases for the project, click on `Actions->Upgrade` and in the YAML view
 append the below config under `dynamic.plugins` section
 
 ```yaml
 - disabled: false
   package: >-
-    http://plugin-registry:8080/janus-idp-backstage-plugin-ansible-0.0.0.tgz
+    http://plugin-registry:8080/ansible-plugin-backstage-rhaap-x.y.z.tgz
   pluginConfig:
     dynamicPlugins:
       frontend:
-        janus-idp.backstage-plugin-ansible:
+        ansible.plugin-backstage-rhaap:
           appIcons:
             - importName: AnsibleLogo
               name: AnsibleLogo
@@ -452,12 +452,14 @@ append the below config under `dynamic.plugins` section
               path: /ansible
 - disabled: false
   package: >-
-    http://plugin-registry:8080/janus-idp-backstage-plugin-scaffolder-backend-module-ansible-0.0.0.tgz
+    http://plugin-registry:8080/ansible-plugin-scaffolder-backend-module-backstage-rhaap-x.y.z.tgz
   pluginConfig:
     dynamicPlugins:
       backend:
-        janus-idp.backstage-plugin-scaffolder-backend-module-ansible:
+        ansible.plugin-scaffolder-backend-module-backstage-rhaap:
           mountPoints:
             - importName: createAnsibleContentAction
               mountPoint: entity.page.overview/cards
 ```
+
+It is advised to use the latest available plugin version that can be found under release artifacts.

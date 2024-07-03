@@ -109,7 +109,7 @@ export function createAnsibleContentAction(config: Config) {
         collectionGroup,
         collectionName,
       } = ctx.input;
-      const pluginLogName = 'scaffolder-backend-module-ansible'
+      const pluginLogName = 'plugin-scaffolder-backend-module-backstage-rhaap'
       ctx.logger.info(
         `[${pluginLogName}] Creating Ansible content ${collectionGroup}.${collectionName}`,
       );

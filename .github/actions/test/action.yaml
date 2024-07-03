@@ -26,7 +26,6 @@ runs:
       working-directory: ${{ inputs.plugin }}
       run: |
         pwd
-        ls -la
         yarn install
         npm install -g prettier
         if [[ $(git diff --name-only . || true) ]]; then

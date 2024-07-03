@@ -27,7 +27,7 @@ export async function ansibleCreatorRun(
   collectionName: string,
   creatorServiceUrl: string,
 ) {
-  const pluginLogName = 'scaffolder-backend-module-ansible';
+  const pluginLogName = 'plugin-scaffolder-backend-module-backstage-rhaap';
   const fileDownloader = new BackendServiceAPI();
   logger.info(
     `[${pluginLogName}] Running plugin operation for ${collectionGroup}.${collectionName}`,

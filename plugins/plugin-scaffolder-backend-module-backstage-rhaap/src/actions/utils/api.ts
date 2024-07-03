@@ -19,7 +19,7 @@ import fetch, { Response } from 'node-fetch';
 import { Logger } from 'winston';
 
 export class BackendServiceAPI {
-  pluginLogName = 'scaffolder-backend-module-ansible';
+  pluginLogName = 'plugin-scaffolder-backend-module-backstage-rhaap';
 
   private async sendPostRequest(url: string, data: any): Promise<Response> {
     const requestOptions = {
