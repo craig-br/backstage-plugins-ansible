@@ -31,6 +31,7 @@ for pluginDir in "$pluginsDir"/*; do
       continue
     fi
 
+    # # to be uncommented before release
     # # Run the set of commands
     # echo "Running yarn export-dynamic in $pluginDir"
     # yarn export-dynamic
@@ -76,7 +77,7 @@ echo "Completed processing all plugin directories."
 mkdir -p "$finalPackDir"
 
 # Create a tarball of the dynamic-plugins-archives directory
-tarballName="ansible-plugin-packages-${GITHUB_REF##*/}.tar.gz"
+tarballName="ansible-plugin-backstage-rhaap-${GITHUB_REF##*/}.tar.gz"
 tar -czvf "$tarballName" -C "$packDestination" .
 
 # Move the tarball to the final pack directory
