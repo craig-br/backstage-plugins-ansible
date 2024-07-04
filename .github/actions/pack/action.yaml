@@ -6,9 +6,6 @@ inputs:
     description: Node.js version
     required: true
     default: 18
-  version-tag:
-    description: Release tag
-    required: true
 runs:
   using: 'composite'
   steps:
@@ -36,7 +33,7 @@ runs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ansible-plugins-backstage-rhaap-${{ inputs.version-tag }}
+        name: ansible-plugins-backstage-rhaap
         path: ${{ github.workspace }}/ansible-plugins-pack/
         if-no-files-found: error
         retention-days: 1
