@@ -33,7 +33,7 @@ runs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ansible-plugin-packages
+        name: ansible-plugins-backstage-rhaap-${GITHUB_REF##*/}
         path: ${{ github.workspace }}/ansible-plugins-pack/
         if-no-files-found: error
         retention-days: 1
