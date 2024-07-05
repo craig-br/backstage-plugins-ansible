@@ -6,10 +6,31 @@ export interface Config {
      */
     devSpaces?: {
       /**
-       * @visibility backend
-       */
-      baseUrl: string;
+      * @deepVisibility backend
+      */
+      baseUrl?: string;
+    }
+
+    /**
+    * @deepVisibility backend
+    */
+    aap?: {
+      /**
+      * @visibility backend
+      */
+      baseUrl?: string;
+
+      /**
+      * @visibility backend
+      */
+      token?: string;
+
+      /**
+      * @visibility backend
+      */
+      checkSSL?: boolean;
     };
+
     /**
      * Base url for the creator-service
      */
