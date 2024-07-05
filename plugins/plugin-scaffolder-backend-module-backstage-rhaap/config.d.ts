@@ -1,16 +1,36 @@
 export interface Config {
   ansible?: {
     /**
-     * Url of the hub cluster developer hub instance
+     * The devspaces baseUrl for Openshift Dev Spaces Dashboard.
+     * @deepVisibility backend
      */
-    devSpaces: {
+    devSpaces?: {
+      /**
+      * @deepVisibility backend
+      */
       baseUrl?: string;
     }
 
-    aap: {
+    /**
+    * @deepVisibility backend
+    */
+    aap?: {
+      /**
+      * @visibility backend
+      */
       baseUrl?: string;
+      
+      /**
+      * @visibility backend
+      */
       token?: string;
-    }
+      
+      /**
+      * @visibility backend
+      */
+      checkSSL?: boolean;
+    };
+    
     /**
      * Base url for the creator-service
      */
