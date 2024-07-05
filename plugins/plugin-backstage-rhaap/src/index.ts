@@ -21,15 +21,15 @@ import {
   identityApiRef,
 } from '@backstage/core-plugin-api';
 
-import { SegmentAnalytics } from './apis/implementations/AnalyticsApi';
+import { AnsibleSegmentAnalytics } from './apis/implementations/AnalyticsApi';
 
 export { ansiblePlugin, AnsiblePage } from './plugin';
 export { AnsibleLogo } from './components/AnsibleLogo';
 
 export * from './apis/implementations/AnalyticsApi';
-export const SegmentAnalyticsApi = createApiFactory({
+export const AnsibleSegmentAnalyticsApi = createApiFactory({
   api: analyticsApiRef,
   deps: { configApi: configApiRef, identityApi: identityApiRef },
   factory: ({ configApi, identityApi }) =>
-    SegmentAnalytics.fromConfig(configApi, identityApi),
+    AnsibleSegmentAnalytics.fromConfig(configApi, identityApi),
 });

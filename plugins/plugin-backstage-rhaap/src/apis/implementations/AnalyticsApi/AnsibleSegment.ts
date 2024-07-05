@@ -28,7 +28,7 @@ import { ENV_DEV, WRITE_KEY_DEV, WRITE_KEY_PROD } from './constant';
  * Segment provider for the Backstage Analytics API.
  * @public
  */
-export class SegmentAnalytics implements AnalyticsApi {
+export class AnsibleSegmentAnalytics implements AnalyticsApi {
   private readonly analytics: AnalyticsBrowser;
   private readonly enabled: boolean;
   private readonly testMode: boolean;
@@ -65,7 +65,7 @@ export class SegmentAnalytics implements AnalyticsApi {
     const maskIP =
       config.getOptionalBoolean('ansible.analytics.maskIP') ?? false;
 
-    return new SegmentAnalytics(
+    return new AnsibleSegmentAnalytics(
       {
         enabled,
         testMode,
@@ -102,7 +102,8 @@ export class SegmentAnalytics implements AnalyticsApi {
     if (
       !canCaptureEvent &&
       context.pluginId === 'catalog' &&
-      subject === 'OpenShift Dev Spaces'
+      subject.toLocaleLowerCase('en-US').includes('ansible')
+      && subject.toLocaleLowerCase('en-US').includes('dev spaces')
     ) {
       canCaptureEvent = true;
     }
@@ -110,7 +111,7 @@ export class SegmentAnalytics implements AnalyticsApi {
     if (
       !canCaptureEvent &&
       action === 'navigate' &&
-      subject.includes('ansible')
+      subject.includes('ansible-')
     ) {
       canCaptureEvent = true;
     }

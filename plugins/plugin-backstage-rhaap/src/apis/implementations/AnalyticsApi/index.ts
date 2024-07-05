@@ -15,4 +15,4 @@
  */
 
 
-export { SegmentAnalytics } from './Segment';
+export { AnsibleSegmentAnalytics } from './AnsibleSegment';
