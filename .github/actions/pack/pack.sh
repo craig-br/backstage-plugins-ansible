@@ -77,7 +77,7 @@ echo "Completed processing all plugin directories."
 mkdir -p "$finalPackDir"
 
 # Create a tarball of the dynamic-plugins-archives directory
-tarballName="ansible-backstage-rhaap-bundle-${GITHUB_REF##*/v.}.tar.gz"
+tarballName="ansible-backstage-rhaap-bundle-${GITHUB_REF##*/v}.tar.gz"
 tar -czvf "$tarballName" -C "$packDestination" .
 
 # Move the tarball to the final pack directory
