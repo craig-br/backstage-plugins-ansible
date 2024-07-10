@@ -48,7 +48,7 @@ export interface Config {
       baseUrl: string;
     };
 
-    analytics:
+    analytics?:
       | {
           /**
            * Prevents events from actually being sent when set to true. Defaults
