@@ -13,24 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { errorHandler } from '@backstage/backend-common';
-import { Config } from '@backstage/config';
-
 import express from 'express';
 import Router from 'express-promise-router';
 import { Logger } from 'winston';
-import fetch from 'node-fetch';
-import https from 'https';
+
+import { errorHandler } from '@backstage/backend-common';
+import { Config } from '@backstage/config';
+import {
+  SchedulerService,
+} from '@backstage/backend-plugin-api';
+
+import { AnsibleRHAAPService } from './ansibleRHAAPService';
 
 export interface RouterOptions {
   logger: Logger;
-  config: Config
+  config: Config;
+  scheduler?: SchedulerService;
 }
 
 export async function createRouter(
   options: RouterOptions,
 ): Promise<express.Router> {
-  const { logger, config } = options;
+  const { logger, config, scheduler } = options;
+
+  const instance = AnsibleRHAAPService.getInstance(config, logger, scheduler);
 
   const router = Router();
   router.use(express.json());
@@ -42,41 +48,8 @@ export async function createRouter(
   router.use(errorHandler());
 
   router.get('/aap/subscription', async (_, response) => {
-    try {
-      // Read configuration
-      const ansibleConfig = config.getConfig('ansible');
-      const aapConfig = ansibleConfig.getConfig('aap');
-      const baseUrl = aapConfig.getString('baseUrl');
-      const token = aapConfig.getString('token');
-      const checkSSL = aapConfig.getBoolean('checkSSL') ?? true;
-      const agent = new https.Agent({
-        rejectUnauthorized: checkSSL,
-      });
-
-      // Send request to AAP
-      const aapResponse = await fetch(`${baseUrl}/api/v2/config/`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-        agent,
-      });
-      logger.info(`[backstage-rhaap-backend] Checking AAP subscription at ${baseUrl}/api/v2/config/`)
-      const data = await aapResponse.json();
-      const hasValidSubscription = data?.license_info?.license_type === 'enterprise';
-
-      // Return the subscription status
-      response.json({ status: 'ok', valid: hasValidSubscription });
-    } catch (error: any) {
-      logger.error(`[backstage-rhaap-backend] Error checking AAP subscription: ${error}`);
-      let statusCode;
-      if (error.code === 'CERT_HAS_EXPIRED') {
-        statusCode = 495;
-      } else if (error.code === 'ECONNREFUSED') {
-        statusCode = 404;
-      }
-      else {
-        statusCode = Number.isInteger(error.code) && error.code >= 100 && error.code < 600 ? error.code : 500;
-      }
-      response.status(statusCode).json({ error: error.message || 'Internal server error' });
-    }
+    // Return the subscription status
+    response.send({ status: 'ok', valid: instance.getSubscriptionStatus() });
   });
 
   return router;

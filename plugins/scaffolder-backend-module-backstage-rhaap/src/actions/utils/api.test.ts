@@ -13,17 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { getVoidLogger } from '@backstage/backend-common';
 import { BackendServiceAPI } from './api';
-import { Logger } from 'winston';
 
 jest.mock('node-fetch');
-jest.mock('fs');
 
 describe('BackendServiceAPI', () => {
-  const mockLogger = {
-    info: jest.fn(),
-    debug: jest.fn(),
-  } as unknown as Logger;
+  const mockLogger = getVoidLogger();
 
   beforeEach(() => {
     jest.clearAllMocks();

@@ -72,12 +72,16 @@ export const getDevspacesUrlFromAnsibleConfig = (
   repoOwner: string,
   repoName: string,
 ): string => {
-  return generateDevSpacesUrl(
-    config.getString('ansible.devSpaces.baseUrl'),
-    sourceControl,
-    repoOwner,
-    repoName,
-  );
+  try {
+    return generateDevSpacesUrl(
+      config.getString('ansible.devSpaces.baseUrl'),
+      sourceControl,
+      repoOwner,
+      repoName,
+    );
+  } catch (error) {
+    return '';
+  }
 };
 
 export const validateAnsibleConfig = (config: Config) => {

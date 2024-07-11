@@ -13,5 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export * from './service/router';
-export { backstageRHAAPPlugin as default } from './plugin';
+
+/**
+ * This is the default scheduler rule.
+ * frequency supports hours, minutes, seconds and can customize as required
+ */
+export const DEFAULT_SCHEDULE = {
+  frequency: { hours: 24 },
+  timeout: { minutes: 1 },
+};

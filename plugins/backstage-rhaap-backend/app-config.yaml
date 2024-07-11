@@ -3,3 +3,11 @@ ansible:
     baseUrl: 'change-me'
     token: 'change-me'
     checkSSL: true
+    schedule?: {
+      frequency: {
+        minutes: 1
+      },
+      timeout: {
+        minutes: 1
+      }
+    }

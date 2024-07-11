@@ -25,7 +25,7 @@ import {
 import { Logger } from 'winston';
 import { Config } from '@backstage/config';
 
-export function createAnsibleContentAction(config: Config) {
+export function createAnsibleContentAction(config: Config, logger: Logger) {
   return createTemplateAction<{
     sourceControl: string,
     repoOwner: string;
@@ -119,29 +119,29 @@ export function createAnsibleContentAction(config: Config) {
         collectionName,
       } = ctx.input;
       const pluginLogName = 'plugin-scaffolder-backend-module-backstage-rhaap'
-      ctx.logger.info(
+      logger.info(
         `[${pluginLogName}] Creating Ansible content ${collectionGroup}.${collectionName} with source control ${sourceControl}`,
       );
 
-      ctx.logger.info(
+      logger.info(
         `[${pluginLogName}] Checking plugin configuration`,
       );
       validateAnsibleConfig(config);
-      ctx.logger.debug(
+      logger.debug(
         `[${pluginLogName}] Plugin configuration is correct`,
       );
 
       await ansibleCreatorRun(
         ctx.workspacePath,
         ctx.input.applicationType,
-        ctx.logger as Logger,
+        logger,
         description,
         collectionGroup,
         collectionName,
         getServiceUrlFromAnsibleConfig(config),
       );
 
-      ctx.logger.info(
+      logger.info(
         `[${pluginLogName}] ansibleCreatorRun completed successfully`,
       );
       ctx.output(
@@ -149,7 +149,7 @@ export function createAnsibleContentAction(config: Config) {
         getDevspacesUrlFromAnsibleConfig(config, sourceControl, repoOwner, repoName),
       );
       ctx.output('repoUrl', generateRepoUrl(sourceControl, repoOwner, repoName));
-      ctx.logger.debug(
+      logger.debug(
         `[${pluginLogName}] context output processed successfully`,
       );
     },

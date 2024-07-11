@@ -31,15 +31,14 @@ for pluginDir in "$pluginsDir"/*; do
       continue
     fi
 
-    # # to be uncommented before release
-    # # Run the set of commands
-    # echo "Running yarn export-dynamic in $pluginDir"
-    # yarn export-dynamic
-    # if [ $? -ne 0 ]; then
-    #   echo "yarn export-dynamic failed in $pluginDir"
-    #   popd > /dev/null
-    #   continue
-    # fi
+    # Run the set of commands
+    echo "Running yarn export-dynamic in $pluginDir"
+    yarn export-dynamic
+    if [ $? -ne 0 ]; then
+      echo "yarn export-dynamic failed in $pluginDir"
+      popd > /dev/null
+      continue
+    fi
 
     echo "Running yarn tsc in $pluginDir"
     yarn tsc

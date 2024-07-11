@@ -19,6 +19,7 @@ import {
   coreServices,
   createBackendModule,
 } from '@backstage/backend-plugin-api';
+import { loggerToWinstonLogger } from '@backstage/backend-common';
 import { scaffolderActionsExtensionPoint } from '@backstage/plugin-scaffolder-node/alpha';
 import { createAnsibleContentAction } from './actions';
 
@@ -34,9 +35,10 @@ export const scaffolderModuleAnsible = createBackendModule({
       deps: {
         scaffolder: scaffolderActionsExtensionPoint,
         config: coreServices.rootConfig,
+        logger: coreServices.logger
       },
-      async init({ scaffolder, config }) {
-        scaffolder.addActions(createAnsibleContentAction(config));
+      async init({ scaffolder, config, logger }) {
+        scaffolder.addActions(createAnsibleContentAction(config, loggerToWinstonLogger(logger)));
       },
     });
   },

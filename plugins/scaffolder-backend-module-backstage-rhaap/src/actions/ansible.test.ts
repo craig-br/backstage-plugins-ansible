@@ -21,6 +21,7 @@ jest.mock('./ansibleContentCreate', () => {
     };
   });
 
+import { getVoidLogger } from '@backstage/backend-common';
 import { createAnsibleContentAction } from './ansible';
 import { ansibleCreatorRun } from './ansibleContentCreate';
 import {
@@ -44,7 +45,9 @@ describe('ansible:content:create', () => {
           },
         });
 
-    const action = createAnsibleContentAction(config);
+    const logger = getVoidLogger();
+
+    const action = createAnsibleContentAction(config, logger);
 
     const mockContext = createMockActionContext({
       input: {
@@ -82,7 +85,7 @@ describe('ansible:content:create', () => {
       expect(ansibleCreatorRun).toHaveBeenCalledWith(
         mockContext.workspacePath,
         'collection-project',
-        mockContext.logger,
+        logger,
         'test description',
         'dummyGroup',
         'dummyName',

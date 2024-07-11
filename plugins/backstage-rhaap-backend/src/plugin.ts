@@ -32,12 +32,14 @@ export const backstageRHAAPPlugin = createBackendPlugin({
         logger: coreServices.logger,
         reader: coreServices.urlReader,
         httpRouter: coreServices.httpRouter,
+        scheduler: coreServices.scheduler
       },
-      async init({ config, logger, httpRouter }) {
+      async init({ config, logger, httpRouter, scheduler }) {
         httpRouter.use(
           await createRouter({
             config,
             logger: loggerToWinstonLogger(logger),
+            scheduler
           }),
         );
       },
