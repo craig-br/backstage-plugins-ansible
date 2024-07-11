@@ -32,14 +32,6 @@ for pluginDir in "$pluginsDir"/*; do
     fi
 
     # Run the set of commands
-    echo "Running yarn export-dynamic in $pluginDir"
-    yarn export-dynamic
-    if [ $? -ne 0 ]; then
-      echo "yarn export-dynamic failed in $pluginDir"
-      popd > /dev/null
-      continue
-    fi
-
     echo "Running yarn tsc in $pluginDir"
     yarn tsc
     if [ $? -ne 0 ]; then
@@ -52,6 +44,14 @@ for pluginDir in "$pluginsDir"/*; do
     yarn build
     if [ $? -ne 0 ]; then
       echo "yarn build failed in $pluginDir"
+      popd > /dev/null
+      continue
+    fi
+
+    echo "Running yarn export-dynamic in $pluginDir"
+    yarn export-dynamic
+    if [ $? -ne 0 ]; then
+      echo "yarn export-dynamic failed in $pluginDir"
       popd > /dev/null
       continue
     fi
