@@ -57,13 +57,18 @@ for pluginDir in "$pluginsDir"/*; do
     fi
 
     echo "Running npm pack in $pluginDir"
-    INTEGRITY_HASH=$(npm pack --pack-destination ../../dynamic-plugins-archives --json | jq -r '.[0].integrity')
-    echo "Integrity Hash: $INTEGRITY_HASH"
+    pack_json=$(npm pack --pack-destination ../../dynamic-plugins-archives --json)
+    echo "Integrity Hash: $pack_json"
     if [ $? -ne 0 ]; then
       echo "npm pack failed in $pluginDir"
       popd > /dev/null
       continue
     fi
+
+    echo "Creating package.integrity file"
+    filename=$(echo "$pack_json" | jq -r '.[0].filename')
+    integrity=$(echo "$pack_json" | jq -r '.[0].integrity')
+    echo "$integrity" > ../../dynamic-plugins-archives/${filename}.integrity
 
     # Return to the original directory
     popd > /dev/null
