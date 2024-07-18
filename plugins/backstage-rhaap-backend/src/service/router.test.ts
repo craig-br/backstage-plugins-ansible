@@ -20,34 +20,56 @@ import { createRouter } from './router';
 import { ConfigReader } from '@backstage/config';
 import { getVoidLogger } from '@backstage/backend-common';
 
-// Mock node-fetch
-jest.mock('node-fetch');
-import fetch from 'node-fetch';
-
-const { Response } = jest.requireActual('node-fetch');
+import { RHAAPService } from './ansibleRHAAPService';
+import { INVALID_SUBSCRIPTION } from './constant';
 
 describe('createRouter', () => {
   let app: express.Express;
+  let getSubscriptionStatusMock: any;
+  const logger = getVoidLogger();
+  const config = new ConfigReader({
+    ansible: {
+      rhaap: {
+        baseUrl: 'https://aap.example.com',
+        token: 'test-token',
+        checkSSL: false,
+        schedule: {
+          frequency: {
+            minutes: 1
+          },
+          timeout: {
+            minutes: 1
+          }
+        }
+      },
+    },
+  });
 
   beforeAll(async () => {
-    const router = await createRouter({
-      logger: getVoidLogger(),
-      config: new ConfigReader({
-        ansible: {
-          aap: {
-            baseUrl: 'https://aap.example.com',
-            token: 'test-token',
-            checkSSL: false,
-          },
-        },
-      }),
-    });
+    const router = await createRouter({logger, config});
 
     app = express().use(router);
+    getSubscriptionStatusMock = jest
+      .spyOn(RHAAPService.prototype, 'getSubscriptionStatus')
+      .mockImplementationOnce(() => {
+        return {statusCode: 200, isValid: true}
+      })
+      .mockImplementationOnce(() => {
+        return {statusCode: 200, isValid: false}
+      })
+      .mockImplementationOnce(() => {
+        return {statusCode: 404, isValid: false}
+      })
+      .mockImplementationOnce(() => {
+        return {statusCode: 495, isValid: false}
+      })
+      .mockImplementationOnce(() => {
+        return {statusCode: 500, isValid: false}
+      })
   });
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('GET /health', () => {
@@ -60,53 +82,39 @@ describe('createRouter', () => {
 
   describe('GET /aap/subscription', () => {
     it('returns valid subscription status', async () => {
-      (fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce(
-        new Response(JSON.stringify({ license_info: { license_type: 'enterprise' } }))
-      );
-
       const response = await request(app).get('/aap/subscription');
+      expect(getSubscriptionStatusMock).toHaveBeenCalledTimes(1);
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ status: 'ok', valid: true });
+      expect(response.body).not.toHaveProperty('error_message');
+      expect(response.body).toEqual({ isValid: true });
     });
 
     it('returns invalid subscription status', async () => {
-      (fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce(
-        new Response(JSON.stringify({ license_info: { license_type: 'basic' } }))
-      );
-
       const response = await request(app).get('/aap/subscription');
+      expect(getSubscriptionStatusMock).toHaveBeenCalledTimes(1);
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ status: 'ok', valid: false });
+      expect(response.body).toHaveProperty('error_message');
     });
 
     it('handles connection refused error', async () => {
-      (fetch as jest.MockedFunction<typeof fetch>).mockRejectedValueOnce(
-        { code: 'ECONNREFUSED' }
-      );
-
       const response = await request(app).get('/aap/subscription');
+      expect(getSubscriptionStatusMock).toHaveBeenCalledTimes(1);
       expect(response.status).toBe(404);
-      expect(response.body).toHaveProperty('error');
+      expect(response.body).toHaveProperty('error_message');
     });
 
     it('handles certificate expired error', async () => {
-      (fetch as jest.MockedFunction<typeof fetch>).mockRejectedValueOnce(
-        { code: 'CERT_HAS_EXPIRED' }
-      );
-
       const response = await request(app).get('/aap/subscription');
+      expect(getSubscriptionStatusMock).toHaveBeenCalledTimes(1);
       expect(response.status).toBe(495);
-      expect(response.body).toHaveProperty('error');
+      expect(response.body).toHaveProperty('error_message');
     });
 
     it('handles generic error', async () => {
-      (fetch as jest.MockedFunction<typeof fetch>).mockRejectedValueOnce(
-        new Error('Internal server error')
-      );
-
       const response = await request(app).get('/aap/subscription');
       expect(response.status).toBe(500);
-      expect(response.body).toHaveProperty('error');
+      expect(response.body).toHaveProperty('error_message');
+      expect(response.body.error_message).toEqual(INVALID_SUBSCRIPTION);
     });
   });
 });

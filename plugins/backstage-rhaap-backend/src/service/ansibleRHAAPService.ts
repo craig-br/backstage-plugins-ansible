@@ -111,14 +111,13 @@ export class RHAAPService {
       this.logger.error(
         `[backstage-rhaap-backend] AAP subscription Check failed at ${baseUrl}/api/v2/config/`,
       );
-      let statusCode;
       if (error.code === 'CERT_HAS_EXPIRED') {
-        statusCode = 495;
+        this.statusCode = 495;
       } else if (error.code === 'ECONNREFUSED') {
-        statusCode = 404;
+        this.statusCode = 404;
       }
       else {
-        statusCode = Number.isInteger(error.code) && error.code >= 100 && error.code < 600 ? error.code : 500;
+        this.statusCode = Number.isInteger(error.code) && error.code >= 100 && error.code < 600 ? error.code : 500;
       }
       this.hasValidSubscription = false;
     }
