@@ -23,7 +23,7 @@ export interface Config {
     /**
      * Ansible Automation Platform (AAP) configuration.
      */
-    aap: {
+    rhaap: {
       /**
        * Base URL of Ansible Controller.
       */
