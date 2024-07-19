@@ -32,7 +32,7 @@ node_modules/
 dist
 dist-types
 dist-scalprum
-/plugins/*/dist-dynamic/*
+plugins/*/dist-dynamic/*
 !/plugins/*/dist-dynamic/package.json
 !/plugins/*/dist-dynamic/yarn.lock
 storybook-static
@@ -78,3 +78,4 @@ playwright/.cache/
 # tar files when yarn tsc is ran
 ansible-plugins-pack/
 dynamic-plugins-archives/
+

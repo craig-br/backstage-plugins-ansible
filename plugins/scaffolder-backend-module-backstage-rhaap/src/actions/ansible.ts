@@ -25,6 +25,7 @@ import {
 import { Logger } from 'winston';
 import { Config } from '@backstage/config';
 import { AnsibleApiClient, BackendServiceAPI } from './utils/api';
+import { ScaffolderLogger } from './utils/logger';
 
 export function createAnsibleContentAction(config: Config, logger: Logger) {
   return createTemplateAction<{
@@ -119,22 +120,31 @@ export function createAnsibleContentAction(config: Config, logger: Logger) {
         collectionGroup,
         collectionName,
       } = ctx.input;
+
+      const log = new ScaffolderLogger(
+        BackendServiceAPI.pluginLogName,
+        ctx.logger as Logger,
+      );
       const AAPSubscription = new AnsibleApiClient({ config, logger });
 
       try {
+        log.info(`Checking for Ansible Automation Platform subscription`);
+
         const { isValid, error_message } =
           await AAPSubscription.isValidSubscription();
 
-        if (!isValid && error_message)
-          logger.error(`[${BackendServiceAPI.pluginLogName}] ERROR: ${error_message}`);
+        if (!isValid && error_message) log.error(`${error_message}`);
 
-        logger.info(
-          `[${BackendServiceAPI.pluginLogName}] Creating Ansible content ${collectionGroup}.${collectionName} with source control ${sourceControl}`,
+        if (isValid)
+          log.info(`Valid Ansible Automation Platform subscription found`);
+
+        log.info(
+          `Creating Ansible content ${collectionGroup}.${collectionName} with source control ${sourceControl}`,
         );
 
-        logger.info(`[${BackendServiceAPI.pluginLogName}] Checking plugin configuration`);
+        log.info(`Checking plugin configuration`);
         validateAnsibleConfig(config);
-        logger.debug(`[${BackendServiceAPI.pluginLogName}] Plugin configuration is correct`);
+        log.info(`Plugin configuration is correct`);
 
         await ansibleCreatorRun(
           ctx.workspacePath,
@@ -146,9 +156,7 @@ export function createAnsibleContentAction(config: Config, logger: Logger) {
           getServiceUrlFromAnsibleConfig(config),
         );
 
-        logger.info(
-          `[${BackendServiceAPI.pluginLogName}] ansibleCreatorRun completed successfully`,
-        );
+        log.info(`ansibleCreatorRun completed successfully`);
         ctx.output(
           'devSpacesBaseUrl',
           getDevspacesUrlFromAnsibleConfig(
@@ -162,9 +170,7 @@ export function createAnsibleContentAction(config: Config, logger: Logger) {
           'repoUrl',
           generateRepoUrl(sourceControl, repoOwner, repoName),
         );
-        logger.debug(
-          `[${BackendServiceAPI.pluginLogName}] context output processed successfully`,
-        );
+        log.info(`context output processed successfully`);
       } catch (error: any) {
         throw new Error(error.message);
       }
