@@ -65,7 +65,7 @@ describe('ansible:content:create', () => {
     const isValidSubscriptionMock = jest
       .spyOn(AnsibleApiClient.prototype, 'isValidSubscription')
       .mockImplementation(async () => {
-        return {isValid: true, error_message: null}
+        return {status: 200, isValid: true, isCompliant: false}
     });
 
 

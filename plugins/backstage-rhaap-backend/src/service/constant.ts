@@ -22,6 +22,3 @@ export const DEFAULT_SCHEDULE = {
   frequency: { minutes: 1 },
   timeout: { minutes: 1 },
 };
-
-export const INVALID_SUBSCRIPTION =
-  'Invalid AAP subscription. Please contact admin for more information.';

@@ -21,7 +21,6 @@ import { ConfigReader } from '@backstage/config';
 import { getVoidLogger } from '@backstage/backend-common';
 
 import { RHAAPService } from './ansibleRHAAPService';
-import { INVALID_SUBSCRIPTION } from './constant';
 
 describe('createRouter', () => {
   let app: express.Express;
@@ -52,19 +51,19 @@ describe('createRouter', () => {
     getSubscriptionStatusMock = jest
       .spyOn(RHAAPService.prototype, 'getSubscriptionStatus')
       .mockImplementationOnce(() => {
-        return {statusCode: 200, isValid: true}
+        return {status: 200, isValid: true, isCompliant: false}
       })
       .mockImplementationOnce(() => {
-        return {statusCode: 200, isValid: false}
+        return {status: 200, isValid: false, isCompliant: false}
       })
       .mockImplementationOnce(() => {
-        return {statusCode: 404, isValid: false}
+        return {status: 404, isValid: false, isCompliant: false}
       })
       .mockImplementationOnce(() => {
-        return {statusCode: 495, isValid: false}
+        return {status: 495, isValid: false, isCompliant: false}
       })
       .mockImplementationOnce(() => {
-        return {statusCode: 500, isValid: false}
+        return {status: 500, isValid: false, isCompliant: false}
       })
   });
 
@@ -85,36 +84,31 @@ describe('createRouter', () => {
       const response = await request(app).get('/aap/subscription');
       expect(getSubscriptionStatusMock).toHaveBeenCalledTimes(1);
       expect(response.status).toBe(200);
-      expect(response.body).not.toHaveProperty('error_message');
-      expect(response.body).toEqual({ isValid: true });
+      expect(response.body.isValid).toEqual(true);
     });
 
     it('returns invalid subscription status', async () => {
       const response = await request(app).get('/aap/subscription');
       expect(getSubscriptionStatusMock).toHaveBeenCalledTimes(1);
       expect(response.status).toBe(200);
-      expect(response.body).toHaveProperty('error_message');
+      expect(response.body.isValid).toEqual(false);
     });
 
     it('handles connection refused error', async () => {
       const response = await request(app).get('/aap/subscription');
       expect(getSubscriptionStatusMock).toHaveBeenCalledTimes(1);
       expect(response.status).toBe(404);
-      expect(response.body).toHaveProperty('error_message');
     });
 
     it('handles certificate expired error', async () => {
       const response = await request(app).get('/aap/subscription');
       expect(getSubscriptionStatusMock).toHaveBeenCalledTimes(1);
       expect(response.status).toBe(495);
-      expect(response.body).toHaveProperty('error_message');
     });
 
     it('handles generic error', async () => {
       const response = await request(app).get('/aap/subscription');
       expect(response.status).toBe(500);
-      expect(response.body).toHaveProperty('error_message');
-      expect(response.body.error_message).toEqual(INVALID_SUBSCRIPTION);
     });
   });
 });

@@ -27,8 +27,15 @@ import {
   TaskScheduleDefinition,
 } from '@backstage/backend-tasks';
 
+export interface AAPSubscriptionCheck {
+  status: number;
+  isValid: boolean;
+  isCompliant: boolean;
+}
+
 export class RHAAPService {
   private hasValidSubscription: boolean = false;
+  private isAAPCompliant: boolean = false;
   private statusCode: number = 0;
   private static _instance: RHAAPService;
   private readonly scheduleFn!: () => Promise<void>;
@@ -70,8 +77,8 @@ export class RHAAPService {
     return new RHAAPService(config, logger, scheduler);
   }
 
-  getSubscriptionStatus() {
-    return { statusCode: this.statusCode, isValid: this.hasValidSubscription };
+  getSubscriptionStatus(): AAPSubscriptionCheck {
+    return { status: this.statusCode, isValid: this.hasValidSubscription, isCompliant: this.isAAPCompliant };
   }
 
   private createFn(taskRunner: TaskRunner) {
@@ -107,6 +114,7 @@ export class RHAAPService {
       this.statusCode = aapResponse.status
       this.hasValidSubscription =
         data?.license_info?.license_type === 'enterprise';
+      this.isAAPCompliant = data?.license_info?.compliant;
     } catch (error: any) {
       this.logger.error(
         `[backstage-rhaap-backend] AAP subscription Check failed at ${baseUrl}/api/v2/config/`,

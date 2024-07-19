@@ -22,17 +22,11 @@ import { Config } from '@backstage/config';
 import { SchedulerService } from '@backstage/backend-plugin-api';
 
 import { RHAAPService } from './ansibleRHAAPService';
-import { INVALID_SUBSCRIPTION } from './constant';
 
 export interface RouterOptions {
   logger: Logger;
   config: Config;
   scheduler?: SchedulerService;
-}
-
-export interface AAPResponse {
-  isValid: boolean;
-  error_message?: string | null;
 }
 
 export async function createRouter(
@@ -53,12 +47,8 @@ export async function createRouter(
 
   router.get('/aap/subscription', async (_, response) => {
     // Return the subscription status
-    const { statusCode, isValid } = instance.getSubscriptionStatus();
-    const res: AAPResponse = {
-      isValid,
-    };
-    if (!res.isValid) res.error_message = INVALID_SUBSCRIPTION;
-    response.status(statusCode).json(res);
+    const res = instance.getSubscriptionStatus();
+    response.status(res.status).json(res);
   });
 
   return router;

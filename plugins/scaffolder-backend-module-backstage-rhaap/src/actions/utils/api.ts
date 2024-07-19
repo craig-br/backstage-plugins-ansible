@@ -20,13 +20,14 @@ import * as fs from 'fs';
 import fetch, { Response } from 'node-fetch';
 import { Logger } from 'winston';
 
-export interface SubscriptionCheck {
+export interface AAPSubscriptionCheck {
+  status: number;
   isValid: boolean;
-  error_message: null | string;
+  isCompliant: boolean;
 }
 
 export interface AnsibleApi {
-  isValidSubscription(): Promise<SubscriptionCheck>;
+  isValidSubscription(): Promise<AAPSubscriptionCheck>;
 }
 
 export class BackendServiceAPI {
@@ -150,7 +151,7 @@ export class AnsibleApiClient implements AnsibleApi {
     this.logger = logger;
   }
 
-  async isValidSubscription(): Promise<SubscriptionCheck> {
+  async isValidSubscription(): Promise<AAPSubscriptionCheck> {
     const discovery = HostDiscovery.fromConfig(this.config);
     try {
       const baseUrl = await discovery.getBaseUrl('backstage-rhaap');
@@ -159,7 +160,7 @@ export class AnsibleApiClient implements AnsibleApi {
       return data;
     } catch (error: any) {
       this.logger.error(`[${BackendServiceAPI.pluginLogName}] Scaffolder AAP Error checking AAP subscription:`, error);
-      return { isValid: false, error_message: `${error.message}` };
+      return { status: 0, isValid: false, isCompliant: false };
     }
   }
 }
