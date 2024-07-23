@@ -91,7 +91,8 @@ export const AnsiblePage = () => {
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  const [subscription, setSubscription] = React.useState<AAPSubscriptionCheck | null>(null);
+  const [subscription, setSubscription] =
+    React.useState<AAPSubscriptionCheck | null>(null);
   const ansibleApi = useApi(ansibleApiRef);
 
   const selectedTabIndex = tabs.findIndex(item => item.nav === section);
@@ -117,24 +118,31 @@ export const AnsiblePage = () => {
   };
 
   const renderAlertMessage = () => {
-    let title; let message;
+    let title;
+    let message;
     if (subscription?.status === 495 || subscription?.status === 500) {
       title = errorTitle.SSL_OR_UNREACHABLE;
       message = errorMessage.SSL_OR_UNREACHABLE;
-    } else if (subscription?.status !== 0 && !subscription?.isCompliant) {
+    } else if (!subscription?.isCompliant) {
       title = errorTitle.NON_COMPLIANT;
       message = errorMessage.NON_COMPLIANT;
-    } else if (subscription?.status !== 0 && !subscription?.isValid) {
+    } else if (!subscription?.isValid) {
       title = errorTitle.INVALID_LICENSE;
       message = errorMessage.INVALID_LICENSE;
     }
-    return (<>
-      <AlertTitle>
-        {title}
-      </AlertTitle>
-      {message}
-    </>)
-  }
+    return title && message ? (
+      <ContentHeader
+        titleComponent={
+          <div>
+            <Alert severity="warning" color="warning" role="alert">
+              <AlertTitle>{title}</AlertTitle>
+              {message}
+            </Alert>
+          </div>
+        }
+      />
+    ) : null;
+  };
 
   return section === '' ? (
     <Navigate to="overview" />
@@ -151,17 +159,7 @@ export const AnsiblePage = () => {
       />
 
       <Content>
-        {subscription && (
-          <ContentHeader
-            titleComponent={
-              <div>
-                <Alert severity="warning" color="warning" role="alert">
-                  {renderAlertMessage()}
-                </Alert>
-              </div>
-            }
-          />
-        )}
+        {subscription && renderAlertMessage()}
         <Routes>
           <Route path="/">
             <Route path="overview" element={<EntityOverviewContent />} />

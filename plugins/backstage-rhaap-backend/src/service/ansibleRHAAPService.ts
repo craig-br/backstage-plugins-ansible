@@ -36,7 +36,7 @@ export interface AAPSubscriptionCheck {
 export class RHAAPService {
   private hasValidSubscription: boolean = false;
   private isAAPCompliant: boolean = false;
-  private statusCode: number = 0;
+  private statusCode: number = 500;
   private static _instance: RHAAPService;
   private readonly scheduleFn!: () => Promise<void>;
   private config!: Config;
@@ -108,9 +108,7 @@ export class RHAAPService {
       this.logger.info(
         `[backstage-rhaap-backend] Checking AAP subscription at ${baseUrl}/api/v2/config/`,
       );
-      this.logger.info({aapResponse})
       const data = await aapResponse.json();
-      this.logger.info({json_fmt: aapResponse.json})
       this.statusCode = aapResponse.status
       this.hasValidSubscription =
         data?.license_info?.license_type === 'enterprise';
@@ -118,6 +116,9 @@ export class RHAAPService {
     } catch (error: any) {
       this.logger.error(
         `[backstage-rhaap-backend] AAP subscription Check failed at ${baseUrl}/api/v2/config/`,
+      );
+      this.logger.error(
+        `[backstage-rhaap-backend] ${error.message}`,
       );
       if (error.code === 'CERT_HAS_EXPIRED') {
         this.statusCode = 495;

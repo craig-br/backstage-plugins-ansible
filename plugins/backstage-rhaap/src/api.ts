@@ -34,15 +34,11 @@ export interface AAPSubscriptionCheck {
   isCompliant: boolean;
 }
 
-
 export class AnsibleApiClient implements AnsibleApi {
   private readonly discoveryApi: DiscoveryApi;
   private readonly fetchApi: FetchApi;
 
-  constructor(options: {
-    discoveryApi: DiscoveryApi;
-    fetchApi: FetchApi;
-  }) {
+  constructor(options: { discoveryApi: DiscoveryApi; fetchApi: FetchApi }) {
     this.discoveryApi = options.discoveryApi;
     this.fetchApi = options.fetchApi;
   }
@@ -54,7 +50,7 @@ export class AnsibleApiClient implements AnsibleApi {
       const data = await response.json();
       return data;
     } catch (error) {
-      return { status: 0, isValid: false, isCompliant: false };
+      return { status: 500, isValid: false, isCompliant: false };
     }
   }
 }

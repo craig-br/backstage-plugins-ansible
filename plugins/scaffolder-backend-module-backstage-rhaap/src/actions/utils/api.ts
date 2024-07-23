@@ -50,9 +50,7 @@ export class BackendServiceAPI {
       return response;
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(
-          `Failed to send POST request: ${error.message}`,
-        );
+        throw new Error(`Failed to send POST request: ${error.message}`);
       } else {
         throw new Error(`Failed to send POST request`);
       }
@@ -76,7 +74,9 @@ export class BackendServiceAPI {
           resolve(true);
         });
       });
-      logger.debug(`[${BackendServiceAPI.pluginLogName}] Project tar file downloaded successfully`);
+      logger.debug(
+        `[${BackendServiceAPI.pluginLogName}] Project tar file downloaded successfully`,
+      );
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to download file: ${error.message}`);
@@ -146,7 +146,7 @@ export class AnsibleApiClient implements AnsibleApi {
   private readonly config: Config;
   private readonly logger: Logger;
 
-  constructor({config, logger}: {config: Config, logger: Logger}) {
+  constructor({config, logger}: {config: Config; logger: Logger}) {
     this.config = config;
     this.logger = logger;
   }
@@ -159,8 +159,17 @@ export class AnsibleApiClient implements AnsibleApi {
       const data = await response.json();
       return data;
     } catch (error: any) {
-      this.logger.error(`[${BackendServiceAPI.pluginLogName}] Scaffolder AAP Error checking AAP subscription:`, error);
-      return { status: 0, isValid: false, isCompliant: false };
+      if (error instanceof Error) {
+        this.logger.error(
+          `[${BackendServiceAPI.pluginLogName}] Scaffolder AAP Error checking AAP subscription:`,
+          error.message,
+        );
+      } else {
+        this.logger.error(
+          `[${BackendServiceAPI.pluginLogName}] Scaffolder AAP Error checking AAP subscription`,
+        );
+      }
+      return { status: 500, isValid: false, isCompliant: false };
     }
   }
 }
