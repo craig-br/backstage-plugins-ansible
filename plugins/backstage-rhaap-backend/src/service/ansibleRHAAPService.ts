@@ -111,7 +111,7 @@ export class RHAAPService {
       const data = await aapResponse.json();
       this.statusCode = aapResponse.status;
       this.hasValidSubscription =
-        data?.license_info?.license_type === 'enterprise' ?? false;
+        data?.license_info?.license_type === 'enterprise';
       this.isAAPCompliant = data?.license_info?.compliant ?? false;
     } catch (error: any) {
       this.logger.error(
