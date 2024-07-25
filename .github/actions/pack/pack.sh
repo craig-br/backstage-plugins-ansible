@@ -4,6 +4,7 @@
 pluginsDir="plugins"
 packDestination="dynamic-plugins-archives"
 finalPackDir="ansible-plugins-pack"
+sourcePackDir="ansible-backstage-plugins-source-code"
 
 # Check if the plugins directory exists
 if [ ! -d "$pluginsDir" ]; then
@@ -11,8 +12,14 @@ if [ ! -d "$pluginsDir" ]; then
   exit 1
 fi
 
+# Create source tar
+tar -czf $sourcePackDir-${GITHUB_REF##*/v}.tar.gz .
+
 # Create the pack destination directory
 mkdir -p "$packDestination"
+
+# Move source code tar to the pack destination directory
+mv $sourcePackDir-${GITHUB_REF##*/v}.tar.gz "$packDestination"
 
 # Loop through each subdirectory in the ./plugins directory
 for pluginDir in "$pluginsDir"/*; do
