@@ -88,6 +88,8 @@ export const AnsiblePage = () => {
   const section = param['*'];
 
   const [open, setOpen] = React.useState(false);
+  const [showSubscriptionAlert, setShowSubscriptionAlert] =
+    React.useState(true);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
@@ -123,6 +125,12 @@ export const AnsiblePage = () => {
     if (subscription?.status === 495 || subscription?.status === 500) {
       title = errorTitle.SSL_OR_UNREACHABLE;
       message = errorMessage.SSL_OR_UNREACHABLE;
+    } else if (subscription?.status === 404) {
+      title = errorTitle.RESOURCE_FAIL;
+      message = errorMessage.RESOURCE_FAIL;
+    } else if (subscription?.status === 401) {
+      title = errorTitle.AUTH_FAIL;
+      message = errorMessage.AUTH_FAIL;
     } else if (!subscription?.isCompliant) {
       title = errorTitle.NON_COMPLIANT;
       message = errorMessage.NON_COMPLIANT;
@@ -134,7 +142,12 @@ export const AnsiblePage = () => {
       <ContentHeader
         titleComponent={
           <div>
-            <Alert severity="warning" color="warning" role="alert">
+            <Alert
+              severity="warning"
+              color="warning"
+              role="alert"
+              onClose={() => setShowSubscriptionAlert(false)}
+            >
               <AlertTitle>{title}</AlertTitle>
               {message}
             </Alert>
@@ -159,7 +172,7 @@ export const AnsiblePage = () => {
       />
 
       <Content>
-        {subscription && renderAlertMessage()}
+        {showSubscriptionAlert && subscription && renderAlertMessage()}
         <Routes>
           <Route path="/">
             <Route path="overview" element={<EntityOverviewContent />} />

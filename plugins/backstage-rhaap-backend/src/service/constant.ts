@@ -22,3 +22,5 @@ export const DEFAULT_SCHEDULE = {
   frequency: { hours: 24 },
   timeout: { minutes: 1 },
 };
+
+export const VALID_LICENSE_TYPES = ['enterprise', 'developer', 'trial'];

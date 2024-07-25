@@ -17,12 +17,36 @@ import React from 'react';
 import { Link } from '@backstage/core-components';
 
 export const errorTitle = {
+  AUTH_FAIL: 'Unable to authenticate to Ansible Automation Platform',
+  RESOURCE_FAIL: 'Invalid resource for Ansible Automation Platform',
   SSL_OR_UNREACHABLE: 'Unable to connect to Ansible Automation Platform',
   NON_COMPLIANT: 'Subscription non-compliant',
   INVALID_LICENSE: 'Invalid subscription',
 };
 
 export const errorMessage = {
+  AUTH_FAIL: (
+    <>
+      Verify that the authentication details for Ansible Automation Platform are
+      correctly configured in the Ansible plug-ins. For help, please refer to
+      the{' '}
+      <Link to="http://red.ht/aap-rhdh-plugins-install-guide">
+        Ansible plug-ins installation guide
+      </Link>
+      .
+    </>
+  ),
+  RESOURCE_FAIL: (
+    <>
+      Verify that the resource url for Ansible Automation Platform are
+      correctly configured in the Ansible plug-ins. For help, please refer to
+      the{' '}
+      <Link to="http://red.ht/aap-rhdh-plugins-install-guide">
+        Ansible plug-ins installation guide
+      </Link>
+      .
+    </>
+  ),
   SSL_OR_UNREACHABLE: (
     <>
       Verify that Ansible Automation Platform is reachable and correctly

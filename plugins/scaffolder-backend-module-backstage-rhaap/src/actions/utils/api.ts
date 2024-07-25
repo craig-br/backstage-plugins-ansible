@@ -19,6 +19,7 @@ import { Config } from '@backstage/config';
 import * as fs from 'fs';
 import fetch, { Response } from 'node-fetch';
 import { Logger } from 'winston';
+import https from 'https';
 
 export interface AAPSubscriptionCheck {
   status: number;
@@ -146,7 +147,7 @@ export class AnsibleApiClient implements AnsibleApi {
   private readonly config: Config;
   private readonly logger: Logger;
 
-  constructor({config, logger}: {config: Config; logger: Logger}) {
+  constructor({ config, logger }: { config: Config; logger: Logger }) {
     this.config = config;
     this.logger = logger;
   }
@@ -155,8 +156,24 @@ export class AnsibleApiClient implements AnsibleApi {
     const discovery = HostDiscovery.fromConfig(this.config);
     try {
       const baseUrl = await discovery.getBaseUrl('backstage-rhaap');
-      const response = await fetch(`${baseUrl}/aap/subscription`);
+      this.logger.info(
+        `[${BackendServiceAPI.pluginLogName}] Scaffolder checking AAP subscription at ${baseUrl}/aap/subscription`
+      );
+      const agent = new https.Agent({
+        rejectUnauthorized: true,
+      });
+      const keys = this.config.getStringArray('backend.auth.keys');
+      const token = keys.length > 0 ? keys[0]['secret' as any] : null;
+      if (!token)
+        throw new Error('Authentication token missing');
+      const response = await fetch(`${baseUrl}/aap/subscription`, {
+        headers: { Authorization: `Bearer ${token}` },
+        agent,
+      });
       const data = await response.json();
+      this.logger.info(
+        `[${BackendServiceAPI.pluginLogName}] Scaffolder AAP subscription check succeeded`
+      );
       return data;
     } catch (error: any) {
       if (error instanceof Error) {

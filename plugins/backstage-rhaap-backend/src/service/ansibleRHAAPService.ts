@@ -18,7 +18,7 @@ import { Config } from '@backstage/config';
 import fetch from 'node-fetch';
 import https from 'https';
 
-import { DEFAULT_SCHEDULE } from './constant';
+import { DEFAULT_SCHEDULE, VALID_LICENSE_TYPES } from './constant';
 import { Logger } from 'winston';
 import {
   PluginTaskScheduler,
@@ -33,12 +33,23 @@ export interface AAPSubscriptionCheck {
   isCompliant: boolean;
 }
 
+class AAPSubscriptionCheckError extends Error {
+  public status: number | null = null;
+  public message: string = '';
+
+  constructor(status: number, message: string) {
+    super();
+    this.status = status;
+    this.message = message;
+  }
+}
+
 export class RHAAPService {
   private hasValidSubscription: boolean = false;
   private isAAPCompliant: boolean = false;
   private statusCode: number = 500;
+  private readonly scheduleFn: () => Promise<void> = async () => {};
   private static _instance: RHAAPService;
-  private readonly scheduleFn!: () => Promise<void>;
   private config!: Config;
   private logger!: Logger;
 
@@ -52,7 +63,7 @@ export class RHAAPService {
     this.config = config;
     this.logger = logger;
 
-    this.logger.info(`In RHAAP Service`);
+    this.logger.info(`[backstage-rhaap-backend] Setting up the scheduler`);
 
     let schedule: TaskScheduleDefinition = DEFAULT_SCHEDULE;
     if (this.config.has('ansible.rhaap.schedule')) {
@@ -64,7 +75,11 @@ export class RHAAPService {
     if (scheduler) {
       const taskRunner = scheduler.createScheduledTaskRunner(schedule);
       this.scheduleFn = this.createFn(taskRunner);
-      this.scheduleFn();
+      const clearSubscriptionCheckTimeout = setTimeout(async () => {
+        this.scheduleFn();
+        await this.checkSubscription();
+        clearTimeout(clearSubscriptionCheckTimeout);
+      }, 500);
     }
     RHAAPService._instance = this;
   }
@@ -78,7 +93,11 @@ export class RHAAPService {
   }
 
   getSubscriptionStatus(): AAPSubscriptionCheck {
-    return { status: this.statusCode, isValid: this.hasValidSubscription, isCompliant: this.isAAPCompliant };
+    return {
+      status: this.statusCode,
+      isValid: this.hasValidSubscription,
+      isCompliant: this.isAAPCompliant,
+    };
   }
 
   private createFn(taskRunner: TaskRunner) {
@@ -101,34 +120,43 @@ export class RHAAPService {
       });
 
       // Send request to AAP
-      const aapResponse = await fetch(`${baseUrl}/api/v2/config/`, {
-        headers: { Authorization: `Bearer ${token}` },
-        agent,
-      });
       this.logger.info(
         `[backstage-rhaap-backend] Checking AAP subscription at ${baseUrl}/api/v2/config/`,
       );
+      const aapResponse = await fetch(`${baseUrl}/api/v2/config`, {
+        headers: { Authorization: `Bearer ${token}` },
+        agent,
+      });
       const data = await aapResponse.json();
-      this.statusCode = aapResponse.status;
-      this.hasValidSubscription =
-        data?.license_info?.license_type === 'enterprise';
-      this.isAAPCompliant = data?.license_info?.compliant ?? false;
+      if (!aapResponse.ok) {
+        // make the promise be rejected if we didn't get a 2xx response
+        throw new AAPSubscriptionCheckError(aapResponse.status, data.detail);
+      } else {
+        this.statusCode = aapResponse.status;
+        this.hasValidSubscription =
+          VALID_LICENSE_TYPES.includes(data?.license_info?.license_type);
+        this.isAAPCompliant = data?.license_info?.compliant ?? false;
+      }
     } catch (error: any) {
       this.logger.error(
-        `[backstage-rhaap-backend] AAP subscription Check failed at ${baseUrl}/api/v2/config/`,
+        `[backstage-rhaap-backend] AAP subscription Check failed for ${baseUrl}/api/v2/config/`,
       );
-      this.logger.error(
-        `[backstage-rhaap-backend] ${error.message}`,
-      );
-      if (error.code === 'CERT_HAS_EXPIRED') {
+      if (error instanceof AAPSubscriptionCheckError) {
+        this.statusCode = error.status ?? 404;
+      }
+      else if (error.code === 'CERT_HAS_EXPIRED') {
         this.statusCode = 495;
-      } else if (error.code === 'ECONNREFUSED') {
+      } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
         this.statusCode = 404;
+      } else {
+        this.statusCode =
+        Number.isInteger(error.code) && error.code >= 100 && error.code < 600
+        ? error.code
+        : 500;
       }
-      else {
-        this.statusCode = Number.isInteger(error.code) && error.code >= 100 && error.code < 600 ? error.code : 500;
-      }
+      this.logger.error(`[backstage-rhaap-backend] Error: ${this.statusCode}: ${error.message}`);
       this.hasValidSubscription = false;
+      this.isAAPCompliant = false;
     }
   }
 }

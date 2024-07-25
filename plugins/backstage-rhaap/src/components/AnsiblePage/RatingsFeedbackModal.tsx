@@ -103,7 +103,7 @@ export default function RatingsFeedbackModal(props: IProps) {
       attributes: {
         type: selectedIssueType,
         ratings: ratings,
-        feedback: feedback,
+        feedback,
       },
     });
     setSnackbarMsg('Thank you sharing the ratings and feedback');
@@ -121,8 +121,8 @@ export default function RatingsFeedbackModal(props: IProps) {
     analytics.captureEvent('feedback', 'issue', {
       attributes: {
         type: selectedIssueType,
-        title: title,
-        description: description,
+        title,
+        description,
       },
     });
     const msg = `Thank you sharing this feature request`;
@@ -283,7 +283,7 @@ export default function RatingsFeedbackModal(props: IProps) {
             <div style={{ fontSize: 14 }}>
               Red Hat uses your feedback to help improve our products and
               services.
-              <br /> For more information, please review{' '}
+              <br /> For more information, please review&nbsp;
               <Link to="https://www.redhat.com/en/about/privacy-policy">
                 Red Hat's Privacy Statement{' '}
                 <OpenInNew fontSize="small" style={{ fontSize: '14px' }} />
@@ -297,7 +297,7 @@ export default function RatingsFeedbackModal(props: IProps) {
                 type="submit"
                 disabled={checkDisabled()}
                 onClick={sendFeedback}
-                data-testid="feedback-submit-btn"
+                data-testid="sentiment-submit-btn"
               >
                 Submit
               </Button>

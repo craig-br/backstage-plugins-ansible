@@ -137,6 +137,14 @@ export function createAnsibleContentAction(config: Config, logger: Logger) {
           log.error(
             `Verify that Ansible Automation Platform is reachable and correctly configured in the Ansible plug-ins.`,
           );
+        } else if (status === 404) {
+          log.error(
+            `Verify that the resource url for Ansible Automation Platform are correctly configured in the Ansible plug-ins.`,
+          );
+        } else if (status === 401) {
+          log.error(
+            `Verify that the authentication details for Ansible Automation Platform are correctly configured in the Ansible plug-ins.`,
+          );
         } else if (!isCompliant) {
           log.error(
             `The connected Ansible Automation Platform subscription is out of compliance. Contact your Red Hat account team to obtain a new subscription entitlement.`,
