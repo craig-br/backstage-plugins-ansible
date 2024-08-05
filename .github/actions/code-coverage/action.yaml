@@ -47,3 +47,4 @@ runs:
       with:
         # token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage/lcov.info
+        fail_ci_if_error: false
