@@ -10,6 +10,7 @@ inputs:
     description: Node.js version
     required: true
     default: 20
+env:
   codecov:
     description: Codecov token
     required: true
@@ -47,8 +48,11 @@ runs:
         nyc report --reporter html --reporter text -t coverage --report-dir coverage/summary
 
     - name: Upload coverage report to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
+      env:
+        CODECOV_TOKEN: ${{ env.codecov }}
       with:
-        token: ${{ inputs.codecov }}
+        token: ${{ env.codecov }}
         file: ./${{ inputs.plugin }}/coverage/lcov.info
-        fail_ci_if_error: false
+        fail_ci_if_error: true
+        verbose: true

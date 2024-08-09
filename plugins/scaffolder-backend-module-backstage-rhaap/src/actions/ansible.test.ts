@@ -74,13 +74,11 @@ describe('ansible:content:create', () => {
         return {status: 200, isValid: true, isCompliant: false}
     });
 
-
     beforeEach(() => {
       jest.clearAllMocks();
     });
 
-
-    it('should call output with the devSpaces.baseUrl and the repoUrl', async () => {
+    it('should call output with the devSpaces.baseUrl and the repoUrl and check', async () => {
       await action.handler(mockContext);
 
       expect(isValidSubscriptionMock).toHaveBeenCalledTimes(1);
