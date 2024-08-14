@@ -19,6 +19,8 @@ import { Config } from '@backstage/config';
 import * as fs from 'fs';
 import fetch, { Response } from 'node-fetch';
 import { Logger } from 'winston';
+import https from 'https';
+import { AuthService } from '@backstage/backend-plugin-api';
 
 export interface AAPSubscriptionCheck {
   status: number;
@@ -145,18 +147,38 @@ export class BackendServiceAPI {
 export class AnsibleApiClient implements AnsibleApi {
   private readonly config: Config;
   private readonly logger: Logger;
+  private readonly auth: AuthService;
 
-  constructor({config, logger}: {config: Config; logger: Logger}) {
+  constructor({ config, logger, auth }: { config: Config; logger: Logger, auth: AuthService }) {
     this.config = config;
     this.logger = logger;
+    this.auth = auth;
   }
 
   async isValidSubscription(): Promise<AAPSubscriptionCheck> {
     const discovery = HostDiscovery.fromConfig(this.config);
     try {
       const baseUrl = await discovery.getBaseUrl('backstage-rhaap');
-      const response = await fetch(`${baseUrl}/aap/subscription`);
+      this.logger.info(
+        `[${BackendServiceAPI.pluginLogName}] Scaffolder checking AAP subscription at ${baseUrl}/aap/subscription`
+      );
+      const agent = new https.Agent({
+        rejectUnauthorized: true,
+      });
+      const { token } = await this.auth.getPluginRequestToken({
+        onBehalfOf: await this.auth.getOwnServiceCredentials(),
+        targetPluginId: 'backstage-rhaap', // e.g. 'catalog'
+      });
+      if (!token)
+        throw new Error('Authentication token missing');
+      const response = await fetch(`${baseUrl}/aap/subscription`, {
+        headers: { Authorization: `Bearer ${token}` },
+        agent,
+      });
       const data = await response.json();
+      this.logger.info(
+        `[${BackendServiceAPI.pluginLogName}] Scaffolder AAP subscription check succeeded`
+      );
       return data;
     } catch (error: any) {
       if (error instanceof Error) {

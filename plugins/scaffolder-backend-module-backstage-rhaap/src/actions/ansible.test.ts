@@ -32,6 +32,7 @@ import {
 import { ConfigReader } from '@backstage/config';
 import { createMockActionContext } from '@backstage/plugin-scaffolder-node-test-utils';
 import { AnsibleApiClient } from './utils/api';
+import { MockAuthService } from './MockAuthService';
 
 describe('ansible:content:create', () => {
     const config = new ConfigReader({
@@ -48,7 +49,12 @@ describe('ansible:content:create', () => {
 
     const logger = getVoidLogger();
 
-    const action = createAnsibleContentAction(config, logger);
+    const auth = new MockAuthService({
+      pluginId: 'test',
+      disableDefaultAuthPolicy: false,
+    });
+
+    const action = createAnsibleContentAction(config, logger, auth);
 
     const mockContext = createMockActionContext({
       input: {
@@ -68,13 +74,11 @@ describe('ansible:content:create', () => {
         return {status: 200, isValid: true, isCompliant: false}
     });
 
-
     beforeEach(() => {
       jest.clearAllMocks();
     });
 
-
-    it('should call output with the devSpaces.baseUrl and the repoUrl', async () => {
+    it('should call output with the devSpaces.baseUrl and the repoUrl and check', async () => {
       await action.handler(mockContext);
 
       expect(isValidSubscriptionMock).toHaveBeenCalledTimes(1);
