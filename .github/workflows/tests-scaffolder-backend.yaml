@@ -77,6 +77,9 @@ jobs:
   coverage:
     name: 📝 / coverage / Node-${{ matrix.node-version }}
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      checks: read
     defaults:
       run:
         working-directory: ./plugins/scaffolder-backend-module-backstage-rhaap
@@ -94,8 +97,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           plugin: 'plugins/scaffolder-backend-module-backstage-rhaap'
-        env:
-          codecov: ${{ secrets.CODECOV_TOKEN }}
 
   all-green:
     if: ${{ always() }}
