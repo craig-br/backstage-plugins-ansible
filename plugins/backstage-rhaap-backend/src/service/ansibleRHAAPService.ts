@@ -133,8 +133,8 @@ export class RHAAPService {
 
       console.log('aap25 status:', aapResponse.status);
 
-      // subscription check for AAP <2.5
       if (aapResponse.status === 404) {
+        // subscription check for AAP <2.5
         aapResponse = await fetch(`${baseUrl}/api/v2/config`, reqHeaders);
       }
       const data = await aapResponse.json();
