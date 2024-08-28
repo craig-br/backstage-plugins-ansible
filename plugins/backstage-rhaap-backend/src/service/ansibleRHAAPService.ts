@@ -119,15 +119,24 @@ export class RHAAPService {
       const agent = new https.Agent({
         rejectUnauthorized: checkSSL,
       });
+      const reqHeaders = {
+        headers: { Authorization: `Bearer ${token}` },
+        agent,
+      }
 
       // Send request to AAP
       this.logger.info(
         `[backstage-rhaap-backend] Checking AAP subscription at ${baseUrl}/api/v2/config/`,
       );
-      const aapResponse = await fetch(`${baseUrl}/api/v2/config`, {
-        headers: { Authorization: `Bearer ${token}` },
-        agent,
-      });
+      // subscription check for AAP 2.5
+      let aapResponse = await fetch(`${baseUrl}/api/controller/v2/config`, reqHeaders);
+
+      console.log('aap25 status:', aapResponse.status);
+
+      // subscription check for AAP <2.5
+      if (aapResponse.status === 404) {
+        aapResponse = await fetch(`${baseUrl}/api/v2/config`, reqHeaders);
+      }
       const data = await aapResponse.json();
       if (!aapResponse.ok) {
         // make the promise be rejected if we didn't get a 2xx response
