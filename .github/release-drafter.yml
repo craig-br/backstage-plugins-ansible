@@ -7,7 +7,7 @@ autolabeler:
   - label: skip-changelog
     title:
       - /pre-commit autoupdate/
-      - "/^Update .+/.+ digest to [0-9a-f]+$/"
+      - "/^Update .+ (to [v.0-9a-f]+|monorepo \(.+\))$/"
       - "/^Replace dependency .+ with .+$/"
     body:
       - "/type: chore/i"
