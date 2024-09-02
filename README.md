@@ -603,7 +603,6 @@ spec:
         - name: my-backstage-config-auth # our custom configMap for app config
       mountPath: /opt/app-root/src
     dynamicPluginsConfigMapName: my-dynamic-plugins-config-cm # our custom configMap for dynamic plugins
-    replicas: 2
   database:
     enableLocalDb: true
   rawRuntimeConfig:
