@@ -12,6 +12,14 @@ if [ ! -d "$pluginsDir" ]; then
   exit 1
 fi
 
+# Remove the .git directory if it exists
+# comment if running locally
+if [ -d ".git" ]; then
+  echo "Removing .git directory..."
+  rm -rf .git
+  echo ".git directory removed."
+fi
+
 # Create source tar
 tar -czf $sourcePackDir-${GITHUB_REF##*/v}.tar.gz .
 
