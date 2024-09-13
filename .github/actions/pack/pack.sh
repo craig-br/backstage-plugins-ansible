@@ -24,12 +24,12 @@ fi
 
 # Create a tar name it pack.tar.gz
 tar -czf pack.tar.gz .
-# Extrack it under a directory called pack
-mkdir pack && tar -xzf pack.tar.gz -C pack/
-# Repack the directoy with the desired name
-tar -czf $sourcePackDir-${GITHUB_REF##*/v}.tar.gz -C pack .
+# Extract it under a directory called ansible-backstage-plugins-source-code-${GITHUB_REF##*/v}
+mkdir $sourcePackDir-${GITHUB_REF##*/v} && tar -xzf pack.tar.gz -C $sourcePackDir-${GITHUB_REF##*/v}/
+# Repack the directoy with the desired name ansible-backstage-plugins-source-code-${GITHUB_REF##*/v}
+tar -czf $sourcePackDir-${GITHUB_REF##*/v}.tar.gz -C $sourcePackDir-${GITHUB_REF##*/v} .
 # Clean up
-rm -rf pack.tar.gz pack
+rm -rf pack.tar.gz $sourcePackDir-${GITHUB_REF##*/v}
 
 # Create the pack destination directory
 mkdir -p "$packDestination"
