@@ -21,7 +21,15 @@ if [ -d ".git" ]; then
 fi
 
 # Create source tar
-tar -czf $sourcePackDir-${GITHUB_REF##*/v}.tar.gz .
+
+# Create a tar name it pack.tar.gz
+tar -czf pack.tar.gz .
+# Extrack it under a directory called pack
+mkdir pack && tar -xzf pack.tar.gz -C pack/
+# Repack the directoy with the desired name
+tar -czf $sourcePackDir-${GITHUB_REF##*/v}.tar.gz -C pack .
+# Clean up
+rm -rf pack.tar.gz pack
 
 # Create the pack destination directory
 mkdir -p "$packDestination"
