@@ -26,21 +26,21 @@ export interface Config {
     rhaap: {
       /**
        * Base URL of Ansible Controller.
-      */
+       */
       baseUrl: string;
       /**
        * Token for authentication.
-      */
+       */
       token: string;
       /**
        * Check SSL certificate.
-      */
+       */
       checkSSL?: boolean;
 
       /**
        * Set schedule for subscription check
        */
       schedule?: TaskScheduleDefinitionConfig;
-    }
+    };
   };
 }

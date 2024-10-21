@@ -28,7 +28,9 @@ Refer <https://backstage.io/docs/auth/github/provider>
 # From your Backstage root directory
 yarn --cwd packages/backend add @ansible/plugin-backstage-rhaap
 ```
+
 Or
+
 ```bash
 cd plugins/backstage-rhaap
 yarn install
@@ -43,7 +45,6 @@ Add the following line in the `dependencies` section of the `packages/app/packag
 ```
 
 ### Adding the plugin to your `packages/app`
-
 
 Add the Ansible plugin route in the `packages/app/src/App.tsx` file as shown in the following `diff` output.
 
@@ -133,15 +134,15 @@ Update the apis.ts to enable analytics, follow the changes in the `diff` add it 
  ];
 ```
 
-
 ### Start frontend and backend
+
 Run the following commands in separate terminals from the root folder of backstage.
 
 Frontend
 
 ```bash
 yarn start
-````
+```
 
 Backend
 

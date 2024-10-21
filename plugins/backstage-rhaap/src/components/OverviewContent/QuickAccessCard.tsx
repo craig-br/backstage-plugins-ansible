@@ -27,10 +27,7 @@ import {
 } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 
-import {
-  IQuickAccessLinks,
-  allData
-} from './quickAccessData';
+import { IQuickAccessLinks, allData } from './quickAccessData';
 import OpenInNew from '@material-ui/icons/OpenInNew';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { Config } from '@backstage/config';
@@ -48,7 +45,7 @@ const useStyles = makeStyles(theme => ({
     marginLeft: '25px',
   },
   flex: {
-    display: 'flex'
+    display: 'flex',
   },
   fontSize14: {
     fontSize: '14px',
@@ -99,33 +96,37 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const QuickAccessAccordion = ({ data, index, expanded, config }: QuickAccessProps) => {
+const QuickAccessAccordion = ({
+  data,
+  index,
+  expanded,
+  config,
+}: QuickAccessProps) => {
   const classes = useStyles();
   const navigate = useNavigate();
   let btnUrl = data.button?.url;
   if (btnUrl && btnUrl.includes('app-config')) {
     const configKey = btnUrl.split(':')[1];
-    btnUrl = config.getOptionalString(configKey)
-    if (!btnUrl)
-      btnUrl = data.button?.fallbackUrl;
+    btnUrl = config.getOptionalString(configKey);
+    if (!btnUrl) btnUrl = data.button?.fallbackUrl;
   }
 
   const btnProps: ButtonProps = {
     variant: 'contained',
     color: 'primary',
     className: `${classes.ml25}`,
-    ...data.showButton && !data.button?.isExternalUrl
+    ...(data.showButton && !data.button?.isExternalUrl
       ? {
-        onClick: (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-          e.stopPropagation();
-          navigate(btnUrl ?? '')
+          onClick: (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+            e.stopPropagation();
+            navigate(btnUrl ?? '');
+          },
         }
-      }
       : {
-        target: '_blank',
-        href: btnUrl ?? ''
-      }
-  }
+          target: '_blank',
+          href: btnUrl ?? '',
+        }),
+  };
 
   return (
     <Accordion defaultExpanded={expanded}>
@@ -141,45 +142,53 @@ const QuickAccessAccordion = ({ data, index, expanded, config }: QuickAccessProp
       <AccordionDetails>
         <section>
           {data.description && (
-            <Typography component="div"
+            <Typography
+              component="div"
               className={`${classes.fontSize14} ${classes.ml25} ${classes.description}`}
             >
               {data?.description}
             </Typography>
           )}
           <div>
-            {data.items && <ul className={classes.link}>
-              {(data.items || []).map((item, idx) => (
-                <li key={idx} className={classes.t_align_c}>
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className={classes.a_link}
-                  >
-                    <div className={classes.icon_style}>
-                      <div className={classes.icon_align}>
-                        {item.icon}
+            {data.items && (
+              <ul className={classes.link}>
+                {(data.items || []).map((item, idx) => (
+                  <li key={idx} className={classes.t_align_c}>
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className={classes.a_link}
+                    >
+                      <div className={classes.icon_style}>
+                        <div className={classes.icon_align}>{item.icon}</div>
                       </div>
-                    </div>
-                    <Typography className={classes.link_label}>
-                      {item?.label}
-                    </Typography>
-                  </a>
-                </li>
-              ))}
-            </ul>}
+                      <Typography className={classes.link_label}>
+                        {item?.label}
+                      </Typography>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
             <div className={classes.flex}>
               {data.showButton && (
                 <Button {...btnProps}>
                   {data.button?.text}
-                  {data.button?.isExternalUrl && <OpenInNew style={{marginLeft: '5px'}} fontSize='small' />}
+                  {data.button?.isExternalUrl && (
+                    <OpenInNew style={{ marginLeft: '5px' }} fontSize="small" />
+                  )}
                 </Button>
               )}
               {data.showDocsLink && (
-                <Button color='primary' href={data.docs?.url ?? ''} className={classes.ml25} target='_blank'>
+                <Button
+                  color="primary"
+                  href={data.docs?.url ?? ''}
+                  className={classes.ml25}
+                  target="_blank"
+                >
                   {data.docs?.text}
-                  <OpenInNew style={{marginLeft: '5px'}} fontSize='small' />
+                  <OpenInNew style={{ marginLeft: '5px' }} fontSize="small" />
                 </Button>
               )}
             </div>
@@ -194,12 +203,25 @@ export const QuickAccessCard = () => {
   const config = useApi(configApiRef);
   return (
     <Grid item>
-      <QuickAccessAccordion config={config} data={allData.learn} index={1} expanded />
-      <QuickAccessAccordion config={config} data={allData.discoverContent} index={2}  />
+      <QuickAccessAccordion
+        config={config}
+        data={allData.learn}
+        index={1}
+        expanded
+      />
+      <QuickAccessAccordion
+        config={config}
+        data={allData.discoverContent}
+        index={2}
+      />
       <QuickAccessAccordion config={config} data={allData.create} index={3} />
-      <QuickAccessAccordion config={config} data={allData.develop} index={4}  />
-      <QuickAccessAccordion config={config} data={allData.operate} index={5}  />
-      <QuickAccessAccordion config={config} data={allData.developmentTools} index={6}  />
+      <QuickAccessAccordion config={config} data={allData.develop} index={4} />
+      <QuickAccessAccordion config={config} data={allData.operate} index={5} />
+      <QuickAccessAccordion
+        config={config}
+        data={allData.developmentTools}
+        index={6}
+      />
     </Grid>
   );
 };

@@ -14,26 +14,26 @@
  * limitations under the License.
  */
 
-import { Entity } from "@backstage/catalog-model";
-import { ConfigReader } from "@backstage/config";
-import { CatalogApi } from "@backstage/plugin-catalog-react";
-import { AnsibleApi } from "../api";
+import { Entity } from '@backstage/catalog-model';
+import { ConfigReader } from '@backstage/config';
+import { CatalogApi } from '@backstage/plugin-catalog-react';
+import { AnsibleApi } from '../api';
 
 export const mockConfigApi = new ConfigReader({
-    ansible: {
-      devSpacesBaseUrl:
-        'https://devspaces.apps.ansible-rhdh.testing.ansible.com/',
-      pahUrl: 'https://example.com'
-    },
-  });
+  ansible: {
+    devSpacesBaseUrl:
+      'https://devspaces.apps.ansible-rhdh.testing.ansible.com/',
+    pahUrl: 'https://example.com',
+  },
+});
 
-export const mockEntities: Entity[] = [ 
+export const mockEntities: Entity[] = [
   {
     apiVersion: '1',
     kind: 'Template',
     metadata: {
       name: 'playbook-template',
-      tags: ["ansible"]
+      tags: ['ansible'],
     },
   },
   {
@@ -41,16 +41,16 @@ export const mockEntities: Entity[] = [
     kind: 'Template',
     metadata: {
       name: 'collection-template',
-      tags: []
+      tags: [],
     },
-  }
+  },
 ];
 
 export const mockCatalogApi: jest.Mocked<CatalogApi> = {
-      getEntitiesByRefs: jest.fn(),
-      getEntities: jest.fn().mockImplementation(() => Promise.resolve())
+  getEntitiesByRefs: jest.fn(),
+  getEntities: jest.fn().mockImplementation(() => Promise.resolve()),
 } as any;
 
 export const mockAnsibleApi: jest.Mocked<AnsibleApi> = {
-  isValidSubscription: jest.fn().mockImplementation(() => Promise.resolve())
+  isValidSubscription: jest.fn().mockImplementation(() => Promise.resolve()),
 } as any;

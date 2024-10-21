@@ -1,3 +1,4 @@
+---
 dynamicPlugins:
   frontend:
     ansible.plugin-backstage-rhaap:

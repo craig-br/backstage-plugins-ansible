@@ -28,7 +28,11 @@ import { AnsibleApiClient, BackendServiceAPI } from './utils/api';
 import { ScaffolderLogger } from './utils/logger';
 import { AuthService } from '@backstage/backend-plugin-api';
 
-export function createAnsibleContentAction(config: Config, logger: Logger, auth: AuthService) {
+export function createAnsibleContentAction(
+  config: Config,
+  logger: Logger,
+  auth: AuthService,
+) {
   return createTemplateAction<{
     sourceControl: string;
     repoOwner: string;

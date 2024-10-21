@@ -38,9 +38,8 @@ export const errorMessage = {
   ),
   RESOURCE_FAIL: (
     <>
-      Verify that the resource url for Ansible Automation Platform are
-      correctly configured in the Ansible plug-ins. For help, please refer to
-      the{' '}
+      Verify that the resource url for Ansible Automation Platform are correctly
+      configured in the Ansible plug-ins. For help, please refer to the{' '}
       <Link to="http://red.ht/aap-rhdh-plugins-install-guide">
         Ansible plug-ins installation guide
       </Link>
