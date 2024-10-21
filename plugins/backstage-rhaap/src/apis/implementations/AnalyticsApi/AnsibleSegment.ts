@@ -102,8 +102,8 @@ export class AnsibleSegmentAnalytics implements AnalyticsApi {
     if (
       !canCaptureEvent &&
       context.pluginId === 'catalog' &&
-      subject.toLocaleLowerCase('en-US').includes('ansible')
-      && subject.toLocaleLowerCase('en-US').includes('dev spaces')
+      subject.toLocaleLowerCase('en-US').includes('ansible') &&
+      subject.toLocaleLowerCase('en-US').includes('dev spaces')
     ) {
       canCaptureEvent = true;
     }

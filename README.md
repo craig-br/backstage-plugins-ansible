@@ -4,6 +4,7 @@
 # Ansible plugins for Red Hat Developer Hub
 
 ## Plugin httpd registry creation steps -
+
 #### These steps are valid for both helm and operator installation -
 
 ### Install OpenShift cluster on AWS using CLI installer
@@ -15,6 +16,7 @@ Prerequisite: Make sure that the AWS account is configured locally using the AWS
 - Deploying the cluster - [doc](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-default.html#installation-launching-installer_installing-aws-default)
 
 ### Downloading the plugins tar from GitHub releases.
+
 Download the plugin .tar files from the [GitHub release page](https://github.com/ansible/ansible-backstage-plugins/releases).
 to the following location:
 
@@ -63,6 +65,7 @@ oc new-app --image-stream=plugin-registry
 #### To skip the integrity check during installation, set the following environment variable.
 
 Note - this is not required for the production environment
+
 ```bash
 kubectl set env deployment/rhdh-backstage -c install-dynamic-plugins -e SKIP_INTEGRITY_CHECK="true"
 ```
@@ -85,7 +88,9 @@ ansible-plugin-scaffolder-backend-module-backstage-rhaap-1.0.0.tgz
 ```bash
 oc start-build plugin-registry --from-dir=$DYNAMIC_PLUGIN_ROOT_DIR --wait
 ```
+
 ## Installing Ansible plugins with RHDH instance running on Openshift using Helm Chart
+
 #### It is considered that a Helm installation of Red Hat Developer Hub is done by following the official documentation.
 
 ### To add/ enable the dynamic plugins
@@ -164,6 +169,7 @@ upstream:
 to enable downstream `ansible-automation-platform-25-ansible-dev-tools-rhel8` image:
 
 Steps to get Red Hat registry authentication ready -
+
 - Follow, Getting a Red Hat Login steps [here](https://access.redhat.com/RegistryAuthentication)
 - Check your Registry Service Accounts [here](https://access.redhat.com/terms-based-registry/)
 - Open your Token information > OpenShift Secret and download the pull-secrets.yml and rename it to `rhdh-secret-brew-registry.yml`
@@ -222,13 +228,14 @@ spec:
 Do note that the configMap names may vary when it is a 1.3y.z release.
 
 All configuration specific to app-config goes in - `ConfigMap > redhat-developer-hub-app-config`
- - catalog.locations
- - ansible (all)
- - auth
- - integrations
- - enabled
- - signInPage
- - permission (rbac)
+
+- catalog.locations
+- ansible (all)
+- auth
+- integrations
+- enabled
+- signInPage
+- permission (rbac)
 
 This list is specific to Ansible Plugins.
 
@@ -282,7 +289,7 @@ permission:
 For dynamic plugins use the following - `ConfigMap > redhat-developer-hub-dynamic-plugins`
 
 ```yaml
-...
+---
 data:
   dynamic-plugins.yaml: |
     includes:
@@ -341,22 +348,21 @@ data:
           ./dynamic-plugins/dist/janus-idp-backstage-plugin-analytics-provider-segment
 ```
 
-
 ### Add analytics service configuration in your RHDH ROSA instance for the plugins
 
 The analytics/ telemetry capabilities are enabled with the RHDH build, for specific settings please follow this [doc](https://docs.redhat.com/en/documentation/red_hat_developer_hub/1.2/html-single/administration_guide_for_red_hat_developer_hub/index#disabling-telemetry-data-collection_assembly-install-rhdh-ocp)
 
 Details about the analytics gathered by Ansible plugins are -
 
-* If the event originates from the Ansible plugin:
- * Capture Ansible-specific events -
-   * Events are filtered by subject, plugin_id and attributes that are related to Ansible.
- * Analytics are captured from feedback form and sentiment data.
-* If the event does not originate from the Ansible plugin:
- * Analytics are captured from Catalog item, On click events to the 'Open Ansible project in OpenShift Dev Spaces' button.
- * Analytics are captured in the Create page Click/Navigate events for 'Choose' button to select an Ansible template.
- * Analytics are captured in the template input form after clicking 'Choose' and clicking events for the 'Review' button for Ansible software template.
- * Analytics are captured in the Confirmation page on clicking events for 'Create' button for an Ansible software template.
+- If the event originates from the Ansible plugin:
+- Capture Ansible-specific events -
+  - Events are filtered by subject, plugin_id and attributes that are related to Ansible.
+- Analytics are captured from feedback form and sentiment data.
+- If the event does not originate from the Ansible plugin:
+- Analytics are captured from Catalog item, On click events to the 'Open Ansible project in OpenShift Dev Spaces' button.
+- Analytics are captured in the Create page Click/Navigate events for 'Choose' button to select an Ansible template.
+- Analytics are captured in the template input form after clicking 'Choose' and clicking events for the 'Review' button for Ansible software template.
+- Analytics are captured in the Confirmation page on clicking events for 'Create' button for an Ansible software template.
 
 ### Add template configurations to your RHDH ROSA instance for the plugins
 
@@ -378,6 +384,7 @@ data:
 ```
 
 Note - if there is a need for a custom SCM support a fork of the above repo can be made with a set of changes mentioned below.
+
 - Update the enum and enum name in the templates [ref](https://github.com/ansible/ansible-rhdh-templates/blob/main/templates/collections.yaml#L29) to the desired source control name and source control URL.
 - Use a suitable publish action for the source control being used.
 
@@ -424,6 +431,7 @@ data:
           superUsers:
             - name: user:default/<user-scm-ida>
 ```
+
 Upon upgrading the ConfigMaps and Helm chart configuration, by clicking on Upgrade the RHDH pod would redeploy with loaded plugins
 
 It is advised to use the latest available plugin version that can be found under release artifacts.
@@ -434,13 +442,16 @@ It is advised to use the latest available plugin version that can be found under
 - With the clean namespace before Operator Backed is being used to install RHDH operator.
 - Take a backup of the configMap `backstage-default-config` in the namespace that defaults to `rhdh-operator`
 - Use the following commands
+
 ```bash
 export KUBECONFIG=/…/ROSA/kubeconfig
 oc get configmap backstage-default-config -n rhdh-operator -o yaml > backupOfRhdhOperatorConfig
 ```
+
 - Follow steps to create a httpd container registry, steps are at the beginning of this document.
 - `backupOfRhdhOperatorConfig` access the back up and copy the `deployment.yaml: |-` section
 - Create a config map named `showcase-config`
+
 ```yaml
 kind: ConfigMap
 apiVersion: v1
@@ -462,9 +473,11 @@ data:
               terminationMessagePolicy: File
               image: 'ghcr.io/ansible/community-ansible-dev-tools:latest'
 ```
+
 - Make sure the sidecar container is added as a new entry in the `spec.template.spec.[containers].<entryForSideCar>`
 - Create a config map named `my-backstage-config-auth`, the name can be anything. In RHDH (1.3) if should have a default entry `
 backstage-appconfig-developer-hub`
+
 ```yaml
 kind: ConfigMap
 apiVersion: v1
@@ -527,7 +540,9 @@ data:
             - name: user:default/gh-user
             ...
 ```
+
 - Create a config map named `my-dynamic-plugins-config-cm`, the name can be anything. In RHDH (1.3) if should have a default entry `backstage-dynamic-plugins-developer-hub`
+
 ```yaml
 kind: ConfigMap
 apiVersion: v1
@@ -590,7 +605,9 @@ data:
         package: >-
           ./dynamic-plugins/dist/janus-idp-backstage-plugin-analytics-provider-segment
 ```
+
 - Once the config maps are created, we can stich things together while we create the RHDH operator instance.
+
 ```yaml
 apiVersion: rhdh.redhat.com/v1alpha1
 kind: Backstage
@@ -608,4 +625,5 @@ spec:
   rawRuntimeConfig:
     backstageConfig: showcase-config # the showcase config that was created with the backup configuration
 ```
+
 - Now click on create. And things should be good!

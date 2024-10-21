@@ -15,15 +15,18 @@
  */
 
 import React from 'react';
-import {
-  Grid,
-} from '@material-ui/core';
+import { Grid } from '@material-ui/core';
 import { QuickAccessCard } from './QuickAccessCard';
 import { Favourites } from './Favourites';
 
 export const EntityOverviewContent = () => {
   return (
-    <Grid container spacing={2} justifyContent="space-between" data-testid="overview-content">
+    <Grid
+      container
+      spacing={2}
+      justifyContent="space-between"
+      data-testid="overview-content"
+    >
       <Grid item xs={9} data-testid="quick-access-card">
         <QuickAccessCard />
       </Grid>

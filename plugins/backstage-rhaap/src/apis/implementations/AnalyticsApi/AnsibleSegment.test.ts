@@ -48,7 +48,7 @@ describe('AnsibleSegmentAnalytics', () => {
     ansible: {
       analytics: { enabled: true, testMode: false, maskIP: false },
     },
-    auth: { environment: 'development' }
+    auth: { environment: 'development' },
   });
 
   afterEach(() => {
@@ -67,7 +67,7 @@ describe('AnsibleSegmentAnalytics', () => {
       ansible: {
         analytics: { enabled: true, testMode: false, maskIP: true },
       },
-      auth: { environment: 'development' }
+      auth: { environment: 'development' },
     });
 
     it('track identify calls', async () => {
@@ -185,7 +185,10 @@ describe('AnsibleSegmentAnalytics', () => {
       }),
     } as unknown as IdentityApi;
     it('track identify calls', async () => {
-      const api = AnsibleSegmentAnalytics.fromConfig(basicValidConfig, identityApi);
+      const api = AnsibleSegmentAnalytics.fromConfig(
+        basicValidConfig,
+        identityApi,
+      );
       await api.captureEvent({
         action: 'identify',
         subject: 'jdoe',

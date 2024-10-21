@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-
 import {
   coreServices,
-  createBackendModule
+  createBackendModule,
 } from '@backstage/backend-plugin-api';
 import { loggerToWinstonLogger } from '@backstage/backend-common';
 import { scaffolderActionsExtensionPoint } from '@backstage/plugin-scaffolder-node/alpha';
@@ -36,10 +35,16 @@ export const scaffolderModuleAnsible = createBackendModule({
         scaffolder: scaffolderActionsExtensionPoint,
         config: coreServices.rootConfig,
         logger: coreServices.logger,
-        auth: coreServices.auth
+        auth: coreServices.auth,
       },
       async init({ scaffolder, config, logger, auth }) {
-        scaffolder.addActions(createAnsibleContentAction(config, loggerToWinstonLogger(logger), auth));
+        scaffolder.addActions(
+          createAnsibleContentAction(
+            config,
+            loggerToWinstonLogger(logger),
+            auth,
+          ),
+        );
       },
     });
   },

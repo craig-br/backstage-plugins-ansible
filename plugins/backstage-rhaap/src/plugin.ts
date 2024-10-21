@@ -31,12 +31,12 @@ export const ansiblePlugin = createPlugin({
       api: ansibleApiRef,
       deps: { discoveryApi: discoveryApiRef, fetchApi: fetchApiRef },
       factory: ({ discoveryApi, fetchApi }) =>
-        new AnsibleApiClient({discoveryApi, fetchApi}),
+        new AnsibleApiClient({ discoveryApi, fetchApi }),
     }),
   ],
   routes: {
-    root: rootRouteRef
-  }
+    root: rootRouteRef,
+  },
 });
 
 export const AnsiblePage = ansiblePlugin.provide(

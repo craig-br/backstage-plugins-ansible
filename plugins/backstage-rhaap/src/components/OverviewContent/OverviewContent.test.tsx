@@ -27,7 +27,7 @@ import { mockCatalogApi, mockConfigApi } from '../../tests/test_utils';
 
 const render = (children: JSX.Element) => {
   const mockApi = new MockStarredEntitiesApi();
-  mockApi.toggleStarred('test')
+  mockApi.toggleStarred('test');
   return renderInTestApp(
     <TestApiProvider
       apis={[
@@ -37,13 +37,13 @@ const render = (children: JSX.Element) => {
       ]}
     >
       {children}
-    </TestApiProvider>
+    </TestApiProvider>,
   );
 };
 
 describe('Overview Page Content', () => {
   beforeEach(() => jest.clearAllMocks());
-  
+
   it('render Overview Page', async () => {
     const { getByTestId } = await render(<EntityOverviewContent />);
     expect(getByTestId('overview-content')).toBeInTheDocument();

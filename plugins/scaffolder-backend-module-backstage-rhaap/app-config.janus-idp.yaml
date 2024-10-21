@@ -1,3 +1,4 @@
+---
 dynamicPlugins:
   backend:
     ansible.plugin-scaffolder-backend-module-backstage-rhaap:
@@ -7,12 +8,13 @@ dynamicPlugins:
 catalog:
   locations:
     - type: url
-      target: https://github.com/ansible/ansible-rhdh-templates/blob/main/all.yaml
+      target: >
+        https://github.com/ansible/ansible-rhdh-templates/blob/main/all.yaml
       rules:
         - allow: [Template]
 ansible:
   devSpaces:
-    baseUrl: "https://devspaces.apps.ansible-rhdh.testing.ansible.com/"
+    baseUrl: 'https://devspaces.apps.ansible-rhdh.testing.ansible.com/'
   creatorService:
-    baseUrl: "localhost"
-    port: "5000"
+    baseUrl: 'localhost'
+    port: '5000'

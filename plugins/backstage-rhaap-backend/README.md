@@ -39,7 +39,7 @@ yarn install
 ```
 
 1. Manually copy the `plugins/backstage-rhaap-backend` directory to the
-`plugins` folder at the backstage root directory.
+   `plugins` folder at the backstage root directory.
 1. Update the `packages/backend/package.json` file in the backstage root directory.
 1. Add the dependencies under the `dependencies` sections as follows:
 
@@ -96,7 +96,7 @@ Frontend
 
 ```bash
 yarn start
-````
+```
 
 Backend
 
@@ -153,7 +153,7 @@ dynamicPlugins:
 
 ### Start the backend by running the command in the root folder of `backstage-showcase`
 
-   cloned repository path.
+cloned repository path.
 
 ```bash
 LOG_LEVEL=debug yarn start-backend

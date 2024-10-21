@@ -22,7 +22,11 @@ import React from 'react';
 import { EntityCreateContent } from './CreateContent';
 import { TestApiProvider, renderInTestApp } from '@backstage/test-utils';
 import { configApiRef, errorApiRef } from '@backstage/core-plugin-api';
-import { mockCatalogApi, mockConfigApi, mockEntities } from '../../tests/test_utils';
+import {
+  mockCatalogApi,
+  mockConfigApi,
+  mockEntities,
+} from '../../tests/test_utils';
 import {
   MockStarredEntitiesApi,
   catalogApiRef,
@@ -57,7 +61,7 @@ describe('Create Content', () => {
       loading: false,
       entities: mockEntities,
       filters: { tags: undefined },
-      updateFilters: jest.fn()
+      updateFilters: jest.fn(),
     });
     const { getByTestId } = await render(<EntityCreateContent />);
     expect(getByTestId('create-content')).toBeDefined();

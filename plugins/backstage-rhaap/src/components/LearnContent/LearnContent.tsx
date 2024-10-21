@@ -66,7 +66,8 @@ const useStyles = makeStyles(theme => ({
     },
   },
   subtitle: {
-    color: theme.palette.type === 'light' ? 'rgba(0, 0, 0, 0.40)' : 'currentColor',
+    color:
+      theme.palette.type === 'light' ? 'rgba(0, 0, 0, 0.40)' : 'currentColor',
   },
   textDecorationNone: {
     '&:hover': {
@@ -88,17 +89,15 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const RenderCourses = ({ data }: {data: ILearningPath[]}) => {
+const RenderCourses = ({ data }: { data: ILearningPath[] }) => {
   const classes = useStyles();
 
   const getFormat = (item: ILearningPath) => {
-    if(item.minutes)
-      return item.minutes === 1 ? 'minute' : 'minutes'
-    if(item.hours)
-      return item.hours === 1 ? 'hour' : 'hours'
+    if (item.minutes) return item.minutes === 1 ? 'minute' : 'minutes';
+    if (item.hours) return item.hours === 1 ? 'hour' : 'hours';
     /* istanbul ignore next */
-    return null
-  }
+    return null;
+  };
 
   return data.map((item: ILearningPath, index: number) => (
     <Link
@@ -117,7 +116,7 @@ const RenderCourses = ({ data }: {data: ILearningPath[]}) => {
         }
         subheader={
           <Typography className={`${classes.subtitle} ${classes.fontSize14}`}>
-            {`${item.minutes || item.hours } ${getFormat(item)}  | Ansible | ${item.level} | ${item.type}`}
+            {`${item.minutes || item.hours} ${getFormat(item)}  | Ansible | ${item.level} | ${item.type}`}
           </Typography>
         }
       >
@@ -150,7 +149,6 @@ const EntityLearnIntroCard = () => {
             item.description?.toLocaleLowerCase().includes(term),
         ),
       });
-
     } else setFilteredData({ learningPaths: learningPaths, labs: labs });
   }, [term]);
 
@@ -170,41 +168,71 @@ const EntityLearnIntroCard = () => {
             defaultValue={['Learning Paths', 'Labs']}
           />
 
-          <Typography style={{marginTop: '32px'}} component="div">
-            Useful links:<br />
-
-            <Typography style={{marginTop: '16px', fontSize: '14px'}} component="div">
+          <Typography style={{ marginTop: '32px' }} component="div">
+            Useful links:
+            <br />
+            <Typography
+              style={{ marginTop: '16px', fontSize: '14px' }}
+              component="div"
+            >
               <Link to="https://red.ht/aap-rhd-learning-paths">
                 Ansible learning paths on <br /> Red Hat Developer website
-                <OpenInNew fontSize='small' style={{marginLeft: '5px', fontSize: '14px'}}/>
+                <OpenInNew
+                  fontSize="small"
+                  style={{ marginLeft: '5px', fontSize: '14px' }}
+                />
               </Link>
             </Typography>
-            <Typography style={{marginTop: '16px', fontSize: '14px'}} component="div">
+            <Typography
+              style={{ marginTop: '16px', fontSize: '14px' }}
+              component="div"
+            >
               <Link to="https://red.ht/rhdh-rh-learning-subscription">
                 Red Hat Learning Subscription
-                <OpenInNew fontSize='small' style={{marginLeft: '5px', fontSize: '14px'}}/>
+                <OpenInNew
+                  fontSize="small"
+                  style={{ marginLeft: '5px', fontSize: '14px' }}
+                />
               </Link>
             </Typography>
-            <Typography style={{marginTop: '16px', fontSize: '14px'}} component="div">
+            <Typography
+              style={{ marginTop: '16px', fontSize: '14px' }}
+              component="div"
+            >
               <Link to="https://docs.ansible.com/ansible/latest/reference_appendices/glossary.html">
                 Ansible definitions
-                <OpenInNew fontSize='small' style={{marginLeft: '5px', fontSize: '14px'}}/>
+                <OpenInNew
+                  fontSize="small"
+                  style={{ marginLeft: '5px', fontSize: '14px' }}
+                />
               </Link>
             </Typography>
-            <Typography style={{marginTop: '16px', fontSize: '14px'}} component="div">
+            <Typography
+              style={{ marginTop: '16px', fontSize: '14px' }}
+              component="div"
+            >
               <Link to="http://red.ht/aap-lp-getting-started-rhaap-plugin">
                 User Guide
-                <OpenInNew fontSize='small' style={{marginLeft: '5px', fontSize: '14px'}}/>
+                <OpenInNew
+                  fontSize="small"
+                  style={{ marginLeft: '5px', fontSize: '14px' }}
+                />
               </Link>
             </Typography>
           </Typography>
         </Grid>
         <Grid item xs={10}>
-          {Array.isArray(filters?.types) && filters?.types?.includes('Learning Paths') &&
+          {Array.isArray(filters?.types) &&
+            filters?.types?.includes('Learning Paths') &&
             filteredData.learningPaths.length > 0 && (
-              <div style={{ marginBottom: '35px' }} data-testid="learning-paths">
+              <div
+                style={{ marginBottom: '35px' }}
+                data-testid="learning-paths"
+              >
                 <Typography paragraph>
-                  <Typography component="span">LEARNING PATHS <br /> </Typography>
+                  <Typography component="span">
+                    LEARNING PATHS <br />{' '}
+                  </Typography>
                   <Typography component="span" className={classes.fontSize14}>
                     Step-by-step enablement curated by Red Hat Ansible.
                   </Typography>
@@ -214,19 +242,23 @@ const EntityLearnIntroCard = () => {
                 </ItemCardGrid>
               </div>
             )}
-          {Array.isArray(filters?.types) && filters?.types?.includes('Labs') && filteredData.labs.length > 0 && (
-            <div>
-              <Typography paragraph>
-                <Typography component="span">LABS <br /></Typography>
-                <Typography component="span" className={classes.fontSize14}>
-                  Hands-on, interactive learning scenarios.
+          {Array.isArray(filters?.types) &&
+            filters?.types?.includes('Labs') &&
+            filteredData.labs.length > 0 && (
+              <div>
+                <Typography paragraph>
+                  <Typography component="span">
+                    LABS <br />
+                  </Typography>
+                  <Typography component="span" className={classes.fontSize14}>
+                    Hands-on, interactive learning scenarios.
+                  </Typography>
                 </Typography>
-              </Typography>
-              <ItemCardGrid>
-                <RenderCourses data={filteredData.labs} />
-              </ItemCardGrid>
-            </div>
-          )}
+                <ItemCardGrid>
+                  <RenderCourses data={filteredData.labs} />
+                </ItemCardGrid>
+              </div>
+            )}
         </Grid>
       </Grid>
     </>

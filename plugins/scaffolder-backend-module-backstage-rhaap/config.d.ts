@@ -6,26 +6,26 @@ export interface Config {
      */
     devSpaces?: {
       /**
-      * @visibility backend
-      */
+       * @visibility backend
+       */
       baseUrl?: string;
-    }
+    };
 
     /**
-    * @visibility backend
-    */
+     * @visibility backend
+     */
     rhaap?: {
       /**
-      * @visibility backend
-      */
+       * @visibility backend
+       */
       baseUrl?: string;
       /**
-      * @visibility backend
-      */
+       * @visibility backend
+       */
       token?: string;
       /**
-      * @visibility backend
-      */
+       * @visibility backend
+       */
       checkSSL?: boolean;
     };
     /**

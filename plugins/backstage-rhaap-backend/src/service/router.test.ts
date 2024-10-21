@@ -34,37 +34,37 @@ describe('createRouter', () => {
         checkSSL: false,
         schedule: {
           frequency: {
-            minutes: 1
+            minutes: 1,
           },
           timeout: {
-            minutes: 1
-          }
-        }
+            minutes: 1,
+          },
+        },
       },
     },
   });
 
   beforeAll(async () => {
-    const router = await createRouter({logger, config});
+    const router = await createRouter({ logger, config });
 
     app = express().use(router);
     getSubscriptionStatusMock = jest
       .spyOn(RHAAPService.prototype, 'getSubscriptionStatus')
       .mockImplementationOnce(() => {
-        return {status: 200, isValid: true, isCompliant: false}
+        return { status: 200, isValid: true, isCompliant: false };
       })
       .mockImplementationOnce(() => {
-        return {status: 200, isValid: false, isCompliant: false}
+        return { status: 200, isValid: false, isCompliant: false };
       })
       .mockImplementationOnce(() => {
-        return {status: 404, isValid: false, isCompliant: false}
+        return { status: 404, isValid: false, isCompliant: false };
       })
       .mockImplementationOnce(() => {
-        return {status: 495, isValid: false, isCompliant: false}
+        return { status: 495, isValid: false, isCompliant: false };
       })
       .mockImplementationOnce(() => {
-        return {status: 500, isValid: false, isCompliant: false}
-      })
+        return { status: 500, isValid: false, isCompliant: false };
+      });
   });
 
   beforeEach(() => {
