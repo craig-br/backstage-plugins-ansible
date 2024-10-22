@@ -118,7 +118,7 @@ export class RHAAPService {
         `[backstage-rhaap-backend] Pinging api gateway at ${baseUrl}/api/gateway/v1/ping/`,
       );
       const res = await fetch(`${baseUrl}/api/gateway/v1/ping/`, reqHeaders);
-      if(!res.ok) {
+      if (!res.ok) {
         return false;
       }
       return true;

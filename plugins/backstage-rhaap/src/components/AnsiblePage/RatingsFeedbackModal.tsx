@@ -69,8 +69,7 @@ export default function RatingsFeedbackModal(props: IProps) {
 
   const [ratings, setRatings] = React.useState<number>(0);
   const [feedback, setFeedback] = React.useState<string>('');
-  const [shareFeedback, setShareFeedback] =
-    React.useState<boolean>(false);
+  const [shareFeedback, setShareFeedback] = React.useState<boolean>(false);
 
   const [selectedIssueType, setSelectedIssueType] =
     React.useState<string>('sentiment');
@@ -90,12 +89,11 @@ export default function RatingsFeedbackModal(props: IProps) {
   const checkDisabled = () => {
     if (selectedIssueType === 'sentiment') {
       return !ratings || !feedback || !shareFeedback;
-    }
-    else if (selectedIssueType === 'feature-request') {
+    } else if (selectedIssueType === 'feature-request') {
       return !title || !description || !shareFeedback;
     }
     return false;
-  }
+  };
 
   const sendSentimentFeedback = () => {
     // send custom events to analytics provider
@@ -137,11 +135,9 @@ export default function RatingsFeedbackModal(props: IProps) {
   };
 
   const sendFeedback = () => {
-    if (selectedIssueType === 'sentiment')
-      sendSentimentFeedback();
-    else
-      sendIssueFeedback();
-  }
+    if (selectedIssueType === 'sentiment') sendSentimentFeedback();
+    else sendIssueFeedback();
+  };
 
   return (
     <div data-testid="ratings-feedback-modal">

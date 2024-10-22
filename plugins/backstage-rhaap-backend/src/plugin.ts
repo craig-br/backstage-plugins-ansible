@@ -15,7 +15,10 @@
  */
 
 import { loggerToWinstonLogger } from '@backstage/backend-common';
-import { coreServices, createBackendPlugin } from '@backstage/backend-plugin-api';
+import {
+  coreServices,
+  createBackendPlugin,
+} from '@backstage/backend-plugin-api';
 import { createRouter } from './service/router';
 
 /**
@@ -31,14 +34,14 @@ export const backstageRHAAPPlugin = createBackendPlugin({
         config: coreServices.rootConfig,
         logger: coreServices.logger,
         httpRouter: coreServices.httpRouter,
-        scheduler: coreServices.scheduler
+        scheduler: coreServices.scheduler,
       },
       async init({ config, logger, httpRouter, scheduler }) {
         httpRouter.use(
           await createRouter({
             config,
             logger: loggerToWinstonLogger(logger),
-            scheduler
+            scheduler,
           }),
         );
       },

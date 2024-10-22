@@ -47,14 +47,13 @@ import { useApi } from '@backstage/core-plugin-api';
 import { useEffectOnce } from 'react-use';
 
 const useStyles = makeStyles(theme => ({
-    flex: {
-      display: 'flex',
-    },
-    ml_16: {
-      marginLeft: theme.spacing(2),
-    },
-  })
-);
+  flex: {
+    display: 'flex',
+  },
+  ml_16: {
+    marginLeft: theme.spacing(2),
+  },
+}));
 
 export const AnsibleComponents = () => {
   const classes = useStyles();
@@ -67,16 +66,20 @@ export const AnsibleComponents = () => {
   const [allEntities, setAllEntities] = useState<Entity[]>([]);
   const [ansibleComponents, setAnsibleComponents] = useState<Entity[]>([]);
 
-  const {filters, updateFilters} = useEntityList();
+  const { filters, updateFilters } = useEntityList();
 
   const callApi = () => {
     catalogApi
-      .getEntities({ filter: [{ kind: 'component', 'metadata.tags': 'ansible' }] })
+      .getEntities({
+        filter: [{ kind: 'component', 'metadata.tags': 'ansible' }],
+      })
       .then(entities => {
         setAllEntities(entities.items);
-        setAnsibleComponents(entities.items.filter(item =>
-          item.metadata.tags?.includes('ansible'),
-        ));
+        setAnsibleComponents(
+          entities.items.filter(item =>
+            item.metadata.tags?.includes('ansible'),
+          ),
+        );
         setLoading(false);
         setShowError(false);
       })
@@ -86,19 +89,18 @@ export const AnsibleComponents = () => {
           setShowError(true);
         }
       });
-  }
+  };
 
   useEffectOnce(() => {
-    updateFilters({...filters, tags: new EntityTagFilter(['ansible'])});
+    updateFilters({ ...filters, tags: new EntityTagFilter(['ansible']) });
     callApi();
-  })
+  });
 
   useEffect(() => {
     if (filters.user?.value === 'starred')
-      setAnsibleComponents(allEntities.filter(e => isStarredEntity(e)))
-    else if (filters.user?.value === 'all')
-      setAnsibleComponents(allEntities);
-  }, [filters.user, allEntities, isStarredEntity])
+      setAnsibleComponents(allEntities.filter(e => isStarredEntity(e)));
+    else if (filters.user?.value === 'all') setAnsibleComponents(allEntities);
+  }, [filters.user, allEntities, isStarredEntity]);
 
   if (loading) {
     return (
@@ -153,8 +155,11 @@ export const AnsibleComponents = () => {
             <Tooltip title={starredTitle}>
               <div>
                 <Typography style={visuallyHidden}>{starredTitle}</Typography>
-                <Typography component="span" onClick={() => toggleStarredEntity(entity)}>
-                  {isStarred ? <YellowStar /> : <StarBorder  />}
+                <Typography
+                  component="span"
+                  onClick={() => toggleStarredEntity(entity)}
+                >
+                  {isStarred ? <YellowStar /> : <StarBorder />}
                 </Typography>
               </div>
             </Tooltip>

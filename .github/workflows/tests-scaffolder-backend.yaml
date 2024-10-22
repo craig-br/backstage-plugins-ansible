@@ -5,6 +5,8 @@ on:  # yamllint disable-line rule:truthy
   pull_request:
     branches: [main]
     paths:
+      - '.github/actions/**'
+      - '.github/workflows/**'
       - 'plugins/scaffolder-backend-module-backstage-rhaap/**'
   workflow_dispatch:
   schedule:
@@ -22,7 +24,7 @@ jobs:
         node-version: [18, 20]
     steps:
       - name: Checkout
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -43,7 +45,7 @@ jobs:
         node-version: [20]
     steps:
       - name: Checkout
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -64,7 +66,7 @@ jobs:
         node-version: [18, 20]
     steps:
       - name: Checkout
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -78,8 +80,10 @@ jobs:
     name: 📝 / coverage / Node-${{ matrix.node-version }}
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
+      actions: read
       checks: read
+      contents: read
+      id-token: write
     defaults:
       run:
         working-directory: ./plugins/scaffolder-backend-module-backstage-rhaap
@@ -88,7 +92,7 @@ jobs:
         node-version: [18]
     steps:
       - name: Checkout
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 

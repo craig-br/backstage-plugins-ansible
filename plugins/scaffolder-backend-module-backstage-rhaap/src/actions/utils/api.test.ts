@@ -34,24 +34,37 @@ describe('BackendServiceAPI', () => {
 
     const api = new BackendServiceAPI();
 
-    const privateFuncdownloadFile = jest.spyOn(BackendServiceAPI.prototype as any, 'downloadFile');
+    const privateFuncdownloadFile = jest.spyOn(
+      BackendServiceAPI.prototype as any,
+      'downloadFile',
+    );
     privateFuncdownloadFile.mockImplementation(() => {});
 
-    const privateFuncsendPostRequest = jest.spyOn(BackendServiceAPI.prototype as any, 'sendPostRequest');
+    const privateFuncsendPostRequest = jest.spyOn(
+      BackendServiceAPI.prototype as any,
+      'sendPostRequest',
+    );
     privateFuncsendPostRequest.mockImplementation(() => {});
 
     await api.downloadPlaybookProject(
-        workspacePath,
-        mockLogger,
-        creatorServiceUrl,
-        collectionOrgName,
-        collectionName,
-        tarName,
-      );
+      workspacePath,
+      mockLogger,
+      creatorServiceUrl,
+      collectionOrgName,
+      collectionName,
+      tarName,
+    );
 
     // Assert
     expect(privateFuncdownloadFile).toHaveBeenCalled();
-    expect(privateFuncsendPostRequest).toHaveBeenCalledWith('http://localhost:8000/v1/creator/playbook', {'project': 'ansible-project', 'scm_org': 'my-org', 'scm_project': 'my-collection'});
+    expect(privateFuncsendPostRequest).toHaveBeenCalledWith(
+      'http://localhost:8000/v1/creator/playbook',
+      {
+        project: 'ansible-project',
+        scm_org: 'my-org',
+        scm_project: 'my-collection',
+      },
+    );
   });
 
   it('tests collection project call', async () => {
@@ -63,23 +76,32 @@ describe('BackendServiceAPI', () => {
 
     const api = new BackendServiceAPI();
 
-    const privateFuncdownloadFile = jest.spyOn(BackendServiceAPI.prototype as any, 'downloadFile');
+    const privateFuncdownloadFile = jest.spyOn(
+      BackendServiceAPI.prototype as any,
+      'downloadFile',
+    );
     privateFuncdownloadFile.mockImplementation(() => {});
 
-    const privateFuncsendPostRequest = jest.spyOn(BackendServiceAPI.prototype as any, 'sendPostRequest');
+    const privateFuncsendPostRequest = jest.spyOn(
+      BackendServiceAPI.prototype as any,
+      'sendPostRequest',
+    );
     privateFuncsendPostRequest.mockImplementation(() => {});
 
     await api.downloadCollectionProject(
-        workspacePath,
-        mockLogger,
-        creatorServiceUrl,
-        collectionOrgName,
-        collectionName,
-        tarName,
-      );
+      workspacePath,
+      mockLogger,
+      creatorServiceUrl,
+      collectionOrgName,
+      collectionName,
+      tarName,
+    );
 
     // Assert
     expect(privateFuncdownloadFile).toHaveBeenCalled();
-    expect(privateFuncsendPostRequest).toHaveBeenCalledWith('http://localhost:8000/v1/creator/collection', {'collection': 'my-org.my-collection', 'project': 'collection'});
+    expect(privateFuncsendPostRequest).toHaveBeenCalledWith(
+      'http://localhost:8000/v1/creator/collection',
+      { collection: 'my-org.my-collection', project: 'collection' },
+    );
   });
 });

@@ -33,9 +33,9 @@ import { makeStyles } from '@material-ui/core';
 
 const useStyles = makeStyles({
   p0: {
-    padding: 0
-  }
-})
+    padding: 0,
+  },
+});
 
 export const EntityCreateContentCards = () => {
   const navigate = useNavigate();

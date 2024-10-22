@@ -32,4 +32,3 @@ Object.defineProperty(global.self, 'crypto', {
 Object.defineProperty(global.self, 'TextEncoder', {
   value: TextEncoder,
 });
-

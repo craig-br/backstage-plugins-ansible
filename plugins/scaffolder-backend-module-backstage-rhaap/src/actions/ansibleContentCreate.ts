@@ -38,7 +38,9 @@ export async function ansibleCreatorRun(
 
   const tarName = `${collectionGroup}-${applicationType}.tar.gz`;
 
-  logger.info(`[${BackendServiceAPI.pluginLogName}] Invoking ansible-devtools-server`);
+  logger.info(
+    `[${BackendServiceAPI.pluginLogName}] Invoking ansible-devtools-server`,
+  );
   try {
     if (applicationType === 'playbook-project') {
       await fileDownloader.downloadPlaybookProject(
@@ -81,10 +83,14 @@ export async function ansibleCreatorRun(
     },
     logStream: logger,
   });
-  logger.info(`[${BackendServiceAPI.pluginLogName}] ${tarName} un-tar successful`);
+  logger.info(
+    `[${BackendServiceAPI.pluginLogName}] ${tarName} un-tar successful`,
+  );
 
   // delete the tarball as it must not be published in Source Control
-  logger.info(`[${BackendServiceAPI.pluginLogName}] deleting ${tarName} from ${scaffoldPath}`);
+  logger.info(
+    `[${BackendServiceAPI.pluginLogName}] deleting ${tarName} from ${scaffoldPath}`,
+  );
   await executeShellCommand({
     command: 'rm',
     args: [tarName],

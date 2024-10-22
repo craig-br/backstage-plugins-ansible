@@ -1,13 +1,11 @@
+---
 ansible:
   aap:
     baseUrl: 'change-me'
     token: 'change-me'
     checkSSL: true
-    schedule?: {
-      frequency: {
+    schedule?:
+      frequency:
         minutes: 1
-      },
-      timeout: {
+      timeout:
         minutes: 1
-      }
-    }

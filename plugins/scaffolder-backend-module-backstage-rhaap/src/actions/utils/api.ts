@@ -149,7 +149,15 @@ export class AnsibleApiClient implements AnsibleApi {
   private readonly logger: Logger;
   private readonly auth: AuthService;
 
-  constructor({ config, logger, auth }: { config: Config; logger: Logger, auth: AuthService }) {
+  constructor({
+    config,
+    logger,
+    auth,
+  }: {
+    config: Config;
+    logger: Logger;
+    auth: AuthService;
+  }) {
     this.config = config;
     this.logger = logger;
     this.auth = auth;
@@ -160,7 +168,7 @@ export class AnsibleApiClient implements AnsibleApi {
     try {
       const baseUrl = await discovery.getBaseUrl('backstage-rhaap');
       this.logger.info(
-        `[${BackendServiceAPI.pluginLogName}] Scaffolder checking AAP subscription at ${baseUrl}/aap/subscription`
+        `[${BackendServiceAPI.pluginLogName}] Scaffolder checking AAP subscription at ${baseUrl}/aap/subscription`,
       );
       const agent = new https.Agent({
         rejectUnauthorized: true,
@@ -169,15 +177,14 @@ export class AnsibleApiClient implements AnsibleApi {
         onBehalfOf: await this.auth.getOwnServiceCredentials(),
         targetPluginId: 'backstage-rhaap', // e.g. 'catalog'
       });
-      if (!token)
-        throw new Error('Authentication token missing');
+      if (!token) throw new Error('Authentication token missing');
       const response = await fetch(`${baseUrl}/aap/subscription`, {
         headers: { Authorization: `Bearer ${token}` },
         agent,
       });
       const data = await response.json();
       this.logger.info(
-        `[${BackendServiceAPI.pluginLogName}] Scaffolder AAP subscription check succeeded`
+        `[${BackendServiceAPI.pluginLogName}] Scaffolder AAP subscription check succeeded`,
       );
       return data;
     } catch (error: any) {

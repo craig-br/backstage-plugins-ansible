@@ -28,17 +28,20 @@ Refer <https://backstage.io/docs/auth/github/provider>
 # From your Backstage root directory
 yarn --cwd packages/backend add @ansible/plugin-scaffolder-backend-module-backstage-rhaap
 ```
+
 Or
+
 ```bash
 cd plugins/scaffolder-backend-module-backstage-rhaap
 yarn install
 ```
 
 1. Manually copy the `plugins/scaffolder-backend-module-backstage-rhaap` directory to the
-`plugins` folder in the backstage root directory.
+   `plugins` folder in the backstage root directory.
 1. Update the
-`packages/backend/package.json` file in the backstage root directory to
- add the dependencies under the `dependencies` sections as follows:
+   `packages/backend/package.json` file in the backstage root directory to
+   add the dependencies under the `dependencies` sections as follows:
+
 ```json
      "@backstage/plugin-azure-sites-common": "workspace:^",
 +    "@ansible/plugin-scaffolder-backend-module-backstage-rhaap": "^x.y.z",
@@ -73,6 +76,7 @@ index a2aa1044066c..191ab4fcfa4f 100644
 
    return await createRouter({
 ```
+
 Register custom action in packages/backend-legacy/src/plugins/backend/src/index.ts by applying the below diff in file `packages/backend/src/index.ts`
 
 ```diff
@@ -98,7 +102,6 @@ index a4acd19cf207..39ec727dbc18 100644
 
  backend.start();
 ```
-
 
 ### Setting up the community-ansible-dev-tools service
 
@@ -266,7 +269,8 @@ For testing with midstream backstage-showcase, the step is required because
 it does not pack the extra actions by default. Run yarn-install from the backstage-showcase root for the changes to take effect.
 
 ### Start the backend by running the command in the root folder of `backstage-showcase`
-   cloned repository path.
+
+cloned repository path.
 
 ```bash
 LOG_LEVEL=debug yarn start-backend

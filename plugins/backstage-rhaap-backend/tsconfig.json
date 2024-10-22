@@ -6,5 +6,5 @@
     "outDir": "./dist-types",
     "esModuleInterop": true,
     "rootDir": "."
-  },
+  }
 }

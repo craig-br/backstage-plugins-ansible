@@ -20,7 +20,7 @@ import {
   catalogApiRef,
   useStarredEntities,
 } from '@backstage/plugin-catalog-react';
-import {Typography, makeStyles, withStyles } from '@material-ui/core';
+import { Typography, makeStyles, withStyles } from '@material-ui/core';
 import Star from '@material-ui/icons/Star';
 import useAsync from 'react-use/esm/useAsync';
 import { InfoCard, Link } from '@backstage/core-components';
@@ -87,9 +87,14 @@ export const Favourites = () => {
                 }`}
               >
                 {entity.metadata.name}
-              </Link><br />
+              </Link>
+              <br />
             </Typography>
-            <Typography variant="subtitle1" component="span" className={classes.kind}>
+            <Typography
+              variant="subtitle1"
+              component="span"
+              className={classes.kind}
+            >
               {entity.kind}
             </Typography>
           </Typography>
@@ -100,7 +105,10 @@ export const Favourites = () => {
   return (
     <InfoCard title="Starred Ansible Items">
       {starredEntities && starredEntities?.length > 0 ? (
-        <ul style={{ listStyle: 'none', paddingLeft: 10 }} data-testid="starred-list">
+        <ul
+          style={{ listStyle: 'none', paddingLeft: 10 }}
+          data-testid="starred-list"
+        >
           {getStarredList()}
         </ul>
       ) : (

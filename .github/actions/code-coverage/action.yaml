@@ -14,12 +14,12 @@ runs:
   using: 'composite'
   steps:
     - name: Setup Node.js
-      uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+      uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4
       with:
         node-version: ${{ inputs.node-version }}
 
     - name: Setup for Turbo cache
-      uses: dtinth/setup-github-actions-caching-for-turbo@a0e976d970c2a94366a26984efcef3030e2c0115 # v1
+      uses: dtinth/setup-github-actions-caching-for-turbo@cc723b4600e40a6b8815b65701d8614b91e2669e # v1
 
     - name: Install dependencies
       shell: bash
@@ -46,7 +46,7 @@ runs:
       uses: codecov/codecov-action@v4
       with:
         # token: ${{ env.codecov }}
-        use_oidc: true
+        use_oidc: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) }}
         file: ./${{ inputs.plugin }}/coverage/lcov.info
         fail_ci_if_error: false
         verbose: true
