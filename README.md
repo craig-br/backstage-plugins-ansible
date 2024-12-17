@@ -625,3 +625,7 @@ spec:
 ```
 
 - Now click on create. And things should be good!
+
+## How to test plugins for ansible experience
+
+See [README-ansible-experience.md](README-ansible-experience.md).
