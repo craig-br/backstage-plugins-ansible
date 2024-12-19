@@ -289,3 +289,57 @@ ansible:
     baseUrl: '127.0.0.1'
     port: '8000'
 ```
+
+```yaml
+catalog:
+  stitchingStrategy:
+    immediate: true
+  orphanStrategy: delete
+  processingInterval: { seconds: 10 }
+  pollingInterval: { seconds: 1 }
+  stitchTimeout: { minutes: 1 }
+  import:
+    entityFilename: catalog-info.yaml
+    pullRequestBranchName: backstage-integration
+  rules:
+    - allow:
+        [Component, System, Group, Resource, Location, Template, API, Users]
+  locations:
+    - type: url
+      # old temporal location
+      # target: https://github.com/kcagran/catalogs/blob/main/all.yaml
+      # new temporal location
+      target: https://github.com/justinc1/ansible-rhdh-templates/blob/ansible-patterns/all.yaml
+      # final location
+      # target: https://github.com/ansible/ansible-rhdh-templates/blob/ansible-patterns/all.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: /tmp/aap-showcases/all.yaml
+      rules:
+        - allow: [Template]
+  providers:
+    rhaap:
+      dev:
+        schedule:
+          frequency: { minutes: 30 }
+          timeout: { seconds: 5 }
+ansible:
+  rhaap:
+    baseUrl: { $AAP_URL }
+    checkSSL: false
+    showCaseLocation:
+      type: file
+      target: '/tmp/aap-showcases/'
+      # Use cases on github:
+      #type: url
+      #target: https://github.com/kcagran/test-templates
+      #githubBranch: main
+      #githubUser: { $GITHUB_USER }
+      #githubEmail: { $GITHUB_EMAIL }
+# If showcase location type is url:
+#integrations:
+#  github:
+#    - host: github.com
+#      token: { $GITHUB_TOKEN}
+```

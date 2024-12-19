@@ -29,20 +29,12 @@ docker pull quay.io/ylahav/backstage-showcase:latest
 
 Note - we build using podman (Dockerfile has more that 127 layers, and overlay2 filesystem cannot be used).
 
-Ask Kristijan Cagran (XLAB) for access to this repo.
-
 ```bash
-git clone git@github.com:kcagran/backstage-showcase.git
+git clone git@github.com:ansible/backstage-showcase.git
 cd backstage-showcase
 git checkout rh-plugins-auth-only
 
-IMAGE_TAG=backstage-showcase:auth-rhaap-1
-podman build -f docker/Dockerfile -t $IMAGE_TAG .
-
-# If you need to run in docker, export/import image
-IMAGE_TAG_FILENAME=$(echo "$IMAGE_TAG" | sed 's/:/./')
-podman image save localhost/$IMAGE_TAG -o $IMAGE_TAG_FILENAME.tar
-docker image load < $IMAGE_TAG_FILENAME.tar
+./docker/build-container-image.sh rhaap-auth-1
 ```
 
 ## Build plugins
