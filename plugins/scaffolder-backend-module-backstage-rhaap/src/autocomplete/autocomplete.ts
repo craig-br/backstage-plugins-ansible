@@ -1,7 +1,7 @@
 import { Config } from '@backstage/config';
 
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { AAPApiClient } from '../actions/utils';
+import { AAPApiClient } from '../actions/helpers';
 import { getAnsibleConfig } from '../config-reader';
 
 export async function handleAutocompleteRequest({

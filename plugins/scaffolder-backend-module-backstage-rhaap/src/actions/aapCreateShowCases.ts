@@ -1,7 +1,6 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { AAPApiClient } from './utils';
-import { UseCaseMaker } from './utils/useCaseMaker';
+import { UseCaseMaker, AAPApiClient } from './helpers';
 import { Organization, UseCase, AnsibleConfig } from '../types';
 
 export const createShowCases = (
@@ -79,6 +78,10 @@ export const createShowCases = (
         error.stack = '';
         throw error;
       }
+      ctx.output(
+        'showCase',
+        'Successfully created RH AAP show case templates.',
+      );
     },
   });
 };

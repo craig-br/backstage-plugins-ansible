@@ -1,7 +1,7 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { CleanUp, AnsibleConfig } from '../types';
-import { AAPApiClient } from './utils';
+import { AAPApiClient } from './helpers';
 
 export const cleanUp = (
   ansibleConfig: AnsibleConfig,
@@ -97,6 +97,8 @@ export const cleanUp = (
         error.stack = '';
         throw error;
       }
+
+      ctx.output('cleanUp', 'Successfully removed data from RH AAP.');
     },
   });
 };

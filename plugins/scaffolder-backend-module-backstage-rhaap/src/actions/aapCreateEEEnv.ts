@@ -1,6 +1,6 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { AAPApiClient } from './utils';
+import { AAPApiClient } from './helpers';
 import { ExecutionEnvironment, AnsibleConfig } from '../types';
 
 export const createExecutionEnvironment = (
