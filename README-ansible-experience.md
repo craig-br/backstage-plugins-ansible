@@ -42,21 +42,16 @@ git checkout rh-plugins-auth-only
 ```bash
 git clone git@github.com:ansible/ansible-backstage-plugins.git
 cd ansible-backstage-plugins
-git remote add kcagran git@github.com:kcagran/ansible-backstage-plugins.git
-git remote add aljaz-nuncic git@github.com:aljaz-nuncic/ansible-backstage-plugins.git
 
 cat <<EOF >pack_all_ansible_experience.sh
 #!/bin/bash
 git status
 read -p "Check status, Ctrl+C to stop, Enter to continue..." blabla
 echo -e '\n\n\n========================================= catalog-backend-module-rhaap'
-git checkout kcagran/rhaap-catalog-sync
 ./.github/actions/pack/pack_one.sh plugins/catalog-backend-module-rhaap
-echo -e '\n\n\n========================================= scaffolder-backend-module-rhaap'
-git checkout kcagran/rh-aap-scaffolder-plugin
-./.github/actions/pack/pack_one.sh plugins/scaffolder-backend-module-rhaap
+echo -e '\n\n\n========================================= scaffolder-backend-module-backstage-rhaap'
+./.github/actions/pack/pack_one.sh plugins/scaffolder-backend-module-backstage-rhaap
 echo -e '\n\n\n========================================= wizard-catalog'
-git checkout aljaz-nuncic/wizard-catalog-fe-plugin
 ./.github/actions/pack/pack_one.sh plugins/wizard-catalog
 EOF
 
