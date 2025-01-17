@@ -20,7 +20,7 @@ fi
 
 # Run the set of commands
 echo "Running yarn tsc in $pluginDir"
-yarn tsc
+npx tsc
 if [ $? -ne 0 ]; then
   echo "yarn tsc failed in $pluginDir"
   popd > /dev/null
