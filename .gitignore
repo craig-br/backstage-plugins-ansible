@@ -79,3 +79,11 @@ playwright/.cache/
 # tar files when yarn tsc is ran
 ansible-plugins-pack/
 dynamic-plugins-archives/
+
+# Videos
+videos/
+**/videos
+
+# Screenshots
+screenshots/
+**/screenshots
