@@ -1,4 +1,10 @@
+import { Common } from '../utils/common';
+
 describe('Ansible Portal Wizard Catalog My Items Page Functional Tests', () => {
+  it('Sign In to Portal', { retries: 2 }, () => {
+    Common.LogintoAAP();
+  });
+
   beforeEach(() => {
     // Visit the page
     cy.visit('/wizard/my-items');

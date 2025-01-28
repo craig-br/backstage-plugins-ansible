@@ -1,20 +1,15 @@
-describe('Portal Tests', () => {
-  it('Login to AAP', () => {
-    cy.visit('/');
-    cy.contains('Sign In').then(() => {
-      cy.contains('Sign In').invoke('removeAttr', 'target').click();
-      cy.get('#pf-login-username-id').type(Cypress.env('AAP_USER_ID'));
-      cy.get('#pf-login-password-id').type(Cypress.env('AAP_USER_PASS'), {
-        log: false,
-      });
-      cy.get(
-        '#app > div > div > main > div.pf-v5-c-login__main-body > form > div.pf-v5-c-form__group.pf-m-action > div > div > button',
-      ).click();
-      cy.wait(3000);
-    });
+import { Common } from '../utils/common';
+
+describe('Ansible Portal Authentication Tests', () => {
+  it('Sign In to Portal', { retries: 2 }, () => {
+    Common.LogintoAAP();
   });
 
   it('Go to wizard catalog plugin', () => {
-    cy.visit('/wizard');
+    cy.visit('/wizard/catalog');
+    cy.wait(3000);
+    cy.get(
+      '#root > div > main > article > .MuiGrid-container > .MuiGrid-item > :nth-child(2) > :nth-child(3)',
+    ).should('contain.text', 'Create wizard use cases');
   });
 });

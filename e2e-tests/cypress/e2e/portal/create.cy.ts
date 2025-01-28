@@ -1,4 +1,10 @@
+import { Common } from '../utils/common';
+
 describe('Ansible Portal Wizard Catalog Create and execution tests', () => {
+  it('Sign In to Portal', { retries: 2 }, () => {
+    Common.LogintoAAP();
+  });
+
   beforeEach(() => {
     cy.visit('/wizard/catalog');
   });
@@ -85,7 +91,7 @@ describe('Ansible Portal Wizard Catalog Create and execution tests', () => {
   it('Validates successful Wizard Catalog "Create" functionality - RHEL services', () => {
     createWizardUseCase(
       'Default',
-      'Ansible Experience RHEL Inventory',
+      'MVP RHEL Inventory',
       'https://github.com/ansible/ansible-pattern-loader',
       'main',
       'seed_portal_content.yml',
@@ -109,7 +115,7 @@ describe('Ansible Portal Wizard Catalog Create and execution tests', () => {
   it('Validates failed Wizard Catalog "Create" functionality - invalid playbook', () => {
     createWizardUseCase(
       'Default',
-      'Ansible Experience RHEL Inventory',
+      'MVP RHEL Inventory',
       'https://github.com/ansible/ansible-pattern-loader',
       'main',
       'invalid_playbook.yml',
@@ -125,7 +131,7 @@ describe('Ansible Portal Wizard Catalog Create and execution tests', () => {
   it('Validates failed Wizard Catalog "Create" functionality - invalid source control URL', () => {
     createWizardUseCase(
       'Default',
-      'Ansible Experience RHEL Inventory',
+      'MVP RHEL Inventory',
       'https://github.com/ansible/invalid-source',
       'seed_portal_content.yml',
       'main',

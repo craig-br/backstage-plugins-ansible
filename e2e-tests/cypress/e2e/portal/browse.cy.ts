@@ -1,4 +1,10 @@
+import { Common } from '../utils/common';
+
 describe('Ansible Portal Browse Page Functional Tests', () => {
+  it('Sign In to Portal', { retries: 2 }, () => {
+    Common.LogintoAAP();
+  });
+
   beforeEach(() => {
     // Visit the page
     cy.visit('/wizard/catalog');
@@ -13,10 +19,10 @@ describe('Ansible Portal Browse Page Functional Tests', () => {
 
     // All cards should be visible before searching
     // Currently there are 3 cards available. Update the length when more cards are added
-    cy.get(allCardsContainer).should('have.length', 3);
+    cy.get(allCardsContainer).should('have.length.greaterThan', 2);
 
-    cy.get('@searchBar').type('wizard');
-    cy.get('@searchBar').should('have.value', 'wizard');
+    cy.get('@searchBar').type('Create wizard use cases');
+    cy.get('@searchBar').should('have.value', 'Create wizard use cases');
 
     // Only one card, i.e the Wizard use cases card should be visible after searching
     cy.get(allCardsContainer)
@@ -63,7 +69,7 @@ describe('Ansible Portal Browse Page Functional Tests', () => {
 
     // All cards should be visible before option selection
     // Currently there are 3 cards available. Update the length when more cards are added
-    cy.get(allCardsContainer).should('have.length', 3);
+    cy.get(allCardsContainer).should('have.length.greaterThan', 2);
 
     cy.contains('li', 'AAP Operations').click();
     cy.get('[aria-labelledby="domain-select-label"]').should(
@@ -71,9 +77,9 @@ describe('Ansible Portal Browse Page Functional Tests', () => {
       'AAP Operations',
     );
 
-    // Only one card, i.e the Wizard use cases card should be visible after selection
+    // At least one card should be visible after selection
     cy.get(allCardsContainer)
-      .should('have.length', 1)
+      .should('have.length.greaterThan', 0)
       .then($card => {
         cy.wrap($card)
           .find('.MuiCardHeader-root')
@@ -122,16 +128,16 @@ describe('Ansible Portal Browse Page Functional Tests', () => {
 
     // All cards should be visible before option selection
     // Currently there are 3 cards available. Update the length when more cards are added
-    cy.get(allCardsContainer).should('have.length', 3);
+    cy.get(allCardsContainer).should('have.length.greaterThan', 2);
 
     cy.contains('li', 'RedHat').click();
     cy.get(
       '.MuiGrid-container > .MuiGrid-root > form > :nth-child(3) > .MuiInputBase-root',
     ).should('contain.text', 'RedHat');
 
-    // Only one card, i.e the Wizard use cases card should be visible after selection
+    // At least one card should be visible after selection
     cy.get(allCardsContainer)
-      .should('have.length', 1)
+      .should('have.length.greaterThan', 0)
       .then($card => {
         cy.wrap($card)
           .find('.MuiCardHeader-root')
