@@ -45,9 +45,18 @@ export class Common {
             cy.get('@login').click();
             cy.wait(3000);
           }
-          cy.visit('/');
-          cy.get('nav').contains('Settings').should('exist');
         });
+        cy.wait(2000);
+        cy.get('body').then($body => {
+          if (
+            $body.text().includes('Authorize Ansible Automation Experience App')
+          ) {
+            cy.get('input').contains('Authorize').click();
+            cy.wait(5000);
+          }
+        });
+        cy.visit('/');
+        cy.get('nav').contains('Settings').should('exist');
       }
     });
   }
