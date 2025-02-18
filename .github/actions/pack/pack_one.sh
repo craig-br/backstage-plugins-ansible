@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -e
+set -u
+
 pluginDir="$1"
 
 function run_cmd_description {
