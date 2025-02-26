@@ -1,6 +1,15 @@
 [![CI / frontend](https://github.com/ansible/ansible-backstage-plugins/actions/workflows/tests-frontend.yaml/badge.svg?branch=main&event=schedule)](https://github.com/ansible/ansible-backstage-plugins/actions/workflows/tests-frontend.yaml) [![CI / backend](https://github.com/ansible/ansible-backstage-plugins/actions/workflows/test-backend.yaml/badge.svg?event=schedule)](https://github.com/ansible/ansible-backstage-plugins/actions/workflows/test-backend.yaml)
 [![CI / scaffolder / backend](https://github.com/ansible/ansible-backstage-plugins/actions/workflows/tests-scaffolder-backend.yaml/badge.svg?event=schedule)](https://github.com/ansible/ansible-backstage-plugins/actions/workflows/tests-scaffolder-backend.yaml)
 
+# [Backstage](https://backstage.io)
+
+To start the app, run:
+
+```sh
+./install-deps
+yarn dev
+```
+
 # Ansible plugins for Red Hat Developer Hub
 
 ## Plugin httpd registry creation steps -
