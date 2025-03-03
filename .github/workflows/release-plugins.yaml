@@ -21,9 +21,6 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=8192
     permissions:
       contents: write
-    strategy:
-      matrix:
-        node-version: [18]
 
     name: 🚀 / release
     steps:
@@ -41,4 +38,4 @@ jobs:
       - name: Pack 📦 & release 🚀
         uses: ./.github/actions/pack
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: ${{ inputs.node-version }}

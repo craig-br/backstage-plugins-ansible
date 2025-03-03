@@ -5,17 +5,19 @@ inputs:
   node-version:
     description: Node.js version
     required: true
-    default: 18
+    default: "18"
 runs:
   using: 'composite'
   steps:
+    - name: Enable Corepack
+      shell: bash
+      run: corepack enable
+
     - name: Setup Node.js
       uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4
       with:
-        node-version: ${{ inputs.node-version }}
-
-    - name: Setup local Turbo cache
-      uses: dtinth/setup-github-actions-caching-for-turbo@cc723b4600e40a6b8815b65701d8614b91e2669e # v1
+        node-version-file: '.tool-versions'
+        cache: yarn
 
     - name: Run the pack script
       id: run-export-dynamic
@@ -23,6 +25,8 @@ runs:
       working-directory: ${{ github.workspace }}
       run:
         ${{ github.action_path }}/pack.sh
+      env:
+        OCI_IMAGE_PUSH: ${{ startsWith(github.ref, 'refs/tags/') }}
 
     - name: Check if the packages exists
       shell: bash
@@ -41,6 +45,7 @@ runs:
 
     - name: Release and add to GH UI
       uses: softprops/action-gh-release@v2
+      if: ${{ startsWith(github.ref, 'refs/tags/') }}
       with:
         body:
           Backstage/Ansible Dynamic Plugins, for Red Hat Developer Hub
