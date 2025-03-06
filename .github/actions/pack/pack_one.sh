@@ -49,7 +49,8 @@ run_cmd yarn build
 run_cmd yarn export-dynamic
 
 echo "Running npm pack in $pluginDir"
-pack_json=$(npm pack --pack-destination ../../dynamic-plugins-archives --json)
+cd dist-dynamic
+pack_json=$(npm pack --pack-destination ../../../dynamic-plugins-archives --json)
 echo "Integrity Hash: $pack_json"
 if [ $? -ne 0 ]; then
   echo "npm pack failed in $pluginDir"
@@ -60,7 +61,7 @@ fi
 echo "Creating package.integrity file"
 filename=$(echo "$pack_json" | jq -r '.[0].filename')
 integrity=$(echo "$pack_json" | jq -r '.[0].integrity')
-echo "$integrity" > ../../dynamic-plugins-archives/"${filename}".integrity
+echo "$integrity" > ../../../dynamic-plugins-archives/"${filename}".integrity
 
 # build also OCI image
 # @janus-idp/cli@1.18.1 and later fail with 'TypeError: Cannot read properties of undefined (reading 'packages')'
