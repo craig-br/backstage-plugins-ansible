@@ -9,6 +9,11 @@ packDestination="dynamic-plugins-archives"
 finalPackDir="ansible-plugins-pack"
 sourcePackDir="ansible-backstage-plugins-source-code"
 
+OCI_REGISTRY_NAMESPACE=${OCI_REGISTRY_NAMESPACE:-quay.io/ansible/ansible-backstage-plugins}
+OCI_IMAGE_PUSH=${OCI_IMAGE_PUSH:-false}
+echo OCI_IMAGE_PUSH="$OCI_IMAGE_PUSH"
+echo OCI_REGISTRY_NAMESPACE="$OCI_REGISTRY_NAMESPACE"
+
 if [ -z "${GITHUB_REF:-}" ]; then
     VERSION=$(git rev-parse --short HEAD)
 else

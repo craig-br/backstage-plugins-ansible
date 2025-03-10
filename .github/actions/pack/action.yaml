@@ -6,6 +6,7 @@ inputs:
     description: Node.js version
     required: true
     default: "18"
+
 runs:
   using: 'composite'
   steps:
@@ -19,6 +20,15 @@ runs:
         node-version-file: '.tool-versions'
         cache: yarn
 
+    - name: Install dependencies
+      uses: backstage/actions/yarn-install@b3c1841fd69e1658ac631afafd0fb140a2309024 # v0.6.17
+      with:
+        cache-prefix: ${{ runner.os }}-v${{ matrix.node-version }}
+
+    - name: Run npx tsc
+      shell: bash
+      run: npx tsc
+
     - name: Run the pack script
       id: run-export-dynamic
       shell: bash
@@ -30,12 +40,14 @@ runs:
 
     - name: Check if the packages exists
       shell: bash
+      if: env.PR_IMAGE_PUSH == 'false'
       working-directory: ${{ github.workspace }}
       run:
         ls -la ${{ github.workspace }}/ansible-plugins-pack
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
+      if: env.PR_IMAGE_PUSH == 'false'
       with:
         name: ansible-plugins-backstage-rhaap
         path: ${{ github.workspace }}/ansible-plugins-pack/
@@ -45,7 +57,7 @@ runs:
 
     - name: Release and add to GH UI
       uses: softprops/action-gh-release@v2
-      if: ${{ startsWith(github.ref, 'refs/tags/') }}
+      if: ${{ startsWith(github.ref, 'refs/tags/') && env.PR_IMAGE_PUSH == 'false'}}
       with:
         body:
           Backstage/Ansible Dynamic Plugins, for Red Hat Developer Hub

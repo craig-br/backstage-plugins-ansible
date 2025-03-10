@@ -29,7 +29,7 @@
     "prettier:check": "prettier --check .",
     "new": "backstage-cli new --scope internal",
     "build": "tsc && backstage-cli repo build",
-    "export-dynamic": "janus-cli package package-dynamic-plugins --tag quay.io/ansible/ansible-backstage-plugins:v$TAG"
+    "export-dynamic": "janus-cli package package-dynamic-plugins --tag quay.io/ansible/ansible-backstage-plugins:$TAG"
   },
   "workspaces": {
     "packages": [
