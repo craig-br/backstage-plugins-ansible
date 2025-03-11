@@ -35,7 +35,26 @@ jobs:
       - name: DEBUG - Show GitHub ref tag only version
         run: echo "${GITHUB_REF##*/v}"
 
-      - name: Pack 📦 & release 🚀
+      - name: Package plugins
         uses: ./.github/actions/pack
         with:
           node-version: ${{ inputs.node-version }}
+
+      - name: Check if the packages exists
+        shell: bash
+        run: ls -la ${{ github.workspace }}/ansible-plugins-pack
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ansible-plugins-backstage-rhaap
+          path: ${{ github.workspace }}/ansible-plugins-pack/
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: true
+
+      - name: Add artifacts to GH UI
+        uses: softprops/action-gh-release@v2
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        with:
+          files: ${{ github.workspace }}/ansible-plugins-pack/*
