@@ -51,11 +51,11 @@ runs:
         retention-days: 1
         overwrite: true
 
-    - name: Release and add to GH UI
-      uses: softprops/action-gh-release@v2
-      if: ${{ startsWith(github.ref, 'refs/tags/') && env.PR_IMAGE_PUSH == 'false'}}
-      with:
-        body:
-          Backstage/Ansible Dynamic Plugins, for Red Hat Developer Hub
-        files: ${{ github.workspace }}/ansible-plugins-pack/*
-        repository: ${{ github.repository }}
+    # - name: Release and add to GH UI
+    #   uses: softprops/action-gh-release@v2
+    #   if: ${{ startsWith(github.ref, 'refs/tags/') && env.PR_IMAGE_PUSH == 'false'}}
+    #   with:
+    #     body:
+    #       Backstage/Ansible Dynamic Plugins, for Red Hat Developer Hub
+    #     files: ${{ github.workspace }}/ansible-plugins-pack/*
+    #     repository: ${{ github.repository }}
