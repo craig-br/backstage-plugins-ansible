@@ -295,15 +295,12 @@ export class AAPApiClient {
     return projectData;
   }
 
-  private async deleteExecutionEnvironmentExists(
-    name: string,
-    organization: Organization,
-  ): Promise<void> {
+  private async deleteExecutionEnvironmentExists(name: string): Promise<void> {
     this.logOutput(
       'info',
       `Check if execution environment with name ${name} exist in organization.`,
     );
-    const endPoint = `api/controller/v2/execution_environments/?organization=${organization.id}&name=${name}`;
+    const endPoint = `api/controller/v2/execution_environments/?name=${name}`;
     const environments = await this.executeGetRequest(endPoint);
     const environmentsList = await environments.json();
     if (environmentsList.results.length === 1) {
@@ -324,10 +321,7 @@ export class AAPApiClient {
     deleteIfExist?: boolean,
   ): Promise<ExecutionEnvironment> {
     if (deleteIfExist) {
-      await this.deleteExecutionEnvironmentExists(
-        payload.environmentName,
-        payload.organization,
-      );
+      await this.deleteExecutionEnvironmentExists(payload.environmentName);
     }
     const endPoint = 'api/controller/v2/execution_environments/';
     const data = {
