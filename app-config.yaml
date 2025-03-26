@@ -149,7 +149,7 @@ catalog:
         - allow: [Template]
   providers:
     rhaap:
-      dev:
+      development:
         schedule:
           frequency: { minutes: 1 }
           timeout: { seconds: 5 }
