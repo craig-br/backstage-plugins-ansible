@@ -10,6 +10,7 @@ export const MOCK_CONFIG = {
               frequency: 'P1M',
               timeout: 'PT3M',
             },
+            orgs: ['Default'],
           },
         },
       },

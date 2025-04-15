@@ -153,6 +153,7 @@ catalog:
         schedule:
           frequency: { minutes: 5 }
           timeout: { seconds: 30 }
+        orgs: [ 'Default' ]
 
 ansible:
   analytics:

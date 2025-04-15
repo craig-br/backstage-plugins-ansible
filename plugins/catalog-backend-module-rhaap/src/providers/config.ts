@@ -28,6 +28,9 @@ function readAapApiEntityConfig(
         catalogConfig.getConfig('schedule'),
       )
     : undefined;
+  const orgSync = catalogConfig.has('orgs')
+    ? catalogConfig.getStringArray('orgs')?.map(org => org.trim())
+    : [];
 
   return {
     id,
@@ -35,5 +38,6 @@ function readAapApiEntityConfig(
     token,
     checkSSL,
     schedule,
+    orgSync,
   };
 }

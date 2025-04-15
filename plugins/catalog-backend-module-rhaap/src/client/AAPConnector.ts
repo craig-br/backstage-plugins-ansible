@@ -6,6 +6,7 @@ import {
   RoleAssignments,
   Team,
   Teams,
+  User,
   Users,
 } from './types';
 import { formatNameSpace } from '../helpers';
@@ -18,17 +19,20 @@ export class AAPConnector {
   private readonly baseUrl: string;
   private readonly token: string;
   private readonly proxyAgent: Agent;
+  private readonly orgSync: string[];
 
   constructor({
     token,
     baseUrl,
     checkSSL,
     logger,
+    orgSync,
   }: {
     token: string;
     baseUrl: string;
     checkSSL: boolean;
     logger: LoggerService;
+    orgSync: string[];
   }) {
     this.logger = logger;
     this.token = token;
@@ -38,6 +42,7 @@ export class AAPConnector {
         rejectUnauthorized: checkSSL,
       },
     });
+    this.orgSync = orgSync;
   }
 
   private async executeGetRequest(
@@ -73,6 +78,64 @@ export class AAPConnector {
       return await this.executeGetRequest(jsonResponse.next, result);
     }
     return result;
+  }
+
+  async getOrganizationsWithDetails(): Promise<
+    Array<{
+      organization: Organization;
+      teams: Team[];
+      users: User[];
+    }>
+  > {
+    const orgEndPoint = '/api/gateway/v1/organizations/';
+    try {
+      const rawOrgs = await this.executeGetRequest(orgEndPoint);
+
+      const orgData = await Promise.all(
+        rawOrgs.map(async (org: any) => {
+          const teamsUrl: string | undefined = org.related?.teams;
+          const usersUrl: string | undefined = org.related?.users;
+
+          const [rawTeams, rawUsers] = await Promise.all([
+            teamsUrl ? this.executeGetRequest(teamsUrl) : [],
+            usersUrl ? this.executeGetRequest(usersUrl) : [],
+          ]);
+
+          const teams: Team[] = (rawTeams || []).map((item: Team) => ({
+            id: item.id,
+            organization: item.organization,
+            name: item.name,
+            groupName: item.name.toLowerCase().replace(/\s/g, '-'),
+            description: item?.description,
+          }));
+
+          const users: User[] = rawUsers || [];
+
+          return {
+            organization: {
+              id: org.id,
+              name: org.name,
+              namespace:
+                org.namespace ?? org.name.toLowerCase().replace(/\s/g, '-'),
+            },
+            teams,
+            users,
+          };
+        }),
+      );
+
+      const result = orgData.filter(item =>
+        this.orgSync.includes(item.organization.name),
+      );
+      return result;
+    } catch (err) {
+      this.logger.error(
+        `Error retrieving organization details from ${orgEndPoint}.`,
+      );
+      throw new Error(
+        `Error retrieving organization details from ${orgEndPoint}.`,
+      );
+    }
   }
 
   async getOrganizationsByID(): Promise<Organizations> {
@@ -112,6 +175,13 @@ export class AAPConnector {
     return users as Users;
   }
 
+  async listSystemUsers(): Promise<Users> {
+    const endPoint = '/api/gateway/v1/users/';
+    this.logger.info(`Fetching users from RH AAP.`);
+    const users = await this.executeGetRequest(endPoint);
+    return users.filter((user: User) => user.is_superuser) as Users;
+  }
+
   async getUsersByTeamId(teamID: number): Promise<{ name: string }[]> {
     const endPoint = `/api/gateway/v1/teams/${teamID}/users/`;
     this.logger.info(`Fetching users for team ID: ${teamID} from RH AAP.`);
@@ -125,7 +195,7 @@ export class AAPConnector {
 
   async getTeamsByUserId(
     userID: number,
-  ): Promise<{ name: string; groupName: string }[]> {
+  ): Promise<{ name: string; groupName: string; id: number; orgId: number }[]> {
     const endPoint = `/api/gateway/v1/users/${userID}/teams/`;
     this.logger.info(`Fetching teams for user ID: ${userID} from RH AAP.`);
     const teams = await this.executeGetRequest(endPoint);
@@ -134,6 +204,8 @@ export class AAPConnector {
       .map((team: any) => ({
         name: team.name,
         groupName: formatNameSpace(team.name),
+        id: team.id,
+        orgId: team.organization,
       }));
   }
 
@@ -159,6 +231,20 @@ export class AAPConnector {
       .filter((user: any) => user?.username)
       .map((user: any) => ({
         name: user.username,
+      }));
+  }
+
+  async getTeamsByOrgId(
+    orgID: number,
+  ): Promise<{ name: string; groupName: string }[]> {
+    const endPoint = `/api/gateway/v1/organizations/${orgID}/teams/`;
+    this.logger.info(`Fetching teams for org ID: ${orgID} from RH AAP.`);
+    const teams = await this.executeGetRequest(endPoint);
+    return teams
+      .filter((team: any) => team?.name)
+      .map((team: any) => ({
+        name: team.name,
+        groupName: formatNameSpace(team.name),
       }));
   }
 

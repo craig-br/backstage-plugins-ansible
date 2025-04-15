@@ -15,10 +15,11 @@ import { InputError, isError, NotFoundError } from '@backstage/errors';
 import { AapConfig } from './types';
 import {
   AAPConnector,
-  Organizations,
+  Organization,
   RoleAssignments,
-  Teams,
+  Team,
   Users,
+  User,
 } from '../client';
 import { Entity } from '@backstage/catalog-model';
 import { OrganizationParser, teamParser, userParser } from './entityParser';
@@ -27,6 +28,7 @@ export class AAPEntityProvider implements EntityProvider {
   private readonly env: string;
   private readonly baseUrl: string;
   private readonly logger: LoggerService;
+  private readonly orgSync: string[] = [];
   private readonly scheduleFn: () => Promise<void>;
   private connection?: EntityProviderConnection;
   private readonly accessToken: string;
@@ -87,6 +89,7 @@ export class AAPEntityProvider implements EntityProvider {
     this.scheduleFn = this.createScheduleFn(taskRunner);
     this.accessToken = config.token;
     this.checkSSL = config.checkSSL;
+    this.orgSync = config.orgSync?.map(org => org.trim()) ?? [];
   }
 
   createScheduleFn(
@@ -131,51 +134,31 @@ export class AAPEntityProvider implements EntityProvider {
     }
     let groupCount = 0;
     let usersCount = 0;
-    let organizations = {} as Organizations;
     let userRoleAssignments: RoleAssignments;
-    let teams = {} as Teams;
-    let users = [] as Users;
+    let systemUsers = [] as Users;
     const entities: Entity[] = [];
-    const nameSpacesGroups = {} as Record<string, string[]>;
+    let orgsDetails: Array<{
+      organization: Organization;
+      teams: Team[];
+      users: User[];
+    }> = [];
+
     let error = false;
     const apiClient = new AAPConnector({
       logger: this.logger,
       baseUrl: this.baseUrl,
       token: this.accessToken,
       checkSSL: this.checkSSL,
+      orgSync: this.orgSync,
     });
     try {
-      organizations = await apiClient.getOrganizationsByID();
+      orgsDetails = await apiClient.getOrganizationsWithDetails();
       this.logger.info(
-        `[${AAPEntityProvider.pluginLogName}]: Fetched ${Object.keys(organizations).length} organizations.`,
+        `[${AAPEntityProvider.pluginLogName}]: Fetched ${Object.keys(orgsDetails).length} organizations.`,
       );
     } catch (e: any) {
       this.logger.error(
         `[${AAPEntityProvider.pluginLogName}]: Error while fetching organizations. ${e?.message ?? ''}`,
-      );
-      error = true;
-    }
-
-    try {
-      teams = await apiClient.getAllTeamsById();
-      this.logger.info(
-        `[${AAPEntityProvider.pluginLogName}]: Fetched ${Object.keys(teams).length} teams.`,
-      );
-    } catch (e: any) {
-      this.logger.error(
-        `[${AAPEntityProvider.pluginLogName}]: Error while fetching teams. ${e?.message ?? ''}`,
-      );
-      error = true;
-    }
-
-    try {
-      users = await apiClient.listUsers();
-      this.logger.info(
-        `[${AAPEntityProvider.pluginLogName}]: Fetched ${users.length} users.`,
-      );
-    } catch (e: any) {
-      this.logger.error(
-        `[${AAPEntityProvider.pluginLogName}]: Error while fetching users. ${e?.message ?? ''}`,
       );
       error = true;
     }
@@ -187,72 +170,114 @@ export class AAPEntityProvider implements EntityProvider {
       );
     } catch (e: any) {
       this.logger.error(
-        `[${AAPEntityProvider.pluginLogName}]: Error while fetching User Role Assignments. ${e?.message ?? ''}`,
+        `[${AAPEntityProvider.pluginLogName}]: Error while fetching users. ${e?.message ?? ''}`,
+      );
+      error = true;
+    }
+
+    try {
+      systemUsers = await apiClient.listSystemUsers();
+      this.logger.info(
+        `[${AAPEntityProvider.pluginLogName}]: Fetched ${systemUsers.length} system users.`,
+      );
+    } catch (e: any) {
+      this.logger.error(
+        `[${AAPEntityProvider.pluginLogName}]: Error while fetching system users. ${e?.message ?? ''}`,
       );
       error = true;
     }
 
     if (!error) {
-      for (const org of Object.values(organizations)) {
-        const orgUsers = await apiClient.getUsersByOrgId(org.id);
-        const OrgMembers = orgUsers?.length
-          ? orgUsers.map(user => user.name)
+      for (const org of Object.values(orgsDetails)) {
+        const orgTeams = org.teams
+          ? Object.values(org.teams).map(team => team.groupName)
+          : [];
+        const orgUsers = org.users
+          ? Object.values(org.users).map(user => user.username)
           : [];
 
         entities.push(
           OrganizationParser({
             baseUrl: this.baseUrl,
             nameSpace: 'default',
-            org,
-            orgMembers: OrgMembers,
+            org: org.organization,
+            orgMembers: orgUsers,
+            teams: orgTeams,
           }),
         );
+        groupCount += 1;
       }
 
-      for (const team of Object.values(teams)) {
-        const teamOrganization = organizations[team?.organization];
-        if (teamOrganization) {
-          const nameSpace = teamOrganization.namespace;
-          const tmp = nameSpacesGroups[nameSpace]
-            ? nameSpacesGroups[nameSpace]
-            : [];
-          tmp.push(team.groupName);
-          nameSpacesGroups[nameSpace] = tmp;
+      for (const team of Object.values(orgsDetails).flatMap(org =>
+        Object.values(org.teams || {}),
+      )) {
+        entities.push(
+          teamParser({
+            baseUrl: this.baseUrl,
+            nameSpace: 'default',
+            team: team as unknown as Team,
+            teamMembers: [],
+          }),
+        );
+        groupCount += 1;
+      }
 
-          const teamUsers = await apiClient.getUsersByTeamId(team.id);
-          const teamMembers = teamUsers?.length
-            ? teamUsers.map(user => user.name)
-            : [];
+      for (const user of orgsDetails.flatMap(org => org.users || [])) {
+        const userTeams = await apiClient.getTeamsByUserId(user.id);
+        const userMembers: string[] = [];
+        for (const team of userTeams) {
+          let matched = false;
+          for (const org of orgsDetails) {
+            const matchingTeam = org.teams.find(t => t.id === team.id);
+            if (matchingTeam) {
+              userMembers.push(matchingTeam.groupName);
+              matched = true;
+              break;
+            }
+          }
 
-          entities.push(
-            teamParser({
-              baseUrl: this.baseUrl,
-              nameSpace: 'default',
-              team,
-              teamMembers,
-            }),
-          );
-          groupCount += 1;
+          if (!matched) {
+            for (const org of orgsDetails) {
+              if (org.organization.id === team.orgId) {
+                userMembers.push(org.organization.namespace);
+                break;
+              }
+            }
+          }
         }
-      }
-
-      for (const user of users) {
-        const userOrgs = await apiClient.getOrgsByUserId(user.id);
-        const groupMemberships = userOrgs?.length
-          ? userOrgs.map(userOrg => userOrg.groupName)
-          : [];
-
         entities.push(
           userParser({
             baseUrl: this.baseUrl,
             nameSpace: 'default',
-            user,
-            groupMemberships,
+            user: user as User,
+            groupMemberships: userMembers,
           }),
         );
         usersCount += 1;
       }
 
+      for (const user of systemUsers) {
+        const userTeams = await apiClient.getTeamsByUserId(user.id);
+        const userMembers: string[] = [];
+        for (const team of userTeams) {
+          for (const org of orgsDetails) {
+            const matchingTeam = org.teams.find(t => t.id === team.id);
+            if (matchingTeam) {
+              userMembers.push(matchingTeam.groupName);
+              break;
+            }
+          }
+        }
+        entities.push(
+          userParser({
+            baseUrl: this.baseUrl,
+            nameSpace: 'default',
+            user: user as User,
+            groupMemberships: userMembers,
+          }),
+        );
+        usersCount += 1;
+      }
       await this.connection.applyMutation({
         type: 'full',
         entities: entities.map(entity => ({

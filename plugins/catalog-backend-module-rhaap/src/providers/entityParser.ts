@@ -12,8 +12,9 @@ export function OrganizationParser(options: {
   nameSpace: string;
   org: Organization;
   orgMembers: string[];
+  teams: string[];
 }): Entity {
-  const { baseUrl, org, nameSpace, orgMembers } = options;
+  const { baseUrl, org, nameSpace, orgMembers, teams } = options;
   return {
     apiVersion: 'backstage.io/v1alpha1',
     kind: 'Group',
@@ -28,7 +29,7 @@ export function OrganizationParser(options: {
     },
     spec: {
       type: 'organization',
-      children: [],
+      children: teams,
       members: orgMembers,
     },
   };

@@ -6,4 +6,5 @@ export type AapConfig = {
   token: string;
   checkSSL: boolean;
   schedule?: SchedulerServiceTaskScheduleDefinition;
+  orgSync?: string[];
 };
