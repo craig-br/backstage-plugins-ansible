@@ -1,5 +1,9 @@
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
+import { RequirePermission } from '@backstage/plugin-permission-react';
+import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
+import { taskReadPermission } from '@backstage/plugin-scaffolder-common/alpha';
+
 import { HomeComponent } from '../Home';
 import { CatalogImport } from '../CatalogImport';
 import { CreateTask } from '../CreateTask';
@@ -14,14 +18,38 @@ export const RouteView = () => {
       <Routes>
         <Route path="catalog" element={<HomeComponent />} />
         <Route
-          path="catalog/:namespace/:name"
+          path="catalog/:namespace/:templateName"
           element={<CatalogItemsDetails />}
         />
-        <Route path="catalog-import" element={<CatalogImport />} />
+        <Route
+          path="catalog-import"
+          element={
+            <RequirePermission permission={catalogEntityCreatePermission}>
+              <CatalogImport />
+            </RequirePermission>
+          }
+        />
         <Route path="create">
-          <Route path="templates/:namespace/:name" element={<CreateTask />} />
-          <Route path="tasks" element={<TaskList />} />
-          <Route path="tasks/:taskId" element={<RunTask />} />
+          <Route
+            path="templates/:namespace/:templateName"
+            element={<CreateTask />}
+          />
+          <Route
+            path="tasks"
+            element={
+              <RequirePermission permission={taskReadPermission}>
+                <TaskList />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="tasks/:taskId"
+            element={
+              <RequirePermission permission={taskReadPermission}>
+                <RunTask />
+              </RequirePermission>
+            }
+          />
         </Route>
         {/* Default redirects */}
         <Route path="/catalog/*" element={<Navigate to="/portal/catalog" />} />

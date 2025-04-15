@@ -236,7 +236,7 @@ export const TaskList = () => {
   return (
     <Page themeId="tool">
       <Header
-        pageTitleOverride="Ansible Portal - Tasks"
+        pageTitleOverride="Tasks"
         title={<span className={classes.header_title_color}>Task List</span>}
         subtitle={
           <span className={classes.header_subtitle}>

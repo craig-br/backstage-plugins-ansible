@@ -3,13 +3,13 @@ import { useApi, useRouteRef } from '@backstage/core-plugin-api';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   catalogApiRef,
+  EntityProvider,
   UnregisterEntityDialog,
 } from '@backstage/plugin-catalog-react';
 import { Content, Header, Page } from '@backstage/core-components';
 import { Entity } from '@backstage/catalog-model';
 import {
   Box,
-  Button,
   Card,
   Chip,
   CircularProgress,
@@ -19,9 +19,8 @@ import {
   Typography,
   useTheme,
 } from '@material-ui/core';
-import DeleteIcon from '@material-ui/icons/Delete';
-import SendIcon from '@material-ui/icons/Send';
 import { rootRouteRef } from '../../routes';
+import { TemplateActions } from './TemplateActions';
 
 const headerStyles = makeStyles(theme => ({
   header_title_color: {
@@ -36,17 +35,14 @@ const headerStyles = makeStyles(theme => ({
     fontWeight: 500,
     lineHeight: 1.57,
   },
-  mr_1: {
-    marginRight: '8px',
-  },
 }));
 
 export const CatalogItemsDetails = () => {
   const classes = headerStyles();
   const theme = useTheme();
-  const { namespace, name } = useParams<{
+  const { namespace, templateName } = useParams<{
     namespace: string;
-    name: string;
+    templateName: string;
   }>();
   const catalogApi = useApi(catalogApiRef);
   const rootRoute = useRouteRef(rootRouteRef);
@@ -61,7 +57,7 @@ export const CatalogItemsDetails = () => {
     setError(undefined);
     try {
       const response = await catalogApi.getEntityByRef(
-        `template:${namespace}/${name}`,
+        `template:${namespace}/${templateName}`,
       );
       setTask(response);
     } catch (e) {
@@ -69,7 +65,7 @@ export const CatalogItemsDetails = () => {
     } finally {
       setLoading(false);
     }
-  }, [namespace, name, catalogApi]); // Dependencies
+  }, [namespace, templateName, catalogApi]); // Dependencies
 
   useEffect(() => {
     fetchTasks();
@@ -115,186 +111,178 @@ export const CatalogItemsDetails = () => {
   }
 
   return (
-    <Page themeId="tool">
-      <Header
-        pageTitleOverride="Ansible Portal - Create Task"
-        title={
-          <span className={classes.header_title_color}>
-            {task?.metadata.title}
-          </span>
-        }
-        subtitle={
-          <span className={classes.header_subtitle}>
-            {task?.metadata.description}
-          </span>
-        }
-        style={{ background: 'inherit' }}
-      >
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() =>
-            navigate(`${rootRoute()}/create/templates/${namespace}/${name}`)
+    <EntityProvider entity={task}>
+      <Page themeId="tool">
+        <Header
+          pageTitleOverride="Create Task"
+          title={
+            <span className={classes.header_title_color}>
+              {task?.metadata.title}
+            </span>
           }
-          startIcon={<SendIcon />}
-          className={classes.mr_1}
+          subtitle={
+            <span className={classes.header_subtitle}>
+              {task?.metadata.description}
+            </span>
+          }
+          style={{ background: 'inherit' }}
         >
-          Launch
-        </Button>
-        <Button
-          variant="contained"
-          color="secondary"
-          onClick={() => setConfirmationDialogOpen(true)}
-          startIcon={<DeleteIcon />}
-        >
-          Unregister Template
-        </Button>
-      </Header>
-      <UnregisterEntityDialog
-        open={confirmationDialogOpen}
-        entity={task!}
-        onConfirm={cleanUpAfterRemoval}
-        onClose={() => setConfirmationDialogOpen(false)}
-      />
-      <Content>
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <Card style={{ maxWidth: '620px' }}>
-              {!loading && !error && task && (
-                <>
-                  {task?.metadata?.links &&
-                    task?.metadata?.links?.length > 0 && (
-                      <Box
-                        border={1}
-                        padding="22px 24px"
-                        borderColor="grey.300"
-                        marginBottom={2}
-                      >
+          {task && (
+            <TemplateActions
+              onUnregisterClick={() => setConfirmationDialogOpen(true)}
+            />
+          )}
+        </Header>
+        <UnregisterEntityDialog
+          open={confirmationDialogOpen}
+          entity={task!}
+          onConfirm={cleanUpAfterRemoval}
+          onClose={() => setConfirmationDialogOpen(false)}
+        />
+        <Content>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Card style={{ maxWidth: '620px' }}>
+                {!loading && !error && task && (
+                  <>
+                    {task?.metadata?.links &&
+                      task?.metadata?.links?.length > 0 && (
                         <Box
-                          component="hr"
-                          sx={{
-                            width: 'calc(100% + 48px)',
-                            borderTop: '1px solid grey',
-                            margin: '16px -24px',
-                          }}
-                        />
-                        <Typography variant="h6" gutterBottom>
-                          Links
-                        </Typography>
-                        {task.metadata.links.map((link, index) => (
-                          <Box key={index} sx={{ marginBottom: 1 }}>
-                            <Link
-                              href={link.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {link.title}
-                            </Link>
-                          </Box>
-                        ))}
-                      </Box>
-                    )}
-
-                  <Box
-                    border={1}
-                    padding="22px 24px 48px"
-                    borderColor="grey.300"
-                    sx={{ maxWidth: '620px' }}
-                  >
-                    <Typography
-                      style={{ fontSize: '24px', lineHeight: '24px' }}
-                    >
-                      About
-                    </Typography>
-                    <Box
-                      component="hr"
-                      sx={{
-                        width: 'calc(100% + 48px)',
-                        borderTop: '1px solid grey',
-                        margin: '16px -24px',
-                      }}
-                    />
-                    <Grid container>
-                      <Grid item lg={12} style={{ paddingTop: '30px' }}>
-                        <Typography variant="body1" gutterBottom>
-                          <Typography
-                            style={{
-                              fontSize: '14px',
-                              color:
-                                theme.palette.type === 'light'
-                                  ? '#181818'
-                                  : 'rgba(255, 255, 255, 0.70)',
-                              marginBottom: '14px',
+                          border={1}
+                          padding="22px 24px"
+                          borderColor="grey.300"
+                          marginBottom={2}
+                        >
+                          <Box
+                            component="hr"
+                            sx={{
+                              width: 'calc(100% + 48px)',
+                              borderTop: '1px solid grey',
+                              margin: '16px -24px',
                             }}
-                          >
-                            Description
+                          />
+                          <Typography variant="h6" gutterBottom>
+                            Links
                           </Typography>
-                          {task.metadata.description || '/'}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12} lg={6}>
-                        <Typography variant="body1" gutterBottom>
-                          <Typography
-                            style={{
-                              fontSize: '14px',
-                              color:
-                                theme.palette.type === 'light'
-                                  ? '#181818'
-                                  : 'rgba(255, 255, 255, 0.70)',
-                              marginBottom: '14px',
-                            }}
-                          >
-                            Owner
-                          </Typography>{' '}
-                          {String(task?.spec?.owner) || '/'}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12} lg={6}>
-                        <Typography variant="body1" gutterBottom>
-                          <Typography
-                            style={{
-                              fontSize: '14px',
-                              color:
-                                theme.palette.type === 'light'
-                                  ? '#181818'
-                                  : 'rgba(255, 255, 255, 0.70)',
-                              marginBottom: '14px',
-                            }}
-                          >
-                            Type
-                          </Typography>{' '}
-                          <span style={{ textTransform: 'capitalize' }}>
-                            {String(task?.spec?.type) || '/'}
-                          </span>
-                        </Typography>
-                      </Grid>
-                      <Grid item lg={12}>
-                        <Typography variant="body1" gutterBottom>
-                          <Typography
-                            style={{
-                              fontSize: '14px',
-                              color:
-                                theme.palette.type === 'light'
-                                  ? '#181818'
-                                  : 'rgba(255, 255, 255, 0.70)',
-                              marginBottom: '14px',
-                            }}
-                          >
-                            Tags
-                          </Typography>
-                          {task?.metadata?.tags?.map((tag, index) => (
-                            <Chip label={tag} key={index} variant="outlined" />
+                          {task.metadata.links.map((link, index) => (
+                            <Box key={index} sx={{ marginBottom: 1 }}>
+                              <Link
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {link.title}
+                              </Link>
+                            </Box>
                           ))}
-                        </Typography>
+                        </Box>
+                      )}
+
+                    <Box
+                      border={1}
+                      padding="22px 24px 48px"
+                      borderColor="grey.300"
+                      sx={{ maxWidth: '620px' }}
+                    >
+                      <Typography
+                        style={{ fontSize: '24px', lineHeight: '24px' }}
+                      >
+                        About
+                      </Typography>
+                      <Box
+                        component="hr"
+                        sx={{
+                          width: 'calc(100% + 48px)',
+                          borderTop: '1px solid grey',
+                          margin: '16px -24px',
+                        }}
+                      />
+                      <Grid container>
+                        <Grid item lg={12} style={{ paddingTop: '30px' }}>
+                          <Typography variant="body1" gutterBottom>
+                            <Typography
+                              style={{
+                                fontSize: '14px',
+                                color:
+                                  theme.palette.type === 'light'
+                                    ? '#181818'
+                                    : 'rgba(255, 255, 255, 0.70)',
+                                marginBottom: '14px',
+                              }}
+                            >
+                              Description
+                            </Typography>
+                            {task.metadata.description || '/'}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} lg={6}>
+                          <Typography variant="body1" gutterBottom>
+                            <Typography
+                              style={{
+                                fontSize: '14px',
+                                color:
+                                  theme.palette.type === 'light'
+                                    ? '#181818'
+                                    : 'rgba(255, 255, 255, 0.70)',
+                                marginBottom: '14px',
+                              }}
+                            >
+                              Owner
+                            </Typography>{' '}
+                            {String(task?.spec?.owner) || '/'}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} lg={6}>
+                          <Typography variant="body1" gutterBottom>
+                            <Typography
+                              style={{
+                                fontSize: '14px',
+                                color:
+                                  theme.palette.type === 'light'
+                                    ? '#181818'
+                                    : 'rgba(255, 255, 255, 0.70)',
+                                marginBottom: '14px',
+                              }}
+                            >
+                              Type
+                            </Typography>{' '}
+                            <span style={{ textTransform: 'capitalize' }}>
+                              {String(task?.spec?.type) || '/'}
+                            </span>
+                          </Typography>
+                        </Grid>
+                        <Grid item lg={12}>
+                          <Typography variant="body1" gutterBottom>
+                            <Typography
+                              style={{
+                                fontSize: '14px',
+                                color:
+                                  theme.palette.type === 'light'
+                                    ? '#181818'
+                                    : 'rgba(255, 255, 255, 0.70)',
+                                marginBottom: '14px',
+                              }}
+                            >
+                              Tags
+                            </Typography>
+                            {task?.metadata?.tags?.map((tag, index) => (
+                              <Chip
+                                label={tag}
+                                key={index}
+                                variant="outlined"
+                              />
+                            ))}
+                          </Typography>
+                        </Grid>
                       </Grid>
-                    </Grid>
-                  </Box>
-                </>
-              )}
-            </Card>
+                    </Box>
+                  </>
+                )}
+              </Card>
+            </Grid>
           </Grid>
-        </Grid>
-      </Content>
-    </Page>
+        </Content>
+      </Page>
+    </EntityProvider>
   );
 };

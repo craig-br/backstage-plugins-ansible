@@ -16,6 +16,8 @@ import {
 } from '@material-ui/core';
 import { FavoriteEntity } from '@backstage/plugin-catalog-react';
 import { useRouteRef } from '@backstage/core-plugin-api';
+import { usePermission } from '@backstage/plugin-permission-react';
+import { taskCreatePermission } from '@backstage/plugin-scaffolder-common/alpha';
 import { rootRouteRef } from '../../../routes';
 
 export function WizardCard({ template }: { template: TemplateEntityV1beta3 }) {
@@ -24,6 +26,9 @@ export function WizardCard({ template }: { template: TemplateEntityV1beta3 }) {
   const rootLink = useRouteRef(rootRouteRef);
   const namespace = template?.metadata?.namespace ?? 'default';
   const name = template?.metadata?.name ?? '';
+  const { allowed: canCreateTask } = usePermission({
+    permission: taskCreatePermission,
+  });
 
   const chooseWizardItem = () =>
     navigate(`${rootLink()}/create/templates/${namespace}/${name}`);
@@ -100,15 +105,17 @@ export function WizardCard({ template }: { template: TemplateEntityV1beta3 }) {
             </div>
           )}
         </div>
-        <Button
-          size="small"
-          variant="outlined"
-          color="primary"
-          data-testid="template-card-actions--create"
-          onClick={chooseWizardItem}
-        >
-          Start
-        </Button>
+        {canCreateTask ? (
+          <Button
+            size="small"
+            variant="outlined"
+            color="primary"
+            data-testid="template-card-actions--create"
+            onClick={chooseWizardItem}
+          >
+            Start
+          </Button>
+        ) : null}
       </CardActions>
     </Card>
   );

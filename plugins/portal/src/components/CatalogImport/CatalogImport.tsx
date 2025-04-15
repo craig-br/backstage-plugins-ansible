@@ -23,7 +23,7 @@ export const CatalogImport = () => {
   return (
     <Page themeId="tools">
       <Header
-        pageTitleOverride="Ansible Portal - Register Components"
+        pageTitleOverride="Register Components"
         title={<span className={classes.header_title_color}>Add Template</span>}
         subtitle={
           <span className={classes.header_subtitle}>

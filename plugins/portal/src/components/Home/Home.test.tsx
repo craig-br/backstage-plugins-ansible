@@ -1,6 +1,10 @@
 import React from 'react';
 import { screen } from '@testing-library/react';
-import { renderInTestApp, TestApiProvider } from '@backstage/test-utils';
+import {
+  mockApis,
+  renderInTestApp,
+  TestApiProvider,
+} from '@backstage/test-utils';
 import {
   catalogApiRef,
   MockStarredEntitiesApi,
@@ -10,6 +14,7 @@ import { MockEntityListContextProvider } from '@backstage/plugin-catalog-react/t
 import { mockCatalogApi } from '../../tests/catalogApi_utils';
 import { HomeComponent } from './Home';
 import { rootRouteRef } from '../../routes';
+import { permissionApiRef } from '@backstage/plugin-permission-react';
 
 describe('Portal', () => {
   const render = (children: JSX.Element) => {
@@ -18,6 +23,7 @@ describe('Portal', () => {
         apis={[
           [catalogApiRef, mockCatalogApi],
           [starredEntitiesApiRef, new MockStarredEntitiesApi()],
+          [permissionApiRef, mockApis.permission()],
         ]}
       >
         <MockEntityListContextProvider>

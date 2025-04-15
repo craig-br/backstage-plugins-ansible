@@ -57,7 +57,7 @@ describe('Create task', () => {
     // Mock the return value of useParams directly
     (require('react-router-dom').useParams as jest.Mock).mockReturnValue({
       namespace: 'default',
-      name: 'generic-seed',
+      templateName: 'generic-seed',
     });
 
     await render(<CreateTask />);

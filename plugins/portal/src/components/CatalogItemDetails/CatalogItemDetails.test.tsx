@@ -3,6 +3,7 @@ import { rest } from 'msw';
 import { setupServer } from 'msw/node';
 import { screen } from '@testing-library/react';
 import {
+  mockApis,
   registerMswTestHooks,
   renderInTestApp,
   TestApiProvider,
@@ -11,6 +12,7 @@ import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { mockCatalogApi } from '../../tests/catalogApi_utils';
 import { CatalogItemsDetails } from './CatalogItemDetails';
 import { rootRouteRef } from '../../routes';
+import { permissionApiRef } from '@backstage/plugin-permission-react';
 
 describe('Catalog items details', () => {
   const server = setupServer();
@@ -26,7 +28,12 @@ describe('Catalog items details', () => {
 
   const render = (children: JSX.Element) => {
     return renderInTestApp(
-      <TestApiProvider apis={[[catalogApiRef, mockCatalogApi]]}>
+      <TestApiProvider
+        apis={[
+          [catalogApiRef, mockCatalogApi],
+          [permissionApiRef, mockApis.permission()],
+        ]}
+      >
         <>{children}</>
       </TestApiProvider>,
       {

@@ -1,6 +1,8 @@
 import React from 'react';
 import { Button, makeStyles } from '@material-ui/core';
+import { useNavigate } from 'react-router';
 import { Content, Header, Page } from '@backstage/core-components';
+import { useRouteRef } from '@backstage/core-plugin-api';
 import {
   CatalogFilterLayout,
   EntityKindPicker,
@@ -14,9 +16,9 @@ import {
   TemplateCategoryPicker,
   TemplateGroups,
 } from '@backstage/plugin-scaffolder-react/alpha';
+import { usePermission } from '@backstage/plugin-permission-react';
+import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import { WizardCard } from './TemplateCard';
-import { useNavigate } from 'react-router';
-import { useRouteRef } from '@backstage/core-plugin-api';
 import { rootRouteRef } from '../../routes';
 
 const headerStyles = makeStyles(theme => ({
@@ -38,10 +40,14 @@ export const HomeComponent = () => {
   const classes = headerStyles();
   const navigate = useNavigate();
   const rootLink = useRouteRef(rootRouteRef);
+  const { allowed } = usePermission({
+    permission: catalogEntityCreatePermission,
+  });
+
   return (
     <Page themeId="app">
       <Header
-        pageTitleOverride="Ansible Portal - View Templates"
+        pageTitleOverride="View Templates"
         title={<span className={classes.header_title_color}>Templates</span>}
         subtitle={
           <span className={classes.header_subtitle}>
@@ -51,12 +57,14 @@ export const HomeComponent = () => {
         }
         style={{ background: 'inherit' }}
       >
-        <Button
-          onClick={() => navigate(`${rootLink()}/catalog-import`)}
-          variant="contained"
-        >
-          Add Template
-        </Button>
+        {allowed && (
+          <Button
+            onClick={() => navigate(`${rootLink()}/catalog-import`)}
+            variant="contained"
+          >
+            Add Template
+          </Button>
+        )}
       </Header>
       <Content>
         <EntityListProvider>

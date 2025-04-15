@@ -32,6 +32,8 @@ export const RunTask = () => {
     useTaskEventStream(taskId!);
   const taskMetadata = task?.spec?.templateInfo?.entity?.metadata;
   const [showLogs, setShowLogs] = useState(false);
+
+  // Start Over endpoint requires user to have both read (to grab parameters) and create (to create new task) permissions
   const allSteps = useMemo(
     () =>
       task?.spec.steps.map(step => ({
@@ -91,7 +93,7 @@ export const RunTask = () => {
   return (
     <Page themeId="tool">
       <Header
-        pageTitleOverride="Ansible Portal - Run Task"
+        pageTitleOverride="Run Task"
         title={
           <span className={classes.header_title_color}>
             {taskMetadata?.title}

@@ -10,9 +10,6 @@ import { useApi } from '@backstage/core-plugin-api';
 import CheckIcon from '@material-ui/icons/Check';
 import CloseIcon from '@material-ui/icons/Close';
 
-import { rhAapAuthApiRef } from '../../apis';
-import { formExtraFields } from './formExtraFields';
-import { ScaffolderForm } from './ScaffolderFormWrapper';
 import {
   Button,
   Paper,
@@ -27,6 +24,9 @@ import {
   TableRow,
   Typography,
 } from '@material-ui/core';
+import { rhAapAuthApiRef } from '../../apis';
+import { formExtraFields } from './formExtraFields';
+import { ScaffolderForm } from './ScaffolderFormWrapper';
 
 interface StepFormProps {
   steps: Array<{

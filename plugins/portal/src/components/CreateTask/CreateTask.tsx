@@ -40,9 +40,9 @@ const headerStyles = makeStyles(theme => ({
 
 export const CreateTask = () => {
   const classes = headerStyles();
-  const { namespace, name } = useParams<{
+  const { namespace, templateName } = useParams<{
     namespace: string;
-    name: string;
+    templateName: string;
   }>();
   const scaffolderApi = useApi(scaffolderApiRef);
   const rootLink = useRouteRef(rootRouteRef);
@@ -54,13 +54,13 @@ export const CreateTask = () => {
   const navigate = useNavigate();
 
   const finalSubmit = async (formData: Record<string, any>) => {
-    if (!namespace || !name) {
+    if (!namespace || !templateName) {
       throw new Error('Missing namespace or name in URL parameters');
     }
 
     try {
       const task = await scaffolderApi.scaffold({
-        templateRef: `template:${namespace}/${name}`,
+        templateRef: `template:${namespace}/${templateName}`,
         values: formData,
       });
 
@@ -75,10 +75,11 @@ export const CreateTask = () => {
     const fetchEntity = async () => {
       setLoading(true);
       try {
-        if (!name) {
+        if (!templateName) {
           throw new Error('Missing name in URL parameters');
         }
-        const response = await scaffolderApi.getTemplateParameterSchema(name);
+        const response =
+          await scaffolderApi.getTemplateParameterSchema(templateName);
         setEntityTemplate(response as TemplateParameterSchema);
       } catch (err) {
         setError('Failed to fetch entity');
@@ -88,7 +89,7 @@ export const CreateTask = () => {
     };
 
     fetchEntity();
-  }, [name, scaffolderApi]);
+  }, [templateName, scaffolderApi]);
 
   if (loading) {
     return (
@@ -130,7 +131,7 @@ export const CreateTask = () => {
   return (
     <Page themeId="website">
       <Header
-        pageTitleOverride="Ansible Portal - Create Task"
+        pageTitleOverride="Create Task"
         title={
           <span className={classes.header_title_color}>
             {entityTemplate.title}
