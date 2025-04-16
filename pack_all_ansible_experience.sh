@@ -9,5 +9,3 @@ echo -e '\n\n\n========================================= scaffolder-backend-modu
 ./.github/actions/pack/pack_one.sh plugins/scaffolder-backend-module-backstage-rhaap
 echo -e '\n\n\n========================================= portal'
 ./.github/actions/pack/pack_one.sh plugins/portal
-echo -e '\n\n\n========================================= wizard-catalog'
-./.github/actions/pack/pack_one.sh plugins/wizard-catalog
