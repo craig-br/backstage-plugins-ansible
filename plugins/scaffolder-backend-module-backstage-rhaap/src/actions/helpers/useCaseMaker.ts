@@ -484,7 +484,13 @@ export class UseCaseMaker {
             }
           }
         } else {
-          jsonTemplate = YAML.parse(template);
+          try {
+            jsonTemplate = YAML.parse(template);
+          } catch (e) {
+            this.logger.error(
+              `[${UseCaseMaker.pluginLogName}] Error while parsing yaml template ${location.path}.`,
+            );
+          }
         }
         if (jsonTemplate) {
           retval.push({
