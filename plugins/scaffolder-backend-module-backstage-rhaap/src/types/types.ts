@@ -33,6 +33,9 @@ export type Project = {
   status?: string;
   url?: string;
   credentials?: Credential;
+  related?: {
+    last_job: string;
+  };
 };
 
 export type ExecutionEnvironment = {

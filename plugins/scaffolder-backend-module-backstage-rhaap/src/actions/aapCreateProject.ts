@@ -63,6 +63,10 @@ export const createProjectAction = (ansibleConfig: AnsibleConfig) => {
                     type: 'string',
                     description: 'Credential name',
                   },
+                  kind: {
+                    type: 'string',
+                    description: 'Credential type',
+                  },
                 },
               },
               scmUrl: {

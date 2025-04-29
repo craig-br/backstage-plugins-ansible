@@ -283,6 +283,16 @@ export class AAPApiClient {
       this.logger.error(
         `[${AAPApiClient.pluginLogName}] Error creating project: ${projectStatus}`,
       );
+      const stdoutEndPoint = `${projectData.related?.last_job}events`;
+      const epResponse = await this.executeGetRequest(
+        stdoutEndPoint,
+        stdoutEndPoint,
+      );
+      const respJson = await epResponse.json();
+      const stdError = respJson.results.find(
+        (item: any) => item.event_data?.res?.msg,
+      )?.event_data?.res?.msg;
+      this.logger.error(`[${AAPApiClient.pluginLogName}] Error: ${stdError}`);
       throw new Error(`Failed to create project`);
     }
     this.logOutput('info', `The project is ready.`);
@@ -572,14 +582,19 @@ export class AAPApiClient {
     let lastEvent;
     if (result.jobData.status !== 'successful') {
       try {
-        lastEvent =
-          result.jobEvents[result.jobEvents.length - 2].event_data.res
-            .results[0].msg;
+        const stdoutEndPoint = `api/controller/v2/jobs/${jobID}/stdout/?format=txt`;
+        const stdoutResponse = await this.executeGetRequest(stdoutEndPoint);
+        const stdoutRespText = await stdoutResponse.text();
+        const errorRegex = /"msg":\s*"([^"]+)"/g;
+        const matchRegex = [...stdoutRespText.matchAll(errorRegex)];
+        lastEvent = matchRegex[matchRegex.length - 1][1];
       } catch (error) {
         lastEvent =
-          'with an undefined error. Please check the RHAAP portal for job execution logs.';
+          'Undefined Error. Please check the RHAAP portal for job execution logs.';
+        this.logOutput('error', `${error}`);
       }
-      this.logOutput('info', `Job has failed ${lastEvent}`);
+      this.logOutput('error', `Error while executing job template.`);
+      this.logOutput('error', `Job failed: ${lastEvent}`);
       throw new Error(`Job execution failed due to ${lastEvent}`);
     }
     return {
