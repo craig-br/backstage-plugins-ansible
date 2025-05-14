@@ -6,3 +6,6 @@ packages/*/src
 packages/*/node_modules
 plugins
 *.local.yaml
+Containerfile
+.gitkeep
+.dockerignore
