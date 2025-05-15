@@ -1,0 +1,643 @@
+import { LoggerService } from '@backstage/backend-plugin-api';
+import { Config } from '@backstage/config';
+
+import * as YAML from 'yaml';
+import { Agent, fetch } from 'undici';
+
+import {
+  AAPTemplate,
+  CleanUp,
+  ExecutionEnvironment,
+  JobTemplate,
+  LaunchJobTemplate,
+  Organization,
+  Project,
+  AnsibleConfig,
+} from '../types';
+
+import { getAnsibleConfig } from './utils/config';
+
+export interface IAAPService
+  extends Pick<
+    AAPClient,
+    | 'executePostRequest'
+    | 'executeGetRequest'
+    | 'executeDeleteRequest'
+    | 'getProject'
+    | 'deleteProject'
+    | 'deleteProjectIfExists'
+    | 'createProject'
+    | 'deleteExecutionEnvironmentExists'
+    | 'createExecutionEnvironment'
+    | 'deleteExecutionEnvironment'
+    | 'deleteJobTemplate'
+    | 'deleteJobTemplateIfExists'
+    | 'createJobTemplate'
+    | 'fetchEvents'
+    | 'fetchResult'
+    | 'launchJobTemplate'
+    | 'cleanUp'
+    | 'getResourceData'
+    | 'getJobTemplatesByName'
+    | 'setLogger'
+  > {}
+
+export class AAPClient implements IAAPService {
+  static pluginLogName = 'backstage-rhaap-common';
+  private readonly config: Config;
+  private readonly ansibleConfig: AnsibleConfig;
+  private readonly proxyAgent: Agent;
+  private readonly pluginLogName: string;
+  private logger: LoggerService;
+
+  constructor(options: { rootConfig: Config; logger: LoggerService }) {
+    this.pluginLogName = AAPClient.pluginLogName;
+    this.config = options.rootConfig;
+    this.ansibleConfig = getAnsibleConfig(this.config);
+    this.logger = options.logger;
+    this.proxyAgent = new Agent({
+      connect: {
+        rejectUnauthorized: this.ansibleConfig.rhaap.checkSSL ?? true,
+      },
+    });
+  }
+
+  private sleep(ms: number) {
+    return new Promise((resolve, _reject) => {
+      const timeoutId = setTimeout(() => {
+        resolve(undefined);
+        clearTimeout(timeoutId);
+      }, ms);
+    });
+  }
+
+  public setLogger(logger: LoggerService) {
+    this.logger = logger;
+  }
+
+  public async executePostRequest(
+    endPoint: string,
+    token: string,
+    data: any,
+  ): Promise<any> {
+    const url = `${this.ansibleConfig.rhaap.baseUrl}/${endPoint}`;
+    this.logger.info(
+      `[${this.pluginLogName}]: Executing post request to ${url}.`,
+    );
+    const requestOptions = {
+      method: 'POST',
+      dispatcher: this.proxyAgent,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    };
+    let response;
+    try {
+      response = await fetch(url, requestOptions);
+    } catch (error) {
+      this.logger.error(
+        `[${this.pluginLogName}]: Failed to send POST request: ${error}`,
+      );
+      if (error instanceof Error) {
+        throw new Error(`Failed to send POST request: ${error.message}`);
+      } else {
+        throw new Error(`Failed to send POST request`);
+      }
+    }
+    if (!response.ok) {
+      this.logger.error(
+        `[${this.pluginLogName}] Failed to send POST request: ${response.statusText}`,
+      );
+      if (response.status === 403) {
+        throw new Error(
+          `Insufficient privileges. Please contact your administrator.`,
+        );
+      } else {
+        let errorResponse;
+        try {
+          errorResponse = await response.json();
+        } catch {
+          errorResponse = null;
+        }
+        if (errorResponse) {
+          // @ts-ignore
+          if (errorResponse?.__all__?.length) {
+            // @ts-ignore
+            throw new Error(errorResponse.__all__.join(' '));
+          } else if (errorResponse.constructor === Object) {
+            const errorData = Object.values(errorResponse);
+            throw new Error(errorData.join(' '));
+          } else {
+            throw new Error(`Failed to post data`);
+          }
+        } else {
+          throw new Error(`Failed to post data`);
+        }
+      }
+    }
+    return response;
+  }
+
+  public async executeGetRequest(
+    endPoint: string,
+    token: string,
+    fullUrl?: string,
+  ): Promise<any> {
+    const url = fullUrl
+      ? this.ansibleConfig.rhaap.baseUrl + fullUrl
+      : `${this.ansibleConfig.rhaap.baseUrl}/${endPoint}`;
+    this.logger.info(
+      `[${this.pluginLogName}]: Executing get request to ${url}.`,
+    );
+    const requestOptions = {
+      method: 'GET',
+      dispatcher: this.proxyAgent,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    };
+    let response;
+    try {
+      response = await fetch(url, requestOptions);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to send fetch data: ${error.message}`);
+      } else {
+        throw new Error(`Failed to send fetch`);
+      }
+    }
+    if (!response.ok) {
+      this.logger.error(`[${this.pluginLogName}]: ${response.statusText}`);
+      if (response.status === 403) {
+        throw new Error(
+          `Insufficient privileges. Please contact your administrator.`,
+        );
+      } else {
+        throw new Error(`Failed to fetch data.`);
+      }
+    }
+    return response;
+  }
+
+  public async executeDeleteRequest(
+    endPoint: string,
+    token: string,
+  ): Promise<any> {
+    const url = `${this.ansibleConfig.rhaap.baseUrl}/${endPoint}`;
+    this.logger.info(
+      `[${this.pluginLogName}]: Executing delete request ${url}.`,
+    );
+    const requestOptions = {
+      method: 'DELETE',
+      dispatcher: this.proxyAgent,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    };
+    let response;
+    try {
+      response = await fetch(url, requestOptions);
+    } catch (error) {
+      this.logger.error(
+        `[${this.pluginLogName}]: Error while executing delete request: ${error}.`,
+      );
+      if (error instanceof Error) {
+        throw new Error(`Failed to send delete: ${error.message}`);
+      } else {
+        throw new Error(`Failed to send delete`);
+      }
+    }
+    if (!response.ok) {
+      this.logger.error(
+        `[${this.pluginLogName}]: Error while executing delete request ${response.status}.`,
+      );
+      if (response.status === 403) {
+        throw new Error(
+          'Insufficient privileges. Please contact your administrator.',
+        );
+      } else {
+        throw new Error(`Failed to delete`);
+      }
+    }
+    return response;
+  }
+
+  public async getProject(projectID: number, token: string): Promise<Project> {
+    const endPoint = `api/controller/v2/projects/${projectID}/`;
+    const project = await this.executeGetRequest(endPoint, token);
+    return (await project.json()) as Project;
+  }
+
+  public async deleteProject(projectID: number, token: string): Promise<any> {
+    const endPoint = `api/controller/v2/projects/${projectID}/`;
+    return await this.executeDeleteRequest(endPoint, token);
+  }
+
+  public async deleteProjectIfExists(
+    name: string,
+    organization: Organization,
+    token: string,
+  ): Promise<void> {
+    this.logger.info(
+      `Check if project with name ${name} exist in organization ${organization.name}.`,
+    );
+    const endPoint = `api/controller/v2/projects/?organization=${organization.id}&name=${name}`;
+    const projects = await this.executeGetRequest(endPoint, token);
+    const projectList = await projects.json();
+    if (projectList.results.length === 1) {
+      this.logger.info(`Delete project with id: ${projectList.results[0].id}.`);
+      await this.deleteProject(projectList.results[0].id, token);
+      this.logger.info(
+        `End delete project with id: ${projectList.results[0].id}.`,
+      );
+    }
+  }
+
+  public async createProject(
+    payload: Project,
+    deleteIfExist: boolean,
+    token: string,
+  ): Promise<Project> {
+    if (deleteIfExist) {
+      await this.deleteProjectIfExists(
+        payload.projectName,
+        payload.organization,
+        token,
+      );
+    }
+    const endPoint = 'api/controller/v2/projects/';
+    const data = {
+      name: payload.projectName,
+      description: payload?.projectDescription ?? '',
+      organization: payload.organization.id,
+      scm_type: 'git',
+      scm_url: payload.scmUrl,
+      scm_branch: payload?.scmBranch ?? '',
+      scm_update_on_launch: payload.scmUpdateOnLaunch,
+    };
+    this.logger.info(`Begin creating project ${payload.projectName}.`);
+    this.logger.info(
+      `[${AAPClient.pluginLogName}] Creating new AAP project at ${this.ansibleConfig.rhaap.baseUrl} in organization ${payload.organization.name}.`,
+    );
+
+    const response = await this.executePostRequest(endPoint, token, data);
+    this.logger.info(`End creating project ${payload.projectName}.`);
+
+    let projectData = (await response.json()) as Project;
+    const waitStatuses = ['new', 'pending', 'waiting', 'running'];
+
+    let projectStatus = projectData.status as string;
+    this.logger.info(`Waiting for the project to be ready.`);
+    if (waitStatuses.includes(projectStatus)) {
+      let shouldWait = true;
+      while (shouldWait) {
+        await this.sleep(2000);
+        projectData = await this.getProject(projectData.id as number, token);
+        projectStatus = projectData.status as string;
+        if (!waitStatuses.includes(projectStatus)) {
+          shouldWait = false;
+        }
+      }
+    }
+    if (['failed', 'error', 'canceled'].includes(projectStatus)) {
+      this.logger.error(
+        `[${this.pluginLogName}] Error creating project: ${projectStatus}`,
+      );
+      throw new Error(`Failed to create project`);
+    }
+    this.logger.info(`The project is ready.`);
+    projectData.url = `${this.ansibleConfig.rhaap.baseUrl}/execution/projects/${projectData.id}/details`;
+    return projectData;
+  }
+
+  public async deleteExecutionEnvironmentExists(
+    name: string,
+    organization: Organization,
+    token: string,
+  ): Promise<void> {
+    this.logger.info(
+      `Check if execution environment with name ${name} exist in organization ${organization.name}.`,
+    );
+    const endPoint = `api/controller/v2/execution_environments/?organization=${organization.id}&name=${name}`;
+    const environments = await this.executeGetRequest(endPoint, token);
+    const environmentsList = await environments.json();
+    if (environmentsList.results.length === 1) {
+      this.logger.info(
+        `Delete execution environment with id: ${environmentsList.results[0].id}.`,
+      );
+      await this.deleteExecutionEnvironment(
+        environmentsList.results[0].id,
+        token,
+      );
+      this.logger.info(
+        `End delete execution environment with id: ${environmentsList.results[0].id}.`,
+      );
+    }
+  }
+
+  public async createExecutionEnvironment(
+    payload: ExecutionEnvironment,
+    token: string,
+    deleteIfExist?: boolean,
+  ): Promise<ExecutionEnvironment> {
+    if (deleteIfExist) {
+      await this.deleteExecutionEnvironmentExists(
+        payload.environmentName,
+        payload.organization,
+        token,
+      );
+    }
+    const endPoint = 'api/controller/v2/execution_environments/';
+    const data = {
+      name: payload.environmentName,
+      description: payload?.environmentDescription ?? '',
+      organization: payload.organization.id,
+      image: payload.image,
+      pull: payload.pull,
+    };
+    this.logger.info(
+      `[${this.pluginLogName}] Scaffolder creating new AAP execution environment at ${this.ansibleConfig.rhaap.baseUrl}.`,
+    );
+    this.logger.info(
+      `Begin creating execution environment ${payload.environmentName}.`,
+    );
+    const response = await this.executePostRequest(endPoint, token, data);
+    this.logger.info(
+      `End creating execution environment ${payload.environmentName}.`,
+    );
+    const eeData = (await response.json()) as ExecutionEnvironment;
+    eeData.url = `${this.ansibleConfig.rhaap.baseUrl}/execution/infrastructure/execution-environments/${eeData.id}/details`;
+    return eeData;
+  }
+
+  public async deleteExecutionEnvironment(
+    environmentID: number,
+    token: string,
+  ): Promise<any> {
+    const endPoint = `api/controller/v2/execution_environments/${environmentID}/`;
+    return await this.executeDeleteRequest(endPoint, token);
+  }
+
+  public async deleteJobTemplate(
+    templateID: number,
+    token: string,
+  ): Promise<any> {
+    const endPoint = `api/controller/v2/job_templates/${templateID}/`;
+    return await this.executeDeleteRequest(endPoint, token);
+  }
+
+  public async deleteJobTemplateIfExists(
+    name: string,
+    organization: Organization,
+    token: string,
+  ): Promise<void> {
+    const endPoint = `api/controller/v2/job_templates/?organization=${organization.id}&name=${name}`;
+    this.logger.info(
+      `Check if job template with name ${name} exist in organization.`,
+    );
+    const templates = await this.executeGetRequest(endPoint, token);
+    const templatesList = await templates.json();
+    if (templatesList.results.length === 1) {
+      this.logger.info(
+        `Delete job template with id: ${templatesList.results[0].id}.`,
+      );
+      await this.deleteJobTemplate(templatesList.results[0].id, token);
+      this.logger.info(
+        `End delete job template with id: ${templatesList.results[0].id}.`,
+      );
+    }
+  }
+
+  public async createJobTemplate(
+    payload: JobTemplate,
+    deleteIfExist: boolean,
+    token: string,
+  ): Promise<JobTemplate> {
+    if (deleteIfExist) {
+      await this.deleteJobTemplateIfExists(
+        payload.templateName,
+        payload.organization,
+        token,
+      );
+    }
+    const endPoint = 'api/controller/v2/job_templates/';
+    const extraVariables = payload?.extraVariables
+      ? JSON.parse(JSON.stringify(payload.extraVariables))
+      : '';
+    if (extraVariables !== '') {
+      extraVariables.aap_validate_certs = this.ansibleConfig.rhaap.checkSSL;
+      extraVariables.aap_hostname = this.ansibleConfig.rhaap.baseUrl;
+    }
+    const data = {
+      name: payload.templateName,
+      description: payload?.templateDescription ?? '',
+      job_type: 'run',
+      inventory: payload.jobInventory.id,
+      project: payload.project.id,
+      playbook: payload.playbook,
+      execution_environment: payload?.executionEnvironment?.id ?? '',
+      extra_vars: extraVariables ? YAML.stringify(extraVariables) : '',
+    };
+    this.logger.info(`Begin creating job template ${payload.templateName}.`);
+    const response = await this.executePostRequest(endPoint, token, data);
+    const jobTemplate = (await response.json()) as JobTemplate;
+    this.logger.info(`End creating job template ${payload.templateName}.`);
+    jobTemplate.url = `${this.ansibleConfig.rhaap.baseUrl}/execution/templates/job-template/${jobTemplate.id}/details`;
+    return jobTemplate;
+  }
+
+  public async fetchEvents(
+    jobID: number,
+    token: string,
+    results?: never[],
+    fullUrl?: string,
+  ): Promise<any> {
+    let result = results ? results : [];
+    const eventsResponse = await this.executeGetRequest(
+      `api/controller/v2/jobs/${jobID}/job_events/`,
+      token,
+      fullUrl,
+    );
+    const response = await eventsResponse.json();
+    result = [...result, ...response.results] as never[];
+    if (response.next) {
+      return await this.fetchEvents(jobID, token, result, response.next);
+    }
+    return result;
+  }
+
+  public async fetchResult(jobID: number, token: string) {
+    let shouldWait = true;
+    const endPoint = `api/controller/v2/jobs/${jobID}/`;
+    let jobDetailResponseData;
+    while (shouldWait) {
+      await this.sleep(2000);
+      const jobDetailResponse = await this.executeGetRequest(endPoint, token);
+      jobDetailResponseData = await jobDetailResponse.json();
+      const status = jobDetailResponseData.status;
+      if (
+        ['successful', 'failed', 'error', 'canceled'].includes(
+          status.toString().toLowerCase(),
+        )
+      ) {
+        shouldWait = false;
+        break;
+      }
+    }
+    return {
+      jobEvents: await this.fetchEvents(jobID, token),
+      jobData: jobDetailResponseData,
+    };
+  }
+
+  public async launchJobTemplate(
+    payload: LaunchJobTemplate,
+    token: string,
+  ): Promise<any> {
+    const endPoint = `api/controller/v2/job_templates/${payload.template.id}/launch/`;
+    const data = { extra_vars: payload?.extraVariables ?? '' } as {
+      inventory?: number;
+      job_type?: string;
+      executionEnvironment?: number;
+      execution_environment?: number;
+      forks?: number;
+      limit?: string;
+      verbosity?: number;
+      job_slice_count?: number;
+      timeout?: number;
+      diff_mode?: boolean;
+      job_tags?: string;
+      skip_tags?: string;
+      extra_vars?: object | string;
+      credentials?: number[];
+    };
+    if (payload?.inventory?.id) {
+      data.inventory = payload.inventory.id;
+    }
+    if (payload?.jobType) {
+      data.job_type = payload.jobType;
+    }
+    if (payload?.executionEnvironment?.id) {
+      data.execution_environment = payload.executionEnvironment.id;
+    }
+    if (payload?.forks || payload.forks === 0) {
+      data.forks = payload.forks;
+    }
+    if (payload?.limit) {
+      data.limit = payload.limit;
+    }
+    if (payload?.verbosity?.id) {
+      data.verbosity = payload.verbosity.id;
+    }
+    if (payload?.jobSliceCount || payload.jobSliceCount === 0) {
+      data.job_slice_count = payload.jobSliceCount;
+    }
+    if (payload?.timeout || payload.timeout === 0) {
+      data.job_slice_count = payload.timeout;
+    }
+    if (payload?.diffMode || payload.diffMode === false) {
+      data.diff_mode = payload.diffMode;
+    }
+    if (payload?.jobTags) {
+      data.job_tags = payload.jobTags;
+    }
+    if (payload?.skipTags) {
+      data.skip_tags = payload.skipTags;
+    }
+
+    if (payload?.credentials?.length) {
+      const seen = new Set();
+      const duplicates = [] as string[];
+      payload.credentials.some(currentObject => {
+        if (seen.size === seen.add(currentObject.credential_type).size) {
+          duplicates.push(currentObject.summary_fields.credential_type.name);
+          return true;
+        }
+        return false;
+      });
+      if (duplicates.length) {
+        throw new Error(
+          `Cannot assign multiple credentials of the same type. Duplicated credential types are: ${duplicates.join(
+            ', ',
+          )}`,
+        );
+      }
+      data.credentials = payload.credentials.map(c => c.id);
+    }
+    this.logger.info(`Start executing job template.`);
+    const response = await this.executePostRequest(endPoint, token, data);
+    const jobResponseJson = await response.json();
+    const jobID = jobResponseJson.job;
+    this.logger.info(`Waiting for result of the executed job template.`);
+
+    const result = await this.fetchResult(jobID, token);
+    let lastEvent;
+    if (result.jobData.status !== 'successful') {
+      try {
+        lastEvent =
+          result.jobEvents[result.jobEvents.length - 2].event_data.res
+            .results[0].msg;
+      } catch (error) {
+        lastEvent =
+          'with an undefined error. Please check the RHAAP portal for job execution logs.';
+      }
+      this.logger.error(`Job has failed ${lastEvent}`);
+      throw new Error(`Job execution failed due to ${lastEvent}`);
+    }
+    return {
+      id: jobID,
+      status: result.jobData.status,
+      events: result.jobEvents,
+      url: `${this.ansibleConfig.rhaap.baseUrl}/execution/jobs/playbook/${jobID}/output`,
+    };
+  }
+
+  public async cleanUp(payload: CleanUp, token: string): Promise<void> {
+    if (payload?.project?.id) {
+      this.logger.info(`Delete project with id ${payload.project.id}.`);
+      await this.deleteProject(payload.project.id, token);
+    }
+    if (payload?.template?.id) {
+      this.logger.info(`Delete template with id ${payload.template.id}.`);
+      await this.deleteJobTemplate(payload.template.id, token);
+    }
+    if (payload?.executionEnvironment?.id) {
+      this.logger.info(
+        `Delete execution environment with id ${payload.executionEnvironment.id}.`,
+      );
+      await this.deleteExecutionEnvironment(
+        payload.executionEnvironment.id,
+        token,
+      );
+    }
+  }
+
+  public async getResourceData(resource: string, token: string): Promise<any> {
+    const endPoint = `api/controller/v2/${resource}/`;
+    const response = await this.executeGetRequest(endPoint, token);
+    return await response.json();
+  }
+
+  public async getJobTemplatesByName(
+    templateNames: string[],
+    organization: Organization,
+    token: string,
+  ): Promise<AAPTemplate[]> {
+    const endPoint = `api/controller/v2/job_templates/?organization=${organization.id}&name__in=${templateNames}`;
+    const response = await this.executeGetRequest(endPoint, token);
+    const list = await response.json();
+    const results = list.results;
+    if (!results?.length) {
+      throw new Error(`No job templates found.`);
+    }
+    return results.map(
+      (result: { id: number; name: string }): { id: number; name: string } => {
+        return { id: result.id, name: result.name };
+      },
+    );
+  }
+}

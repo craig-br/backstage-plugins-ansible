@@ -59,6 +59,10 @@ mv $sourcePackDir-$VERSION.tar.gz "$packDestination"
 # Loop through each subdirectory in the ./plugins directory
 for pluginDir in "$pluginsDir"/*; do
   if [ -d "$pluginDir" ]; then
+    pluginName=$(basename "$pluginDir")
+    if [ "$pluginName" == "backstage-rhaap-common" ]; then
+      continue
+    fi
     .github/actions/pack/pack_one.sh "$pluginDir"
   fi
 done
