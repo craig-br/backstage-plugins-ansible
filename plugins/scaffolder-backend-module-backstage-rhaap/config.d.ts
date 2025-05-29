@@ -32,17 +32,19 @@ export interface Config {
     };
     /**
      * Base url for the creator-service
+     * @visibility backend
      */
-    creatorService: {
+    creatorService?: {
       /**
        * Base url for the creator-service
        * @visibility secret
        */
-      baseUrl: string;
+      baseUrl?: string;
       /**
        * Port at which the creator-service is exposed
+       * @visibility backend
        */
-      port: string;
+      port?: string;
     };
   };
   catalog?: {

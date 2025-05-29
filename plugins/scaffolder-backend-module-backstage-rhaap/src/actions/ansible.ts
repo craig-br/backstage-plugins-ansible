@@ -26,7 +26,7 @@ import { Config } from '@backstage/config';
 import { AnsibleApiClient, BackendServiceAPI } from './utils/api';
 import { ScaffolderLogger } from './utils/logger';
 import { AuthService } from '@backstage/backend-plugin-api';
-import { AnsibleConfig } from '../types';
+import { AnsibleConfig } from '@ansible/backstage-rhaap-common';
 import { handleDevfileProject } from './ansibleContentCreate';
 import { appType } from './constants';
 

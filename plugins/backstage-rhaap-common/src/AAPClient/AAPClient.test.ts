@@ -2,6 +2,7 @@ import { Config } from '@backstage/config';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { AAPClient } from './AAPClient';
 import { fetch } from 'undici';
+import { AnsibleConfig } from '../types';
 
 jest.mock('undici', () => ({
   Agent: jest.fn(),
@@ -35,19 +36,6 @@ jest.mock('@backstage/integration', () => ({
   },
 }));
 
-jest.mock('@backstage/backend-plugin-api', () => {
-  const actual = jest.requireActual('@backstage/backend-plugin-api');
-  return {
-    ...actual,
-    readSchedulerServiceTaskScheduleDefinitionFromConfig: jest
-      .fn()
-      .mockReturnValue({
-        frequency: { minutes: 30 },
-        timeout: { minutes: 5 },
-      }),
-  };
-});
-
 describe('AAPClient', () => {
   let client: AAPClient;
   let mockConfig: Config;
@@ -58,22 +46,36 @@ describe('AAPClient', () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
 
-    const mockAnsibleConfig = {
-      getOptionalString: jest.fn(),
-      getString: jest.fn().mockReturnValue('https://test.example.com'),
-      getOptionalBoolean: jest.fn().mockReturnValue(true),
-      has: jest.fn().mockReturnValue(true),
-      keys: jest.fn().mockReturnValue([]),
-      get: jest.fn().mockReturnValue('*/30 * * * *'),
-      getConfig: jest.fn().mockReturnValue({
-        getString: jest.fn().mockReturnValue('test-value'),
-        getOptionalString: jest.fn(),
-        getOptionalBoolean: jest.fn().mockReturnValue(true),
-        getNumber: jest.fn().mockReturnValue(30),
-        has: jest.fn().mockReturnValue(true),
-        keys: jest.fn().mockReturnValue([]),
-        get: jest.fn().mockReturnValue('*/30 * * * *'),
-      }),
+    const mockAnsibleConfig: AnsibleConfig = {
+      analytics: {
+        enabled: false,
+      },
+      devSpaces: {
+        baseUrl: 'https://devspaces.example.com',
+      },
+      automationHub: {
+        baseUrl: 'https://automationhub.example.com',
+      },
+      rhaap: {
+        baseUrl: 'https://test.example.com',
+        token: 'test-token',
+        checkSSL: true,
+        showCaseLocation: {
+          type: 'file',
+          target: 'test-target',
+          gitBranch: 'main',
+          gitUser: 'test-user',
+          gitEmail: 'test@example.com',
+        },
+      },
+      githubIntegration: {
+        host: 'github.com',
+        token: 'test-token',
+      },
+      creatorService: {
+        baseUrl: 'localhost',
+        port: '8000',
+      },
     };
 
     mockConfig = {
@@ -81,7 +83,30 @@ describe('AAPClient', () => {
       getConfig: jest.fn().mockImplementation((key: string) => {
         if (key === 'ansible') {
           return {
-            ...mockAnsibleConfig,
+            getOptionalString: jest.fn().mockImplementation((path: string) => {
+              const paths: Record<string, string> = {
+                'rhaap.baseUrl': 'https://test.example.com',
+                'rhaap.token': 'test-token',
+                'rhaap.showCaseLocation.type': 'file',
+                'rhaap.showCaseLocation.target': 'test-target',
+                'rhaap.showCaseLocation.gitBranch': 'main',
+                'rhaap.showCaseLocation.gitUser': 'test-user',
+                'rhaap.showCaseLocation.gitEmail': 'test@example.com',
+                'creatorService.baseUrl': 'localhost',
+                'creatorService.port': '8000',
+              };
+              return paths[path];
+            }),
+            getOptionalBoolean: jest.fn().mockImplementation((path: string) => {
+              const paths: Record<string, boolean> = {
+                'analytics.enabled': false,
+                'rhaap.checkSSL': true,
+              };
+              return paths[path];
+            }),
+            has: jest.fn().mockImplementation((path: string) => {
+              return path === 'creatorService';
+            }),
             getConfig: jest.fn().mockImplementation((nestedKey: string) => {
               if (nestedKey === 'rhaap') {
                 return {
@@ -90,21 +115,7 @@ describe('AAPClient', () => {
                     .mockReturnValue('https://test.example.com'),
                   getOptionalString: jest.fn(),
                   getOptionalBoolean: jest.fn().mockReturnValue(true),
-                  getNumber: jest.fn().mockReturnValue(30),
                   has: jest.fn().mockReturnValue(true),
-                  get: jest.fn().mockReturnValue('*/30 * * * *'),
-                  getConfig: jest
-                    .fn()
-                    .mockImplementation((scheduleKey: string) => {
-                      if (scheduleKey === 'schedule') {
-                        return {
-                          getNumber: jest.fn().mockReturnValue(30),
-                          getString: jest.fn().mockReturnValue('*/30 * * * *'),
-                          get: jest.fn().mockReturnValue('*/30 * * * *'),
-                        };
-                      }
-                      return {};
-                    }),
                 };
               }
               return {};
@@ -115,7 +126,6 @@ describe('AAPClient', () => {
       }),
       has: jest.fn().mockReturnValue(true),
       keys: jest.fn().mockReturnValue([]),
-      get: jest.fn().mockReturnValue('*/30 * * * *'),
     } as unknown as Config;
 
     mockLogger = {
@@ -181,6 +191,9 @@ describe('AAPClient', () => {
           ok: false,
           status: 403,
           statusText: 'Forbidden',
+          json: jest.fn().mockResolvedValue({
+            detail: 'Insufficient privileges',
+          }),
         };
         mockFetch.mockResolvedValue(mockResponse);
 
@@ -385,14 +398,34 @@ describe('AAPClient', () => {
       });
 
       it('should handle project creation failure', async () => {
-        const mockResponse = {
+        const mockCreateResponse = {
           ok: true,
           json: jest.fn().mockResolvedValue({
             id: 1,
+            name: 'test-project',
             status: 'failed',
+            related: {
+              last_job: 'https://test.example.com/api/controller/v2/jobs/123/',
+            },
           }),
         };
-        mockFetch.mockResolvedValue(mockResponse);
+        const mockEventsResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({
+            results: [
+              {
+                event_data: {
+                  res: {
+                    msg: 'Failed to create project',
+                  },
+                },
+              },
+            ],
+          }),
+        };
+        mockFetch
+          .mockResolvedValueOnce(mockCreateResponse)
+          .mockResolvedValueOnce(mockEventsResponse);
 
         const projectPayload = {
           projectName: 'test-project',

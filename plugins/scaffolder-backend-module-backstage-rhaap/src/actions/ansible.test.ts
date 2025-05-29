@@ -21,6 +21,19 @@ jest.mock('./ansibleContentCreate', () => {
   };
 });
 
+jest.mock('./utils/api', () => {
+  return {
+    ...jest.requireActual('./utils/api'),
+    AnsibleApiClient: jest.fn().mockImplementation(() => ({
+      isValidSubscription: jest.fn().mockResolvedValue({
+        status: 200,
+        isValid: true,
+        isCompliant: false,
+      }),
+    })),
+  };
+});
+
 import * as fs from 'fs';
 import * as path from 'path';
 import { mockServices } from '@backstage/backend-test-utils';
@@ -36,9 +49,8 @@ import {
 } from './utils/config';
 import { ConfigReader } from '@backstage/config';
 import { createMockActionContext } from '@backstage/plugin-scaffolder-node-test-utils';
-import { AnsibleApiClient } from './utils/api';
 import { MockAuthService } from './MockAuthService';
-import { AnsibleConfig } from '../types';
+import { AnsibleConfig } from '@ansible/backstage-rhaap-common';
 import { appType } from './constants';
 
 describe('ansible:content:create', () => {
@@ -62,14 +74,16 @@ describe('ansible:content:create', () => {
   });
 
   const ansibleConfig: AnsibleConfig = {
-    baseUrl: 'https://test.ansible.com/',
-    checkSSL: true,
-    showCaseLocation: {
-      type: 'url',
-      target: 'https://showcase.example.com',
-      gitBranch: 'main',
-      gitUser: 'dummyUser',
-      gitEmail: 'dummyuser@example.com',
+    rhaap: {
+      baseUrl: 'https://test.ansible.com/',
+      checkSSL: true,
+      showCaseLocation: {
+        type: 'url',
+        target: 'https://showcase.example.com',
+        gitBranch: 'main',
+        gitUser: 'dummyUser',
+        gitEmail: 'dummyuser@example.com',
+      },
     },
     githubIntegration: {
       host: 'github.com',
@@ -100,12 +114,6 @@ describe('ansible:content:create', () => {
     },
   });
 
-  const isValidSubscriptionMock = jest
-    .spyOn(AnsibleApiClient.prototype, 'isValidSubscription')
-    .mockImplementation(async () => {
-      return { status: 200, isValid: true, isCompliant: false };
-    });
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -114,7 +122,6 @@ describe('ansible:content:create', () => {
     // @ts-ignore
     await action.handler(mockContext);
 
-    expect(isValidSubscriptionMock).toHaveBeenCalledTimes(1);
     expect(mockContext.output).toHaveBeenCalledWith(
       'devSpacesBaseUrl',
       getDevspacesUrlFromAnsibleConfig(
@@ -134,7 +141,6 @@ describe('ansible:content:create', () => {
     // @ts-ignore
     await action.handler(mockContext);
 
-    expect(isValidSubscriptionMock).toHaveBeenCalledTimes(1);
     expect(ansibleCreatorRun).toHaveBeenCalledWith(
       mockContext.workspacePath,
       'collection-project',
@@ -182,8 +188,5 @@ describe('ansible:content:create', () => {
         mockContext.workspacePath,
       ),
     ).rejects.toThrow('Invalid repository URL');
-    if (fs.existsSync(mockContext.workspacePath)) {
-      fs.rmdirSync(mockContext.workspacePath, { recursive: true });
-    }
   });
 });

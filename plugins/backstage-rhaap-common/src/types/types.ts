@@ -1,4 +1,3 @@
-import { SchedulerServiceTaskScheduleDefinition } from '@backstage/backend-plugin-api';
 import {
   GithubIntegrationConfig,
   GitLabIntegrationConfig,
@@ -14,6 +13,15 @@ export type Inventory = {
   name: string;
 };
 
+export type Credential = {
+  id: number;
+  name: string;
+  kind: string;
+  inputs?: {
+    username: string;
+  };
+};
+
 export type Project = {
   id?: number;
   projectName: string;
@@ -24,6 +32,10 @@ export type Project = {
   scmUpdateOnLaunch?: boolean;
   status?: string;
   url?: string;
+  credentials?: Credential;
+  related?: {
+    last_job: string;
+  };
 };
 
 export type ExecutionEnvironment = {
@@ -40,6 +52,7 @@ export type JobTemplate = {
   id?: number;
   templateName: string;
   templateDescription?: string;
+  scmType?: string;
   project: Project;
   organization: Organization;
   jobInventory: Inventory;
@@ -48,6 +61,7 @@ export type JobTemplate = {
   extraVariables?: string | object;
   status?: string;
   url?: string;
+  credentials?: Credential;
 };
 
 export type CleanUp = {
@@ -97,20 +111,20 @@ export type AAPTemplate = {
 };
 
 export type Analytics = {
-  enabled: boolean;
+  enabled?: boolean;
 };
 
 export type DevSpaces = {
-  baseUrl: string;
+  baseUrl?: string;
 };
 
 export type AutomationHub = {
-  baseUrl: string;
+  baseUrl?: string;
 };
 
 export type ShowCaseLocation = {
-  type: 'url' | 'file';
-  target: string;
+  type?: 'url' | 'file';
+  target?: string;
   gitBranch?: string;
   gitUser?: string;
   gitEmail?: string;
@@ -122,21 +136,20 @@ export type CreatorService = {
 };
 
 export type RHAAPConfig = {
-  baseUrl: string;
+  baseUrl?: string;
   token?: string;
   checkSSL?: boolean;
-  showCaseLocation: ShowCaseLocation;
-  githubIntegration?: GithubIntegrationConfig;
-  gitlabIntegration?: GitLabIntegrationConfig;
-  schedule?: SchedulerServiceTaskScheduleDefinition;
-  creatorService?: CreatorService;
+  showCaseLocation?: ShowCaseLocation;
 };
 
 export type AnsibleConfig = {
   analytics?: Analytics;
   devSpaces?: DevSpaces;
   automationHub?: AutomationHub;
-  rhaap: RHAAPConfig;
+  rhaap?: RHAAPConfig;
+  githubIntegration?: GithubIntegrationConfig;
+  gitlabIntegration?: GitLabIntegrationConfig;
+  creatorService?: CreatorService;
 };
 
 export type CreatedTemplate = {

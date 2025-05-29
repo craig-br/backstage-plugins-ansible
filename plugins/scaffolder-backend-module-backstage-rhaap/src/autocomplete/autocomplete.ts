@@ -1,19 +1,19 @@
 import { Config } from '@backstage/config';
-
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { AAPApiClient } from '../actions/helpers';
-import { getAnsibleConfig } from '../config-reader';
+import { IAAPService, getAnsibleConfig } from '@ansible/backstage-rhaap-common';
 
 export async function handleAutocompleteRequest({
   resource,
   token,
   config,
   logger,
+  ansibleService,
 }: {
   resource: string;
   token: string;
   config: Config;
   logger: LoggerService;
+  ansibleService: IAAPService;
 }): Promise<{ results: any[] }> {
   const ansibleConfig = getAnsibleConfig(config);
   if (resource === 'verbosity') {
@@ -33,11 +33,11 @@ export async function handleAutocompleteRequest({
   }
   if (resource === 'aaphostname') {
     return {
-      results: [{ id: 1, name: ansibleConfig.baseUrl }],
+      results: [{ id: 1, name: ansibleConfig.rhaap?.baseUrl }],
     };
   }
 
-  const apiClient = new AAPApiClient({ ansibleConfig, logger, token });
-  const data = await apiClient.getResourceData(resource);
+  await ansibleService.setLogger(logger);
+  const data = await ansibleService.getResourceData(resource, token);
   return { results: data.results };
 }

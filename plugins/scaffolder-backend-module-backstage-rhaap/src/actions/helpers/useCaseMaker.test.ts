@@ -1,13 +1,17 @@
 import { UseCaseMaker } from './useCaseMaker';
 import { ConfigReader } from '@backstage/config';
 import { MOCK_CONFIG, MOCK_ORGANIZATION, MOCK_TOKEN } from '../../mock';
-import { getAnsibleConfig } from '../../config-reader';
 import { mockServices } from '@backstage/backend-test-utils';
-import { AAPApiClient } from './apis';
-import { Organization, UseCase } from '../../types';
 import { setupServer } from 'msw/node';
 import fs from 'node:fs';
 import { http, HttpResponse } from 'msw';
+import {
+  AAPClient,
+  getAnsibleConfig,
+  Organization,
+  UseCase,
+} from '@ansible/backstage-rhaap-common';
+import { mockAnsibleService } from '../mockIAAPService';
 
 jest.mock('crypto');
 const mockOctokit = {
@@ -22,6 +26,44 @@ jest.mock('octokit', () => ({
     }
   },
 }));
+
+jest.mock('isomorphic-git', () => {
+  const mockGit = {
+    init: jest.fn().mockResolvedValue(undefined),
+    clone: jest.fn().mockResolvedValue(undefined),
+    fetch: jest.fn().mockResolvedValue(undefined),
+    checkout: jest.fn().mockResolvedValue('main'),
+    createAndCheckout: jest.fn().mockResolvedValue('main'),
+    checkoutOrCreate: jest.fn().mockResolvedValue('main'),
+    commitAndPush: jest.fn().mockResolvedValue(undefined),
+    listBranches: jest.fn().mockResolvedValue(['main', 'develop']),
+    listFiles: jest.fn().mockResolvedValue(['file1.yml', 'file2.yml']),
+    readObject: jest.fn().mockResolvedValue({ object: { data: 'content' } }),
+    add: jest.fn().mockResolvedValue(undefined),
+    commit: jest.fn().mockResolvedValue(undefined),
+    push: jest.fn().mockResolvedValue(undefined),
+    status: jest.fn().mockResolvedValue({ modified: [] }),
+    log: jest.fn().mockResolvedValue([]),
+    currentBranch: jest.fn().mockResolvedValue('main'),
+    config: jest.fn().mockResolvedValue(undefined),
+    setConfig: jest.fn().mockResolvedValue(undefined),
+    getConfig: jest.fn().mockResolvedValue('test'),
+    listConfig: jest.fn().mockResolvedValue([]),
+    removeConfig: jest.fn().mockResolvedValue(undefined),
+    listRemotes: jest.fn().mockResolvedValue([]),
+    addRemote: jest.fn().mockResolvedValue(undefined),
+    removeRemote: jest.fn().mockResolvedValue(undefined),
+    getRemoteInfo: jest
+      .fn()
+      .mockResolvedValue({ refs: { heads: { main: 'abc123' } } }),
+  };
+
+  return {
+    ...mockGit,
+    default: mockGit,
+  };
+});
+
 describe('ansible-aap:useCaseMaker:github', () => {
   let config;
   let ansibleConfig: any;
@@ -48,7 +90,7 @@ describe('ansible-aap:useCaseMaker:github', () => {
           checkSSL: false,
           showCaseLocation: {
             type: 'url',
-            target: 'https://gitlab.com/testUser/testRepo',
+            target: 'https://github.com/testUser/testRepo',
             gitBranch: 'main',
             gitUser: 'testUser',
             gitEmail: 'username@example.com',
@@ -57,13 +99,9 @@ describe('ansible-aap:useCaseMaker:github', () => {
       },
     },
   };
-  config = new ConfigReader(MOCK_CONFIG.data);
-  ansibleConfig = getAnsibleConfig(config);
   const logger = mockServices.logger.mock();
   const organization = MOCK_ORGANIZATION;
   const scmType = 'Github';
-  const token = MOCK_TOKEN;
-  const apiClient = new AAPApiClient({ ansibleConfig, logger, token });
   const useCases = [
     {
       name: 'Cloud',
@@ -175,16 +213,18 @@ describe('ansible-aap:useCaseMaker:github', () => {
   it('makeTemplates - error', async () => {
     config = new ConfigReader(MOCK_CONF.data);
     ansibleConfig = getAnsibleConfig(config);
+    const token = MOCK_TOKEN;
     useCaseMaker = new UseCaseMaker({
       ansibleConfig,
       logger,
       organization,
       scmType,
-      apiClient,
+      apiClient: mockAnsibleService,
       useCases,
+      token,
     });
     jest
-      .spyOn(AAPApiClient.prototype, 'getJobTemplatesByName')
+      .spyOn(AAPClient.prototype, 'getJobTemplatesByName')
       .mockImplementation(
         (templateNames: string[], _organization: Organization) => {
           expect(templateNames).toHaveLength(1);
@@ -203,16 +243,18 @@ describe('ansible-aap:useCaseMaker:github', () => {
   it('makeTemplates - writeLocally', async () => {
     config = new ConfigReader(MOCK_CONFIG.data);
     ansibleConfig = getAnsibleConfig(config);
+    const token = MOCK_TOKEN;
     useCaseMaker = new UseCaseMaker({
       ansibleConfig,
       logger,
       organization,
       scmType,
-      apiClient,
+      apiClient: mockAnsibleService,
       useCases,
+      token,
     });
     jest
-      .spyOn(AAPApiClient.prototype, 'getJobTemplatesByName')
+      .spyOn(AAPClient.prototype, 'getJobTemplatesByName')
       .mockImplementation(
         (templateNames: string[], _organization: Organization) => {
           expect(templateNames).toHaveLength(1);
@@ -256,8 +298,9 @@ describe('ansible-aap:useCaseMaker:github', () => {
       logger,
       organization,
       scmType,
-      apiClient,
+      apiClient: mockAnsibleService,
       useCases,
+      token: MOCK_TOKEN,
     });
 
     // Call the method and assert that it throws the expected error for invalid URL
@@ -271,13 +314,15 @@ describe('ansible-aap:useCaseMaker:github', () => {
     };
     config = new ConfigReader(MOCK_CONF.data);
     ansibleConfig = getAnsibleConfig(config);
+    const token = MOCK_TOKEN;
     useCaseMaker = new UseCaseMaker({
       ansibleConfig,
       logger,
       organization,
       scmType,
-      apiClient,
+      apiClient: mockAnsibleService,
       useCases,
+      token,
     });
     await expect(
       useCaseMaker.devfilePushToGithub(validOptions),
@@ -291,12 +336,6 @@ describe('ansible-aap:useCaseMaker:gitlab', () => {
   const MOCK_CONF = {
     data: {
       integrations: {
-        github: [
-          {
-            host: 'github.com',
-            token: 'mockGitHubPAT',
-          },
-        ],
         gitlab: [
           {
             host: 'gitlab.com',
@@ -320,16 +359,12 @@ describe('ansible-aap:useCaseMaker:gitlab', () => {
       },
     },
   };
-  config = new ConfigReader(MOCK_CONF.data);
-  ansibleConfig = getAnsibleConfig(config);
   const logger = mockServices.logger.mock();
   const organization = MOCK_ORGANIZATION;
   const scmType = 'Gitlab';
-  const token = MOCK_TOKEN;
-  const apiClient = new AAPApiClient({ ansibleConfig, logger, token });
   const useCases = [
     {
-      name: 'Network',
+      name: 'Cloud',
       version: 'main',
       url: 'https://gitlab.com/userName/repoName',
     },
@@ -337,393 +372,311 @@ describe('ansible-aap:useCaseMaker:gitlab', () => {
 
   const handlers = [
     http.get(
-      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/tree?path=extensions/patterns&ref=main',
-      // @ts-ignore
+      'https://gitlab.com/api/v4/projects/testUser%2FtestRepo/repository/branches',
       () => {
         return HttpResponse.json([
-          { path: 'extensions/patterns/test_folder', type: 'tree' },
+          { name: 'main', commit: { id: 'abc123' } },
+          { name: 'develop', commit: { id: 'def456' } },
+        ]);
+      },
+    ),
+    http.get('https://gitlab.com/api/v4/projects/testUser%2FtestRepo', () => {
+      return HttpResponse.json({ id: 12345, default_branch: 'main' });
+    }),
+    http.get(
+      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/tree',
+      () => {
+        return HttpResponse.json([
+          { path: 'extensions/patterns', type: 'tree', name: 'patterns' },
         ]);
       },
     ),
     http.get(
-      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/tree?path=extensions%2Fpatterns%2Ftest_folder&ref=main',
-      // @ts-ignore
+      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/tree?path=extensions%2Fpatterns',
       () => {
         return HttpResponse.json([
           {
-            name: 'setup.yml',
-            type: 'blob',
-            path: 'extensions/patterns/test_folder/setup.yml',
+            path: 'extensions/patterns/test_folder',
+            type: 'tree',
+            name: 'test_folder',
           },
         ]);
       },
     ),
     http.get(
-      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/files/extensions%2Fpatterns%2Ftest_folder%2Fsetup.yml/raw?ref=main',
-      // @ts-ignore
+      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/tree?path=extensions%2Fpatterns%2Ftest_folder',
+      () => {
+        return HttpResponse.json([
+          {
+            path: 'extensions/patterns/test_folder/setup.yml',
+            type: 'blob',
+            name: 'setup.yml',
+          },
+          {
+            path: 'extensions/patterns/test_folder/template_rhdh',
+            type: 'tree',
+            name: 'template_rhdh',
+          },
+        ]);
+      },
+    ),
+    http.get(
+      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/files/extensions%2Fpatterns%2Ftest_folder%2Fsetup.yml/raw',
       () => {
         return HttpResponse.text(`
-            ---
-            # Labels
-            #
-            controller_labels:
-              - name: network.backup
-                organization: "{{ organization | default('Default') }}"
-              - name: backup_pattern
-                organization: "{{ organization | default('Default') }}"
-              - name: run_network_backup
-                organization: "{{ organization | default('Default') }}"
+controller_labels:
+  - name: cloud.aws_ops
+    organization: "{{ organization | default('Default') }}"
+  - name: configure_ec2_pattern
+    organization: "{{ organization | default('Default') }}"
+  - name: create_ec2_instance
+    organization: "{{ organization | default('Default') }}"
+  - name: terminate_ec2_instance
+    organization: "{{ organization | default('Default') }}"
 
-            # Execution Environment
-            #
-            controller_execution_environments:
-              - name: apd-ee-25-networking
-                description: Allow running Network experience demo. Based on apd-ee 25.
-                image: quay.io/portal_mvp_patterns/redhat-cop-network-backup-ee:latest
-                pull: always
+controller_templates:
+  - name: AWS Operations / Create EC2 Instance
+    description: This job template creates an EC2 instance and associated networking resources.
+    ask_inventory_on_launch: true
+    ask_credential_on_launch: true
+    ask_verbosity_on_launch: true
+    execution_environment: AWS Operations / Configure EC2 Instance Pattern Execution Environment
+    project: AWS Operations / Configure EC2 Instance Pattern Project
+    playbook: extensions/patterns/configure_ec2/playbooks/create_ec2_instance.yml
+    job_type: run
+    organization: "{{ organization | default('Default') }}"
+    labels:
+      - cloud.aws_ops
+      - configure_ec2_pattern
+      - create_ec2_instance
+    survey_enabled: true
+    survey_spec: "{{ lookup('file', pattern.path.replace('setup.yml', '') + 'template_surveys/create_ec2_instance.yml') | from_yaml }}"
 
-            # Projects
-            #
-            controller_projects:
-              - name: Network Operations / Backup & Restore Project
-                description: >
-                  This project provides the foundation for automating the backup of network configurations.
-                  It organizes all necessary resources, including playbooks, job templates, and surveys, to ensure
-                  secure and reliable archiving of device settings and operational data. Designed to support network
-                  backups, it enables users to safeguard critical network configurations for
-                  disaster recovery and operational continuity.
-                organization: "{{ organization | default('Default') }}"
-                scm_branch: main
-                scm_clean: 'no'
-                scm_delete_on_update: 'no'
-                scm_type: git
-                scm_update_on_launch: 'no'
-                scm_url: https://github.com/redhat-cop/network.backup.git
-
-
-            # Job Templates
-            #
-            controller_templates:
-              - name: Network Operations / Create Full Network Backup
-                ask_inventory_on_launch: true
-                ask_credential_on_launch: true
-                execution_environment: apd-ee-25-networking
-                description: >
-                  This job template performs a comprehensive backup of the entire network configuration,
-                  capturing device settings and operational data. It ensures network resilience by securely
-                  archiving all necessary configurations for disaster recovery and operational continuity. Suitable
-                  for routine or on-demand backup tasks, this job provides a reliable mechanism to safeguard critical
-                  network configurations.
-                project: Network Operations / Backup & Restore Project
-                playbook: extensions/patterns/backup/playbooks/run_network_backup.yaml
-                job_type: "run"
-                organization: "{{ organization | default('Default') }}"
-                labels:
-                  - network.backup
-                  - backup_pattern
-                  - run_network_backup
-                survey_enabled: true
-                survey_spec: "{{ lookup('file', pattern.path.replace('setup.yml', '') + 'template_surveys/backup.yaml') | from_yaml }}"'),
-          `);
+  - name: AWS Operations / Terminate EC2 Instance
+    description: This job template terminates an EC2 instance and its associated networking resources.
+    ask_inventory_on_launch: true
+    ask_credential_on_launch: true
+    ask_verbosity_on_launch: true
+    execution_environment: AWS Operations / Configure EC2 Instance Pattern Execution Environment
+    project: AWS Operations / Configure EC2 Instance Pattern Project
+    playbook: extensions/patterns/configure_ec2/playbooks/terminate_ec2_instance.yml
+    job_type: run
+    organization: "{{ organization | default('Default') }}"
+    labels:
+      - cloud.aws_ops
+      - configure_ec2_pattern
+      - terminate_ec2_instance
+    survey_enabled: true
+    survey_spec: "{{ lookup('file', pattern.path.replace('setup.yml', '') + 'template_surveys/terminate_ec2_instance.yml') | from_yaml }}"
+      `);
       },
     ),
     http.get(
-      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/files/extensions%2Fpatterns%2Ftest_folder%2Ftemplate_rhdh%2Fbackup.yaml/raw?ref=main',
-      // @ts-ignore
-      (req, res, ctx) => {
-        return res(
-          ctx.status(200),
-          ctx.ok,
-          ctx.text(`
-            apiVersion: scaffolder.backstage.io/v1beta3
-            kind: Template
-            metadata:
-              name: network-create-full-network-backup
-              title: Network backup
-              description: >-
-                This wizard will guide you on how to create, compare, and tag network
-                backups
-              namespace: default
-              tags:
-                - aap-operations
-                - intermediate
-                - network
-            spec:
-              type: service
-              parameters:
-                - title: Prompts
-                  description: >-
-                    Manage network backups on supported network platforms in a
-                    platform-agnostic way
-                  required:
-                    - token
-                    - inventory
-                    - credentials
-                  properties:
-                    token:
-                      title: Token
-                      type: string
-                      description: Oauth2 token
-                      ui:field: AAPTokenField
-                      ui:widget: password
-                      ui:backstage:
-                        review:
-                          show: false
-                    inventory:
-                      title: Inventory
-                      description: Please enter the inventory you want to use the services on
-                      resource: inventories
-                      ui:field: AAPResourcePicker
-                    credentials:
-                      title: Credentials
-                      description: >-
-                        Select credentials for accessing the nodes this job will be ran
-                        against. You can only select one credential of each type. For
-                        machine credentials (SSH), checking "Prompt on launch" without
-                        selecting credentials will require you to select a machine
-                        credential at run time. If you select credentials and check "Prompt
-                        on launch", the selected credential(s) become the defaults that can
-                        be updated at run time.
-                      type: array
-                      ui:field: AAPResourcePicker
-                      resource: credentials
-                - title: Survey
-                  required:
-                    - backupType
-                    - ghRepo
-                    - ghToken
-                    - ghUserName
-                    - ghEmail
-                  description: >-
-                    Manage network backups on supported network platforms in a
-                    platform-agnostic way
-                  properties:
-                    backupType:
-                      title: Backup Type
-                      description: Select the type of backup
-                      type: string
-                      enum:
-                        - ''
-                        - full
-                        - diff
-                    ghRepo:
-                      title: GitHub Repository URL
-                      type: string
-                      description: URL of the GitHub repository for storing the backup
-                      ui:options:
-                        rows: 5
-                    ghToken:
-                      title: GitHub Token
-                      type: string
-                      description: Personal access token for GitHub repository
-                      ui:options:
-                        rows: 5
-                    ghUserName:
-                      title: GitHub Username
-            apiVersion: scaffolder.backstage.io/v1beta3
-            kind: Template
-
-            metadata:
-              name: generic-seed
-              title: Create wizard use cases
-              description: Use this template to create actual wizard use case templates
-              namespace: default
-              tags:
-                - aap-operations
-                  required:
-                      type: string
-                      description: GitHub username for the repository
-                      ui:options:
-                        rows: 5
-                    ghEmail:
-                      title: GitHub Email
-                      type: string
-                      description: GitHub email associated with the repository
-                      ui:options:
-                        rows: 5
-                    backupFileName:
-                      title: Backup File Name
-                      type: string
-                      description: >-
-                        Name of the backup file (optional). If not provided, a timestamp
-                        will be used.
-                      ui:options:
-                        rows: 5
-              steps:
-                - id: launch-job
-                  name: Launch Network Operations / Create Full Network Backup
-                  action: rhaap:launch-job-template
-                  input:
-                    token: parameters.token
-                    values:
-                      templateID: null
-                      inventory: parameters.inventory
-                      credentials: {{ parameters.credentials }}
-                      extraVariables:
-                        backup_type: {{ parameters.backupType }}
-                        GH_REPO: {{ parameters.ghRepo }}
-                        GH_TOKEN: {{ parameters.ghToken }}
-                        GH_USER: {{ parameters.ghUserName }}
-                        GH_EMAIL: {{ parameters.ghEmail }}
-                        backup_file_name: {{ parameters.backupFileName }}
-              output:
-                text:
-                  - title: >-
-                      Network Operations / Create Full Network Backup template executed
-                      successfully
-                    content: |
-                      **Job ID:** {{ steps['launch-job'].output.data.id }}
-                      **Job STATUS:** {{ steps['launch-job'].output.data.status }}
-                links:
-                  - title: View in RH AAP
-                    url: {{ steps['launch-job'].output.data.url }}
-          `),
-        );
-      },
-    ),
-    http.get(
-      'https://gitlab.com/api/v4/projects/testUser%2FtestRepo',
-      // @ts-ignore
+      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/tree?path=extensions%2Fpatterns%2Ftest_folder%2Ftemplate_rhdh',
       () => {
-        return new HttpResponse('Not found', {
-          status: 404,
-        });
-      },
-    ),
-    http.get(
-      'https://gitlab.com/api/v4/namespaces',
-      // @ts-ignore
-      () => {
-        return new HttpResponse(
-          JSON.stringify([
-            {
-              id: 12345,
-              path: 'testUser',
-            },
-          ]),
+        return HttpResponse.json([
           {
-            status: 200,
+            path: 'extensions/patterns/test_folder/template_rhdh/create_ec2_instance.yml',
+            type: 'blob',
+            name: 'create_ec2_instance.yml',
           },
-        );
-      },
-    ),
-    http.post(
-      'https://gitlab.com/api/v4/projects',
-      // @ts-ignore
-      () => {
-        return new HttpResponse('ok', {
-          status: 201,
-        });
+          {
+            path: 'extensions/patterns/test_folder/template_rhdh/terminate_ec2_instance.yml',
+            type: 'blob',
+            name: 'terminate_ec2_instance.yml',
+          },
+        ]);
       },
     ),
     http.get(
-      'https://gitlab.com/api/v4/projects/devUser%2FdevRepo',
-      // @ts-ignore
+      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/files/extensions%2Fpatterns%2Ftest_folder%2Ftemplate_rhdh%2Fcreate_ec2_instance.yml/raw',
       () => {
-        return new HttpResponse(
-          JSON.stringify([
-            {
-              id: 12345,
-              default_branch: 'main',
-            },
-          ]),
-          {
-            status: 200,
-          },
-        );
+        return HttpResponse.text(`
+apiVersion: scaffolder.backstage.io/v1beta1
+kind: Template
+metadata:
+  name: cloud-configure-ec2
+  title: AWS Operations / Create EC2 Instance
+  description: This wizard will guide you on how to create EC2 instance in the Amazon cloud
+  namespace: default
+  tags:
+    - aap-operations
+    - intermediate
+    - cloud-aws-ops
+    - configure-ec2-pattern
+    - create-ec2-instance
+spec:
+  type: service
+  parameters: []
+  steps: []
+      `);
       },
     ),
-    http.post(
-      'https://gitlab.com/api/v4/projects/12345/repository/branches',
-      // @ts-ignore
+    http.get(
+      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/files/extensions%2Fpatterns%2Ftest_folder%2Ftemplate_rhdh%2Fterminate_ec2_instance.yml/raw',
       () => {
-        return new HttpResponse('ok', {
-          status: 201,
-        });
+        return HttpResponse.text(`
+apiVersion: scaffolder.backstage.io/v1beta1
+kind: Template
+metadata:
+  name: cloud-terminate-ec2
+  title: AWS Operations / Terminate EC2 Instance
+  description: This wizard will guide you on how to terminate EC2 instance in the Amazon cloud
+  namespace: default
+  tags:
+    - aap-operations
+    - intermediate
+    - cloud-aws-ops
+    - configure-ec2-pattern
+    - terminate-ec2-instance
+spec:
+  type: service
+  parameters: []
+  steps: []
+      `);
       },
     ),
   ];
 
   const server = setupServer(...handlers);
 
-  // @ts-ignore
-  let useCaseMaker;
+  let useCaseMaker: any;
+  const mockGit = require('isomorphic-git');
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    mockGit.init.mockClear();
+    mockGit.clone.mockClear();
+    mockGit.fetch.mockClear();
+    mockGit.checkout.mockClear();
+    mockGit.createAndCheckout.mockClear();
+    mockGit.checkoutOrCreate.mockClear();
+    mockGit.commitAndPush.mockClear();
+    mockGit.add.mockClear();
+    mockGit.commit.mockClear();
+    mockGit.push.mockClear();
+  });
 
   beforeAll(() => server.listen());
-  afterEach(() => server.resetHandlers());
+
   afterAll(() => server.close());
 
-  it('makeTemplates - error', async () => {
+  it('makeTemplates - writeLocally for GitLab', async () => {
+    config = new ConfigReader(MOCK_CONF.data);
+    ansibleConfig = getAnsibleConfig(config);
+    const token = MOCK_TOKEN;
     useCaseMaker = new UseCaseMaker({
       ansibleConfig,
       logger,
       organization,
       scmType,
-      apiClient,
+      apiClient: mockAnsibleService,
       useCases,
+      token,
     });
     jest
-      .spyOn(AAPApiClient.prototype, 'getJobTemplatesByName')
+      .spyOn(AAPClient.prototype, 'getJobTemplatesByName')
       .mockImplementation(
         (templateNames: string[], _organization: Organization) => {
           expect(templateNames).toHaveLength(1);
           let id = 1;
-          if (templateNames[0] === 'Network / Backup') {
+          if (templateNames[0] === 'AWS Operations / Terminate EC2 Instance') {
             id = 2;
           }
           return Promise.resolve([{ id: id, name: templateNames[0] }]);
         },
       );
-    await expect(useCaseMaker.makeTemplates()).rejects.toThrow(
-      'Something went wrong: git error.',
+
+    await useCaseMaker.makeTemplates();
+    expect(mockGit.init).toHaveBeenCalled();
+    expect(mockGit.fetch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dir: expect.any(String),
+      }),
     );
   });
 
-  it('makeTemplates - writeLocally', async () => {
-    config = new ConfigReader(MOCK_CONFIG.data);
+  it('makeTemplates - createGitLabContent', async () => {
+    config = new ConfigReader(MOCK_CONF.data);
     ansibleConfig = getAnsibleConfig(config);
+    const token = MOCK_TOKEN;
     useCaseMaker = new UseCaseMaker({
       ansibleConfig,
       logger,
       organization,
       scmType,
-      apiClient,
+      apiClient: mockAnsibleService,
       useCases,
+      token,
     });
     jest
-      .spyOn(AAPApiClient.prototype, 'getJobTemplatesByName')
+      .spyOn(AAPClient.prototype, 'getJobTemplatesByName')
       .mockImplementation(
         (templateNames: string[], _organization: Organization) => {
           expect(templateNames).toHaveLength(1);
           let id = 1;
-          if (templateNames[0] === 'Network / Backup') {
+          if (templateNames[0] === 'AWS Operations / Terminate EC2 Instance') {
             id = 2;
           }
           return Promise.resolve([{ id: id, name: templateNames[0] }]);
         },
       );
+
     await useCaseMaker.makeTemplates();
-    const dirPath = MOCK_CONFIG.data.ansible.rhaap.showCaseLocation.target;
-    const isDirExist = await fs.promises
-      .access(dirPath)
-      .then(() => true)
-      .catch(() => false);
 
-    expect(isDirExist).toBe(true);
-
-    const isTemplateDirExist = await fs.promises
-      .access(`${dirPath}/templates`)
-      .then(() => true)
-      .catch(() => false);
-
-    expect(isTemplateDirExist).toBe(true);
-    await fs.promises.rm(dirPath, {
-      recursive: true,
-      force: true,
-    });
+    expect(mockGit.fetch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dir: expect.any(String),
+      }),
+    );
   });
 
-  it('should throw an error if the repository URL is invalid', async () => {
+  it('makeTemplates - getGitLabTemplatesLocation', async () => {
+    config = new ConfigReader(MOCK_CONF.data);
+    ansibleConfig = getAnsibleConfig(config);
+    const token = MOCK_TOKEN;
+    useCaseMaker = new UseCaseMaker({
+      ansibleConfig,
+      logger,
+      organization,
+      scmType,
+      apiClient: mockAnsibleService,
+      useCases,
+      token,
+    });
+
+    const locations = await useCaseMaker.getGitLabTemplatesLocation({
+      userName: 'userName',
+      repoName: 'repoName',
+      branch: 'main',
+    });
+
+    expect(locations).toBeDefined();
+    expect(locations.length).toBeGreaterThanOrEqual(0);
+  });
+
+  it('makeTemplates - fetchGitLabData error handling', async () => {
+    config = new ConfigReader(MOCK_CONF.data);
+    ansibleConfig = getAnsibleConfig(config);
+    const token = MOCK_TOKEN;
+    useCaseMaker = new UseCaseMaker({
+      ansibleConfig,
+      logger,
+      organization,
+      scmType,
+      apiClient: mockAnsibleService,
+      useCases,
+      token,
+    });
+
+    const result = await useCaseMaker.fetchGitLabData({
+      url: 'invalid-url',
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('should throw an error if tfails to fetch repository details', async () => {
     const invalidOptions = {
       value: 'devfile content',
       repositoryUrl: 'https://gitlab.com/invalid-url',
@@ -735,8 +688,9 @@ describe('ansible-aap:useCaseMaker:gitlab', () => {
       logger,
       organization,
       scmType,
-      apiClient,
+      apiClient: mockAnsibleService,
       useCases,
+      token: MOCK_TOKEN,
     });
 
     await expect(
@@ -754,13 +708,12 @@ describe('ansible-aap:useCaseMaker:gitlab', () => {
       logger,
       organization,
       scmType,
-      apiClient,
+      apiClient: mockAnsibleService,
       useCases,
+      token: MOCK_TOKEN,
     });
     await expect(
       useCaseMaker.devfilePushToGitLab(validOptions),
-    ).rejects.toThrow(
-      "Cannot read properties of undefined (reading 'toString')",
-    );
+    ).rejects.toThrow('Failed to fetch repository details: Unauthorized');
   });
 });

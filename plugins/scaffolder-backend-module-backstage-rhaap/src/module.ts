@@ -24,6 +24,10 @@ import {
   scaffolderTemplatingExtensionPoint,
 } from '@backstage/plugin-scaffolder-node/alpha';
 import {
+  ansibleServiceRef,
+  getAnsibleConfig,
+} from '@ansible/backstage-rhaap-common';
+import {
   createAnsibleContentAction,
   cleanUp,
   createExecutionEnvironment,
@@ -39,7 +43,6 @@ import {
   useCaseNameFilter,
 } from './filters';
 import { handleAutocompleteRequest } from './autocomplete';
-import { getAnsibleConfig } from './config-reader';
 /**
  * @public
  * The Ansible Module for the Scaffolder Backend
@@ -56,6 +59,7 @@ export const scaffolderModuleAnsible = createBackendModule({
         auth: coreServices.auth,
         scaffolderTemplating: scaffolderTemplatingExtensionPoint,
         autocomplete: scaffolderAutocompleteExtensionPoint,
+        ansibleService: ansibleServiceRef,
       },
       async init({
         scaffolder,
@@ -64,16 +68,17 @@ export const scaffolderModuleAnsible = createBackendModule({
         auth,
         scaffolderTemplating,
         autocomplete,
+        ansibleService,
       }) {
         const ansibleConfig = getAnsibleConfig(config);
         scaffolder.addActions(
           createAnsibleContentAction(config, auth, ansibleConfig),
-          createProjectAction(ansibleConfig),
-          createExecutionEnvironment(ansibleConfig),
-          createJobTemplate(ansibleConfig),
-          launchJobTemplate(ansibleConfig),
-          cleanUp(ansibleConfig),
-          createShowCases(ansibleConfig),
+          createProjectAction(ansibleService),
+          createExecutionEnvironment(ansibleService),
+          createJobTemplate(ansibleService),
+          launchJobTemplate(ansibleService),
+          cleanUp(ansibleService),
+          createShowCases(ansibleService, ansibleConfig),
         );
         scaffolderTemplating.addTemplateFilters({
           useCaseNameFilter: useCaseNameFilter,
@@ -89,7 +94,13 @@ export const scaffolderModuleAnsible = createBackendModule({
             resource: string;
             token: string;
           }): Promise<{ results: any[] }> =>
-            handleAutocompleteRequest({ resource, token, config, logger }),
+            handleAutocompleteRequest({
+              resource,
+              token,
+              config,
+              logger,
+              ansibleService,
+            }),
         });
       },
     });

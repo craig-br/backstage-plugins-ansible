@@ -1,8 +1,16 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { UseCaseMaker, AAPApiClient } from './helpers';
-import { Organization, UseCase, AnsibleConfig } from '../types';
+import { UseCaseMaker } from './helpers';
+import {
+  IAAPService,
+  AnsibleConfig,
+  Organization,
+  UseCase,
+} from '@ansible/backstage-rhaap-common';
 
-export const createShowCases = (ansibleConfig: AnsibleConfig) => {
+export const createShowCases = (
+  ansibleServiceRef: IAAPService,
+  ansibleConfig: AnsibleConfig,
+) => {
   return createTemplateAction<{
     token: string;
     values: {
@@ -62,18 +70,15 @@ export const createShowCases = (ansibleConfig: AnsibleConfig) => {
         error.stack = '';
         throw error;
       }
-      const apiClient = new AAPApiClient({
-        ansibleConfig,
-        logger,
-        token,
-      });
+      await ansibleServiceRef.setLogger(logger);
       const useCaseMaker = new UseCaseMaker({
         ansibleConfig: ansibleConfig,
         logger: logger,
         organization: input.values.organization,
         scmType: input.values.scmType,
-        apiClient: apiClient,
+        apiClient: ansibleServiceRef,
         useCases: input.values.useCases,
+        token: input.token,
       });
       try {
         await useCaseMaker.makeTemplates();

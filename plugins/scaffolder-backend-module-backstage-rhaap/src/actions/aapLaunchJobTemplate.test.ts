@@ -1,15 +1,11 @@
 import { createMockActionContext } from '@backstage/plugin-scaffolder-node-test-utils';
-import { ConfigReader } from '@backstage/config';
-import { MOCK_CONFIG, MOCK_TOKEN } from '../mock';
-import { getAnsibleConfig } from '../config-reader';
-import { LaunchJobTemplate } from '../types';
-import { AAPApiClient } from './helpers';
+import { MOCK_TOKEN } from '../mock';
+import { LaunchJobTemplate } from '@ansible/backstage-rhaap-common';
 import { launchJobTemplate } from './aapLaunchJobTemplate';
+import { mockAnsibleService } from './mockIAAPService';
 
 describe('ansible-aap:jobTemplate:launch', () => {
-  const config = new ConfigReader(MOCK_CONFIG.data);
-  const ansibleConfig = getAnsibleConfig(config);
-  const action = launchJobTemplate(ansibleConfig);
+  const action = launchJobTemplate(mockAnsibleService);
 
   const projectData: LaunchJobTemplate = {
     template: {
@@ -32,34 +28,25 @@ describe('ansible-aap:jobTemplate:launch', () => {
   });
 
   it('should launch job template', async () => {
-    jest
-      .spyOn(AAPApiClient.prototype, 'launchJobTemplate')
-      .mockImplementation((_payload: LaunchJobTemplate) => {
-        const launchJobTemplateReturnData = {
-          id: 1,
-          status: 'success',
-          events: [],
-          url: `https//test.com/execution/jobs/playbook/1/output`,
-        };
-        return Promise.resolve(launchJobTemplateReturnData);
-      });
-
-    // @ts-ignore
-    await action.handler({ ...mockContext });
-    expect(mockContext.output).toHaveBeenCalledWith('data', {
+    const expectedResponse = {
       id: 1,
       status: 'success',
       events: [],
-      url: 'https//test.com/execution/jobs/playbook/1/output',
-    });
+      url: `https//test.com/execution/jobs/playbook/1/output`,
+    };
+
+    mockAnsibleService.launchJobTemplate.mockResolvedValue(expectedResponse);
+
+    // @ts-ignore
+    await action.handler({ ...mockContext });
+    expect(mockContext.output).toHaveBeenCalledWith('data', expectedResponse);
   });
 
   it('should fail with message', async () => {
-    jest
-      .spyOn(AAPApiClient.prototype, 'launchJobTemplate')
-      .mockImplementation((_payload: LaunchJobTemplate) => {
-        throw new Error('Test error message.');
-      });
+    mockAnsibleService.launchJobTemplate.mockRejectedValue(
+      new Error('Test error message.'),
+    );
+
     let error;
     try {
       // @ts-ignore
@@ -71,11 +58,9 @@ describe('ansible-aap:jobTemplate:launch', () => {
   });
 
   it('should fail without message', async () => {
-    jest
-      .spyOn(AAPApiClient.prototype, 'launchJobTemplate')
-      .mockImplementation((_payload: LaunchJobTemplate) => {
-        return Promise.reject();
-      });
+    mockAnsibleService.launchJobTemplate.mockRejectedValue(
+      new Error('Something went wrong.'),
+    );
     let error;
     try {
       // @ts-ignore

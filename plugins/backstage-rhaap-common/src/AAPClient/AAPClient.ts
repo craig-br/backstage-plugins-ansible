@@ -57,7 +57,7 @@ export class AAPClient implements IAAPService {
     this.logger = options.logger;
     this.proxyAgent = new Agent({
       connect: {
-        rejectUnauthorized: this.ansibleConfig.rhaap.checkSSL ?? true,
+        rejectUnauthorized: this.ansibleConfig.rhaap?.checkSSL ?? true,
       },
     });
   }
@@ -80,7 +80,7 @@ export class AAPClient implements IAAPService {
     token: string,
     data: any,
   ): Promise<any> {
-    const url = `${this.ansibleConfig.rhaap.baseUrl}/${endPoint}`;
+    const url = `${this.ansibleConfig.rhaap?.baseUrl}/${endPoint}`;
     this.logger.info(
       `[${this.pluginLogName}]: Executing post request to ${url}.`,
     );
@@ -107,8 +107,12 @@ export class AAPClient implements IAAPService {
       }
     }
     if (!response.ok) {
+      const errorOutput = await response.json();
       this.logger.error(
         `[${this.pluginLogName}] Failed to send POST request: ${response.statusText}`,
+      );
+      this.logger.error(
+        `[${this.pluginLogName}] Error: ${JSON.stringify(errorOutput)}`,
       );
       if (response.status === 403) {
         throw new Error(
@@ -146,8 +150,8 @@ export class AAPClient implements IAAPService {
     fullUrl?: string,
   ): Promise<any> {
     const url = fullUrl
-      ? this.ansibleConfig.rhaap.baseUrl + fullUrl
-      : `${this.ansibleConfig.rhaap.baseUrl}/${endPoint}`;
+      ? this.ansibleConfig.rhaap?.baseUrl + fullUrl
+      : `${this.ansibleConfig.rhaap?.baseUrl}/${endPoint}`;
     this.logger.info(
       `[${this.pluginLogName}]: Executing get request to ${url}.`,
     );
@@ -186,7 +190,7 @@ export class AAPClient implements IAAPService {
     endPoint: string,
     token: string,
   ): Promise<any> {
-    const url = `${this.ansibleConfig.rhaap.baseUrl}/${endPoint}`;
+    const url = `${this.ansibleConfig.rhaap?.baseUrl}/${endPoint}`;
     this.logger.info(
       `[${this.pluginLogName}]: Executing delete request ${url}.`,
     );
@@ -277,11 +281,12 @@ export class AAPClient implements IAAPService {
       scm_type: 'git',
       scm_url: payload.scmUrl,
       scm_branch: payload?.scmBranch ?? '',
+      credential: payload.credentials?.id,
       scm_update_on_launch: payload.scmUpdateOnLaunch,
     };
     this.logger.info(`Begin creating project ${payload.projectName}.`);
     this.logger.info(
-      `[${AAPClient.pluginLogName}] Creating new AAP project at ${this.ansibleConfig.rhaap.baseUrl} in organization ${payload.organization.name}.`,
+      `[${AAPClient.pluginLogName}] Creating new AAP project at ${this.ansibleConfig.rhaap?.baseUrl} in organization ${payload.organization.name}.`,
     );
 
     const response = await this.executePostRequest(endPoint, token, data);
@@ -307,22 +312,32 @@ export class AAPClient implements IAAPService {
       this.logger.error(
         `[${this.pluginLogName}] Error creating project: ${projectStatus}`,
       );
+      const stdoutEndPoint = `${projectData.related?.last_job}events`;
+      const epResponse = await this.executeGetRequest(
+        stdoutEndPoint,
+        token,
+        stdoutEndPoint,
+      );
+      const respJson = await epResponse.json();
+      const stdError = respJson.results.find(
+        (item: any) => item.event_data?.res?.msg,
+      )?.event_data?.res?.msg;
+      this.logger.error(`[${this.pluginLogName}] Error: ${stdError}`);
       throw new Error(`Failed to create project`);
     }
     this.logger.info(`The project is ready.`);
-    projectData.url = `${this.ansibleConfig.rhaap.baseUrl}/execution/projects/${projectData.id}/details`;
+    projectData.url = `${this.ansibleConfig.rhaap?.baseUrl}/execution/projects/${projectData.id}/details`;
     return projectData;
   }
 
   public async deleteExecutionEnvironmentExists(
     name: string,
-    organization: Organization,
     token: string,
   ): Promise<void> {
     this.logger.info(
-      `Check if execution environment with name ${name} exist in organization ${organization.name}.`,
+      `Check if execution environment with name ${name} exist in organization.`,
     );
-    const endPoint = `api/controller/v2/execution_environments/?organization=${organization.id}&name=${name}`;
+    const endPoint = `api/controller/v2/execution_environments/?name=${name}`;
     const environments = await this.executeGetRequest(endPoint, token);
     const environmentsList = await environments.json();
     if (environmentsList.results.length === 1) {
@@ -347,7 +362,6 @@ export class AAPClient implements IAAPService {
     if (deleteIfExist) {
       await this.deleteExecutionEnvironmentExists(
         payload.environmentName,
-        payload.organization,
         token,
       );
     }
@@ -360,7 +374,7 @@ export class AAPClient implements IAAPService {
       pull: payload.pull,
     };
     this.logger.info(
-      `[${this.pluginLogName}] Scaffolder creating new AAP execution environment at ${this.ansibleConfig.rhaap.baseUrl}.`,
+      `[${this.pluginLogName}] Scaffolder creating new AAP execution environment at ${this.ansibleConfig.rhaap?.baseUrl}.`,
     );
     this.logger.info(
       `Begin creating execution environment ${payload.environmentName}.`,
@@ -370,7 +384,7 @@ export class AAPClient implements IAAPService {
       `End creating execution environment ${payload.environmentName}.`,
     );
     const eeData = (await response.json()) as ExecutionEnvironment;
-    eeData.url = `${this.ansibleConfig.rhaap.baseUrl}/execution/infrastructure/execution-environments/${eeData.id}/details`;
+    eeData.url = `${this.ansibleConfig.rhaap?.baseUrl}/execution/infrastructure/execution-environments/${eeData.id}/details`;
     return eeData;
   }
 
@@ -412,6 +426,23 @@ export class AAPClient implements IAAPService {
     }
   }
 
+  private async updateUseCaseUrls(
+    extraVariables: any,
+    git_username: string | undefined,
+    git_password: string | undefined,
+  ) {
+    return {
+      ...extraVariables,
+      usecases: extraVariables.usecases.map((usecase: any) => ({
+        ...usecase,
+        url: usecase.url.replace(
+          'https://',
+          `https://${git_username}:${git_password}@`,
+        ),
+      })),
+    };
+  }
+
   public async createJobTemplate(
     payload: JobTemplate,
     deleteIfExist: boolean,
@@ -425,12 +456,26 @@ export class AAPClient implements IAAPService {
       );
     }
     const endPoint = 'api/controller/v2/job_templates/';
-    const extraVariables = payload?.extraVariables
+    let extraVariables;
+    extraVariables = payload?.extraVariables
       ? JSON.parse(JSON.stringify(payload.extraVariables))
       : '';
     if (extraVariables !== '') {
-      extraVariables.aap_validate_certs = this.ansibleConfig.rhaap.checkSSL;
-      extraVariables.aap_hostname = this.ansibleConfig.rhaap.baseUrl;
+      extraVariables.aap_validate_certs = this.ansibleConfig.rhaap?.checkSSL;
+      extraVariables.aap_hostname = this.ansibleConfig.rhaap?.baseUrl;
+      if (payload.credentials && payload.credentials?.kind === 'scm') {
+        let git_password;
+        if (payload.scmType === 'Github') {
+          git_password = this.ansibleConfig.githubIntegration?.token;
+        } else if (payload.scmType === 'Gitlab') {
+          git_password = this.ansibleConfig.gitlabIntegration?.token;
+        }
+        extraVariables = await this.updateUseCaseUrls(
+          extraVariables,
+          payload.credentials?.inputs?.username,
+          git_password,
+        );
+      }
     }
     const data = {
       name: payload.templateName,
@@ -446,7 +491,7 @@ export class AAPClient implements IAAPService {
     const response = await this.executePostRequest(endPoint, token, data);
     const jobTemplate = (await response.json()) as JobTemplate;
     this.logger.info(`End creating job template ${payload.templateName}.`);
-    jobTemplate.url = `${this.ansibleConfig.rhaap.baseUrl}/execution/templates/job-template/${jobTemplate.id}/details`;
+    jobTemplate.url = `${this.ansibleConfig.rhaap?.baseUrl}/execution/templates/job-template/${jobTemplate.id}/details`;
     return jobTemplate;
   }
 
@@ -578,21 +623,29 @@ export class AAPClient implements IAAPService {
     let lastEvent;
     if (result.jobData.status !== 'successful') {
       try {
-        lastEvent =
-          result.jobEvents[result.jobEvents.length - 2].event_data.res
-            .results[0].msg;
+        const stdoutEndPoint = `api/controller/v2/jobs/${jobID}/stdout/?format=txt`;
+        const stdoutResponse = await this.executeGetRequest(
+          stdoutEndPoint,
+          token,
+        );
+        const stdoutRespText = await stdoutResponse.text();
+        const errorRegex = /"msg":\s*"([^"]+)"/g;
+        const matchRegex = [...stdoutRespText.matchAll(errorRegex)];
+        lastEvent = matchRegex[matchRegex.length - 1][1];
       } catch (error) {
         lastEvent =
-          'with an undefined error. Please check the RHAAP portal for job execution logs.';
+          'Undefined Error. Please check the RHAAP portal for job execution logs.';
+        this.logger.error(`${error}`);
       }
-      this.logger.error(`Job has failed ${lastEvent}`);
+      this.logger.error(`Error while executing job template.`);
+      this.logger.error(`Job failed: ${lastEvent}`);
       throw new Error(`Job execution failed due to ${lastEvent}`);
     }
     return {
       id: jobID,
       status: result.jobData.status,
       events: result.jobEvents,
-      url: `${this.ansibleConfig.rhaap.baseUrl}/execution/jobs/playbook/${jobID}/output`,
+      url: `${this.ansibleConfig.rhaap?.baseUrl}/execution/jobs/playbook/${jobID}/output`,
     };
   }
 

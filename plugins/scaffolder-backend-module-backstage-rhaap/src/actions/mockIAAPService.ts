@@ -1,0 +1,24 @@
+import { IAAPService } from '@ansible/backstage-rhaap-common';
+
+export const mockAnsibleService: jest.Mocked<IAAPService> = {
+  executePostRequest: jest.fn(),
+  executeGetRequest: jest.fn(),
+  executeDeleteRequest: jest.fn(),
+  getProject: jest.fn(),
+  deleteProject: jest.fn(),
+  deleteProjectIfExists: jest.fn(),
+  createProject: jest.fn(),
+  deleteExecutionEnvironmentExists: jest.fn(),
+  createExecutionEnvironment: jest.fn(),
+  deleteExecutionEnvironment: jest.fn(),
+  deleteJobTemplate: jest.fn(),
+  deleteJobTemplateIfExists: jest.fn(),
+  createJobTemplate: jest.fn(),
+  fetchEvents: jest.fn(),
+  fetchResult: jest.fn(),
+  launchJobTemplate: jest.fn(),
+  cleanUp: jest.fn(),
+  getResourceData: jest.fn(),
+  getJobTemplatesByName: jest.fn(),
+  setLogger: jest.fn(),
+};

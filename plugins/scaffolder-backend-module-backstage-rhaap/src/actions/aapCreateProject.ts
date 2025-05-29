@@ -1,8 +1,7 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { AAPApiClient } from './helpers';
-import { AnsibleConfig, Project } from '../types';
+import { IAAPService, Project } from '@ansible/backstage-rhaap-common';
 
-export const createProjectAction = (ansibleConfig: AnsibleConfig) => {
+export const createProjectAction = (ansibleServiceRef: IAAPService) => {
   return createTemplateAction<{
     token: string;
     deleteIfExist: boolean;
@@ -124,16 +123,13 @@ export const createProjectAction = (ansibleConfig: AnsibleConfig) => {
         error.stack = '';
         throw error;
       }
-      const apiClient = new AAPApiClient({
-        ansibleConfig,
-        logger,
-        token,
-      });
+      await ansibleServiceRef.setLogger(logger);
       let projectData;
       try {
-        projectData = await apiClient.createProject(
+        projectData = await ansibleServiceRef.createProject(
           input.values,
           input.deleteIfExist,
+          input.token,
         );
       } catch (e: any) {
         const message = e?.message ?? 'Something went wrong.';

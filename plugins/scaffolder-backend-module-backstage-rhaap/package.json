@@ -24,9 +24,10 @@
     "prepack": "backstage-cli package prepack",
     "postpack": "backstage-cli package postpack",
     "fix": "backstage-cli repo fix --publish",
-    "export-dynamic": "janus-cli package export-dynamic-plugin --no-embed-as-dependencies"
+    "export-dynamic": "janus-cli package export-dynamic-plugin --embed-package @ansible/backstage-rhaap-common"
   },
   "dependencies": {
+    "@ansible/backstage-rhaap-common": "^0.1.0",
     "@backstage/backend-common": "^0.25.0",
     "@backstage/backend-defaults": "^0.6.0",
     "@backstage/backend-dynamic-feature-service": "^0.5.2",

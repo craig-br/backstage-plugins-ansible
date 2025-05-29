@@ -18,7 +18,7 @@ import { executeShellCommand } from '@backstage/plugin-scaffolder-node';
 import { BackendServiceAPI } from './utils/api';
 import { promises as fs } from 'fs';
 import { UseCaseMaker } from './helpers';
-import { AnsibleConfig } from '../types';
+import { AnsibleConfig } from '@ansible/backstage-rhaap-common';
 import { appType } from './constants';
 import { LoggerService } from '@backstage/backend-plugin-api';
 
@@ -155,6 +155,7 @@ export async function handleDevfileProject(
     apiClient: null,
     useCases: [],
     organization: null,
+    token: '',
   });
 
   try {

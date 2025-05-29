@@ -1,8 +1,10 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { AAPApiClient } from './helpers';
-import { LaunchJobTemplate, AnsibleConfig } from '../types';
+import {
+  IAAPService,
+  LaunchJobTemplate,
+} from '@ansible/backstage-rhaap-common';
 
-export const launchJobTemplate = (ansibleConfig: AnsibleConfig) => {
+export const launchJobTemplate = (ansibleServiceRef: IAAPService) => {
   return createTemplateAction<{ token: string; values: LaunchJobTemplate }>({
     id: 'rhaap:launch-job-template',
     schema: {
@@ -169,14 +171,13 @@ export const launchJobTemplate = (ansibleConfig: AnsibleConfig) => {
         error.stack = '';
         throw error;
       }
-      const apiClient = new AAPApiClient({
-        ansibleConfig,
-        logger,
-        token,
-      });
+      await ansibleServiceRef.setLogger(logger);
       let jobResult;
       try {
-        jobResult = await apiClient.launchJobTemplate(input.values);
+        jobResult = await ansibleServiceRef.launchJobTemplate(
+          input.values,
+          input.token,
+        );
       } catch (e: any) {
         const message = e?.message ?? 'Something went wrong.';
         const error = new Error(message);

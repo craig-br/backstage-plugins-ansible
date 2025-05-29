@@ -70,7 +70,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/backstage-rhaap-common@workspace:^, @ansible/backstage-rhaap-common@workspace:plugins/backstage-rhaap-common":
+"@ansible/backstage-rhaap-common@npm:^0.1.0, @ansible/backstage-rhaap-common@workspace:^, @ansible/backstage-rhaap-common@workspace:plugins/backstage-rhaap-common":
   version: 0.0.0-use.local
   resolution: "@ansible/backstage-rhaap-common@workspace:plugins/backstage-rhaap-common"
   dependencies:
@@ -209,6 +209,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ansible/plugin-scaffolder-backend-module-backstage-rhaap@workspace:plugins/scaffolder-backend-module-backstage-rhaap"
   dependencies:
+    "@ansible/backstage-rhaap-common": "npm:^0.1.0"
     "@backstage/backend-common": "npm:^0.25.0"
     "@backstage/backend-defaults": "npm:^0.6.0"
     "@backstage/backend-dynamic-feature-service": "npm:^0.5.2"

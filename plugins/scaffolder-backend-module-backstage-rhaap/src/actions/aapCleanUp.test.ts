@@ -1,21 +1,16 @@
 import { createMockActionContext } from '@backstage/plugin-scaffolder-node-test-utils';
-import { ConfigReader } from '@backstage/config';
 import {
-  MOCK_CONFIG,
   MOCK_EXECUTION_ENVIRONMENT,
   MOCK_JOB_TEMPLATE,
   MOCK_PROJECT,
   MOCK_TOKEN,
 } from '../mock';
-import { getAnsibleConfig } from '../config-reader';
-import { CleanUp } from '../types';
-import { AAPApiClient } from './helpers';
+import { CleanUp } from '@ansible/backstage-rhaap-common';
+import { mockAnsibleService } from './mockIAAPService';
 import { cleanUp } from './aapCleanUp';
 
 describe('ansible-aap:cleanUp:launch', () => {
-  const config = new ConfigReader(MOCK_CONFIG.data);
-  const ansibleConfig = getAnsibleConfig(config);
-  const action = cleanUp(ansibleConfig);
+  const action = cleanUp(mockAnsibleService);
 
   const cleanUpData: CleanUp = {
     project: MOCK_PROJECT,
@@ -36,17 +31,7 @@ describe('ansible-aap:cleanUp:launch', () => {
   });
 
   it('should clean up', async () => {
-    jest
-      .spyOn(AAPApiClient.prototype, 'cleanUp')
-      .mockImplementation((payload: CleanUp) => {
-        expect(payload).toHaveProperty('project', MOCK_PROJECT);
-        expect(payload).toHaveProperty(
-          'executionEnvironment',
-          MOCK_EXECUTION_ENVIRONMENT,
-        );
-        expect(payload).toHaveProperty('template', MOCK_JOB_TEMPLATE);
-        return Promise.resolve();
-      });
+    mockAnsibleService.cleanUp.mockResolvedValue(undefined);
 
     // @ts-ignore
     await action.handler({ ...mockContext });
@@ -57,11 +42,10 @@ describe('ansible-aap:cleanUp:launch', () => {
   });
 
   it('should fail with message', async () => {
-    jest
-      .spyOn(AAPApiClient.prototype, 'cleanUp')
-      .mockImplementation((_payload: CleanUp) => {
-        throw new Error('Test error message.');
-      });
+    mockAnsibleService.cleanUp.mockRejectedValue(
+      new Error('Test error message.'),
+    );
+
     let error;
     try {
       // @ts-ignore
@@ -73,11 +57,9 @@ describe('ansible-aap:cleanUp:launch', () => {
   });
 
   it('should fail without message', async () => {
-    jest
-      .spyOn(AAPApiClient.prototype, 'cleanUp')
-      .mockImplementation((_payload: CleanUp) => {
-        return Promise.reject();
-      });
+    mockAnsibleService.cleanUp.mockRejectedValue(
+      new Error('Something went wrong.'),
+    );
     let error;
     try {
       // @ts-ignore

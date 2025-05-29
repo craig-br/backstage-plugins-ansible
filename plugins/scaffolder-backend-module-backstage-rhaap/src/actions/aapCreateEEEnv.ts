@@ -1,8 +1,10 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { AAPApiClient } from './helpers';
-import { ExecutionEnvironment, AnsibleConfig } from '../types';
+import {
+  IAAPService,
+  ExecutionEnvironment,
+} from '@ansible/backstage-rhaap-common';
 
-export const createExecutionEnvironment = (ansibleConfig: AnsibleConfig) => {
+export const createExecutionEnvironment = (ansibleServiceRef: IAAPService) => {
   return createTemplateAction<{
     token: string;
     deleteIfExist: boolean;
@@ -102,15 +104,12 @@ export const createExecutionEnvironment = (ansibleConfig: AnsibleConfig) => {
         throw error;
       }
 
-      const apiClient = new AAPApiClient({
-        ansibleConfig,
-        logger,
-        token,
-      });
+      await ansibleServiceRef.setLogger(logger);
       let eeData;
       try {
-        eeData = await apiClient.createExecutionEnvironment(
+        eeData = await ansibleServiceRef.createExecutionEnvironment(
           input.values,
+          input.token,
           input.deleteIfExist,
         );
       } catch (e: any) {

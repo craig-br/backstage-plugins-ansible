@@ -1,15 +1,11 @@
 import { createProjectAction } from './aapCreateProject';
 import { createMockActionContext } from '@backstage/plugin-scaffolder-node-test-utils';
-import { ConfigReader } from '@backstage/config';
-import { MOCK_CONFIG, MOCK_ORGANIZATION, MOCK_TOKEN } from '../mock';
-import { getAnsibleConfig } from '../config-reader';
-import { Project } from '../types';
-import { AAPApiClient } from './helpers';
+import { MOCK_ORGANIZATION, MOCK_TOKEN } from '../mock';
+import { Project } from '@ansible/backstage-rhaap-common';
+import { mockAnsibleService } from './mockIAAPService';
 
 describe('ansible-aap:project:create', () => {
-  const config = new ConfigReader(MOCK_CONFIG.data);
-  const ansibleConfig = getAnsibleConfig(config);
-  const action = createProjectAction(ansibleConfig);
+  const action = createProjectAction(mockAnsibleService);
 
   const projectData: Project = {
     projectName: 'Test project',
@@ -28,40 +24,31 @@ describe('ansible-aap:project:create', () => {
     },
   });
 
+  mockContext.output = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('should create project', async () => {
-    jest
-      .spyOn(AAPApiClient.prototype, 'createProject')
-      .mockImplementation((payload: Project, _deleteIfExists: boolean) => {
-        const projectReturnData = payload;
-        projectReturnData.url = 'https/testProject.ur';
-        projectReturnData.id = 1;
-        return Promise.resolve(projectReturnData);
-      });
+    const expectedProject = {
+      ...projectData,
+      url: 'https/testProject.ur',
+      id: 1,
+    };
+
+    mockAnsibleService.createProject.mockResolvedValue(expectedProject);
 
     // @ts-ignore
     await action.handler({ ...mockContext });
-    expect(mockContext.output).toHaveBeenCalledWith('project', {
-      projectName: 'Test project',
-      projectDescription: 'Test project description',
-      organization: { id: 1, name: 'Default organization' },
-      scmUrl: 'https://github.com/testu/seedseed',
-      scmBranch: 'main',
-      scmUpdateOnLaunch: true,
-      url: 'https/testProject.ur',
-      id: 1,
-    });
+    expect(mockContext.output).toHaveBeenCalledWith('project', expectedProject);
   });
 
   it('should fail with message', async () => {
-    jest
-      .spyOn(AAPApiClient.prototype, 'createProject')
-      .mockImplementation((_payload: Project, _deleteIfExists: boolean) => {
-        throw new Error('Test error message.');
-      });
+    mockAnsibleService.createProject.mockRejectedValue(
+      new Error('Test error message.'),
+    );
+
     let error;
     try {
       // @ts-ignore
@@ -73,11 +60,8 @@ describe('ansible-aap:project:create', () => {
   });
 
   it('should fail without message', async () => {
-    jest
-      .spyOn(AAPApiClient.prototype, 'createProject')
-      .mockImplementation((_payload: Project, _deleteIfExists: boolean) => {
-        return Promise.reject();
-      });
+    mockAnsibleService.createProject.mockRejectedValue(undefined);
+
     let error;
     try {
       // @ts-ignore
