@@ -9,6 +9,11 @@ import { Config } from '@backstage/config';
 
 import * as YAML from 'yaml';
 import { Agent, fetch } from 'undici';
+import {
+  OAuthAuthenticatorResult,
+  PassportProfile,
+} from '@backstage/plugin-auth-node';
+import { AuthenticationError } from '@backstage/errors';
 
 import {
   AAPTemplate,
@@ -19,6 +24,7 @@ import {
   Organization,
   Project,
   AnsibleConfig,
+  TokenResponse,
 } from '../types';
 
 import { getAnsibleConfig } from './utils/config';
@@ -52,6 +58,8 @@ export interface IAAPService
     | 'getResourceData'
     | 'getJobTemplatesByName'
     | 'setLogger'
+    | 'rhAAPAuthenticate'
+    | 'fetchProfile'
     | 'checkSubscription'
   > {}
 
@@ -148,22 +156,38 @@ export class AAPClient implements IAAPService {
 
   public async executePostRequest(
     endPoint: string,
-    token: string,
-    data: any,
+    token?: string,
+    data?: any,
+    auth: boolean = false,
   ): Promise<any> {
     const url = `${this.ansibleConfig.rhaap?.baseUrl}/${endPoint}`;
     this.logger.info(
       `[${this.pluginLogName}]: Executing post request to ${url}.`,
     );
-    const requestOptions = {
-      method: 'POST',
-      dispatcher: this.proxyAgent,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-    };
+
+    let requestOptions;
+
+    if (auth && !token) {
+      requestOptions = {
+        method: 'POST',
+        dispatcher: this.proxyAgent,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: data,
+      };
+    } else {
+      requestOptions = {
+        method: 'POST',
+        dispatcher: this.proxyAgent,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      };
+    }
+
     let response;
     try {
       response = await fetch(url, requestOptions);
@@ -763,6 +787,128 @@ export class AAPClient implements IAAPService {
         return { id: result.id, name: result.name };
       },
     );
+  }
+
+  /**
+   * Authenticates with Red Hat Ansible Automation Platform (RH AAP) using either an authorization code
+   * or a refresh token, and retrieves OAuth tokens.
+   *
+   * @param options - The authentication options.
+   * @param options.host - The RH AAP host URL.
+   * @param options.checkSSL - Whether to verify SSL certificates.
+   * @param options.clientId - The OAuth client ID.
+   * @param options.clientSecret - The OAuth client secret.
+   * @param options.callbackURL - The OAuth redirect URI.
+   * @param options.code - The authorization code (optional, required for initial authentication).
+   * @param options.refreshToken - The refresh token (optional, required for token refresh).
+   * @returns An object containing the OAuth session, including access token, token type, scope, expiration, and refresh token.
+   * @throws {AuthenticationError} If neither code nor refreshToken is provided, or if authentication fails.
+   */
+  public async rhAAPAuthenticate(options: {
+    host: string;
+    checkSSL: boolean;
+    clientId: string;
+    clientSecret: string;
+    callbackURL: string;
+    code?: string;
+    refreshToken?: string;
+  }): Promise<OAuthAuthenticatorResult<PassportProfile>> {
+    const endPoint = 'o/token/';
+    const data = new URLSearchParams();
+    if (options.code) {
+      data.append('grant_type', 'authorization_code');
+      data.append('code', options.code);
+    } else if (options.refreshToken) {
+      data.append('grant_type', 'refresh_token');
+      data.append('refresh_token', options.refreshToken);
+    } else {
+      throw new AuthenticationError('You have to provide code or refreshToken');
+    }
+    data.append('client_id', options.clientId);
+    data.append('client_secret', options.clientSecret);
+    data.append('redirect_uri', options.callbackURL);
+    this.logger.info(
+      `[${this.pluginLogName}]: Authenticating with RH AAP at ${this.ansibleConfig.rhaap?.baseUrl}/${endPoint}.`,
+    );
+    const response = await this.executePostRequest(
+      endPoint,
+      undefined,
+      data,
+      true,
+    );
+
+    if (!response.ok) {
+      throw new AuthenticationError(
+        'Failed to obtain access token from RH AAP.',
+      );
+    }
+
+    const jsonResponse = (await response.json()) as TokenResponse;
+
+    return {
+      session: {
+        accessToken: jsonResponse.access_token,
+        tokenType: jsonResponse.token_type,
+        scope: jsonResponse.scope,
+        expiresInSeconds: jsonResponse.expires_in,
+        refreshToken: jsonResponse.refresh_token,
+      },
+    } as OAuthAuthenticatorResult<PassportProfile>;
+  }
+
+  /**
+   * Fetches the user profile data from the Red Hat Ansible Automation Platform (RH AAP)
+   * using the provided authentication token.
+   *
+   * @param token - The OAuth2 access token used for authenticating the request.
+   * @returns A promise that resolves to a {@link PassportProfile} object containing the user's
+   *          provider, username, email, and display name.
+   * @throws {AuthenticationError} If the profile data cannot be retrieved or is in an unexpected format.
+   */
+  public async fetchProfile(token: string): Promise<PassportProfile> {
+    this.logger.info(
+      `[${this.pluginLogName}]: Fetching profile data from RH AAP.`,
+    );
+    let response;
+    try {
+      const endPoint = 'api/gateway/v1/me/';
+      response = await this.executeGetRequest(endPoint, token);
+    } catch (e) {
+      throw new AuthenticationError(
+        'Failed to retrieve profile data from RH AAP.',
+      );
+    }
+    if (!response.ok) {
+      throw new AuthenticationError(
+        'Failed to retrieve profile data from RH AAP.',
+      );
+    }
+    const userDataJson = (await response.json()) as {
+      results: {
+        username: string;
+        email: string;
+        first_name: string;
+        last_name: string;
+      }[];
+    };
+    let userData;
+    if (
+      Object.hasOwn(userDataJson, 'results') &&
+      Array.isArray(userDataJson.results) &&
+      userDataJson.results?.length
+    ) {
+      userData = userDataJson.results[0];
+    } else {
+      throw new AuthenticationError(
+        `Profile data from RH AAP is in an unexpected format. Please contact your system administrator`,
+      );
+    }
+    return {
+      provider: 'AAP oauth2',
+      username: userData.username,
+      email: userData.email,
+      displayName: `${userData?.first_name ? userData.first_name : ''} ${userData?.last_name ? userData.last_name : ''}`,
+    } as PassportProfile;
   }
 
   private async isAAP25Instance(token: string): Promise<boolean> {

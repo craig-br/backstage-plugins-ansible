@@ -1,10 +1,14 @@
-import { createBackendModule } from '@backstage/backend-plugin-api';
+import {
+  createBackendModule,
+  coreServices,
+} from '@backstage/backend-plugin-api';
 import {
   authProvidersExtensionPoint,
   createOAuthProviderFactory,
 } from '@backstage/plugin-auth-node';
-import { aapAuthAuthenticator } from './authenticator';
 import { AAPAuthSignInResolvers } from './resolvers';
+import { ansibleServiceRef } from '@ansible/backstage-rhaap-common';
+import { aapAuthAuthenticator } from './authenticator'; // This should be a *function* that takes aapService and returns an authenticator
 
 export const authModuleRhaapProvider = createBackendModule({
   pluginId: 'auth',
@@ -13,12 +17,14 @@ export const authModuleRhaapProvider = createBackendModule({
     reg.registerInit({
       deps: {
         providers: authProvidersExtensionPoint,
+        ansibleService: ansibleServiceRef,
+        config: coreServices.rootConfig,
       },
-      async init({ providers }) {
+      async init({ providers, ansibleService }) {
         providers.registerProvider({
           providerId: 'rhaap',
           factory: createOAuthProviderFactory({
-            authenticator: aapAuthAuthenticator,
+            authenticator: aapAuthAuthenticator(ansibleService),
             signInResolverFactories: {
               ...AAPAuthSignInResolvers,
             },

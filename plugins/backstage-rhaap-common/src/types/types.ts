@@ -169,3 +169,11 @@ export type BackstageAAPShowcase = {
   metadata: { name: string; description: string };
   spec: { targets: string[] };
 };
+
+export type TokenResponse = {
+  access_token: string;
+  expires_in: number;
+  token_type: string;
+  scope: string;
+  refresh_token: string;
+};

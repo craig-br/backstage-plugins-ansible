@@ -1,14 +1,31 @@
 import { mockServices } from '@backstage/backend-test-utils';
-import { aapAuthAuthenticator } from './authenticator';
+import { aapAuthAuthenticator as createAuthenticator } from './authenticator';
 import {
   CHECK_SSL,
   CLIENT_ID,
   CLIENT_SECRET,
   DEFAULT_HOST,
   ME_RESPONSE_DATA,
-  MOCK_CONFIG,
   TOKEN_RESPONSE,
 } from './mockData';
+
+const mockAAPService = {
+  rhAAPAuthenticate: jest.fn().mockResolvedValue({
+    session: {
+      accessToken: 'accessToken',
+      tokenType: 'Bearer',
+      scope: 'scope',
+      expiresInSeconds: 3600,
+      refreshToken: 'refreshToken',
+    },
+  }),
+  fetchProfile: jest.fn().mockResolvedValue({
+    provider: 'AAP oauth2',
+    username: 'userName',
+    email: 'someEmail@domain.com',
+    displayName: 'userFirstName userLastName',
+  }),
+};
 
 jest.mock('undici', () => ({
   ...jest.requireActual('undici'),
@@ -26,10 +43,17 @@ jest.mock('undici', () => ({
 
 describe('authenticator', () => {
   it('authenticator works', async () => {
+    const aapAuthAuthenticator = createAuthenticator(mockAAPService as any);
     aapAuthAuthenticator.initialize({
       callbackUrl: '',
       config: mockServices.rootConfig({
-        data: MOCK_CONFIG.data.auth.providers.rhaap.development,
+        data: {
+          clientId: CLIENT_ID,
+          clientSecret: CLIENT_SECRET,
+          host: DEFAULT_HOST,
+          checkSSL: CHECK_SSL,
+          callbackUrl: 'http://localhost',
+        },
       }),
     });
 

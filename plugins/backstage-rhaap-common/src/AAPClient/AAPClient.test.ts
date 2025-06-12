@@ -360,6 +360,35 @@ describe('AAPClient', () => {
           }),
         ).rejects.toThrow('Error 1 Error 2');
       });
+      it('should execute a POST request with auth param and no token', async () => {
+        const mockResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({ id: 2 }),
+        };
+        mockFetch.mockResolvedValue(mockResponse);
+
+        const formData = new URLSearchParams();
+        formData.append('key', 'value');
+
+        const result = await client.executePostRequest(
+          'test/endpoint',
+          undefined,
+          formData,
+          true,
+        );
+
+        expect(mockFetch).toHaveBeenCalledWith(
+          'https://test.example.com/test/endpoint',
+          expect.objectContaining({
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: formData,
+          }),
+        );
+        expect(result).toBe(mockResponse);
+      });
     });
 
     describe('executeGetRequest', () => {
@@ -1248,6 +1277,167 @@ describe('AAPClient', () => {
         status: 500,
         isValid: false,
         isCompliant: false,
+      });
+    });
+    describe('rhAAPAuthenticate', () => {
+      it('should authenticate with code and return session', async () => {
+        const mockTokenResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({
+            access_token: 'access-token',
+            token_type: 'bearer',
+            scope: 'read',
+            expires_in: 3600,
+            refresh_token: 'refresh-token',
+          }),
+        };
+        jest
+          .spyOn(client as any, 'executePostRequest')
+          .mockResolvedValue(mockTokenResponse);
+
+        const result = await client.rhAAPAuthenticate({
+          host: 'https://test.example.com',
+          checkSSL: true,
+          clientId: 'client-id',
+          clientSecret: 'client-secret',
+          callbackURL: 'https://callback.url',
+          code: 'auth-code',
+        });
+
+        expect(result).toEqual({
+          session: {
+            accessToken: 'access-token',
+            tokenType: 'bearer',
+            scope: 'read',
+            expiresInSeconds: 3600,
+            refreshToken: 'refresh-token',
+          },
+        });
+      });
+
+      it('should authenticate with refreshToken and return session', async () => {
+        const mockTokenResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({
+            access_token: 'access-token',
+            token_type: 'bearer',
+            scope: 'read',
+            expires_in: 3600,
+            refresh_token: 'refresh-token',
+          }),
+        };
+        mockFetch.mockResolvedValueOnce(mockTokenResponse);
+
+        const result = await client.rhAAPAuthenticate({
+          host: 'https://test.example.com',
+          checkSSL: true,
+          clientId: 'client-id',
+          clientSecret: 'client-secret',
+          callbackURL: 'https://callback.url',
+          refreshToken: 'refresh-token',
+        });
+
+        expect(result.session.accessToken).toBe('access-token');
+        expect(result.session.refreshToken).toBe('refresh-token');
+      });
+
+      it('should throw error if authentication fails', async () => {
+        const mockErrorResponse = {
+          ok: false,
+          status: 400,
+          json: jest.fn().mockResolvedValue({
+            error: 'invalid_grant',
+            error_description: 'Invalid code',
+          }),
+        };
+        mockFetch.mockResolvedValueOnce(mockErrorResponse);
+
+        jest
+          .spyOn(client as any, 'executePostRequest')
+          .mockImplementation(async () => {
+            if (!mockErrorResponse.ok) {
+              const errorBody = await mockErrorResponse.json();
+              throw new Error(errorBody.error_description);
+            }
+            return mockErrorResponse;
+          });
+
+        await expect(
+          client.rhAAPAuthenticate({
+            host: 'https://test.example.com',
+            checkSSL: true,
+            clientId: 'client-id',
+            clientSecret: 'client-secret',
+            callbackURL: 'https://callback.url',
+            code: 'bad-code',
+          }),
+        ).rejects.toThrow('Invalid code');
+      });
+    });
+    describe('fetchProfile', () => {
+      it('should fetch and return user profile data', async () => {
+        const mockProfileResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({
+            results: [
+              {
+                username: 'testuser',
+                email: 'testuser@example.com',
+                first_name: 'Test',
+                last_name: 'User',
+              },
+            ],
+          }),
+        };
+        jest
+          .spyOn(client as any, 'executeGetRequest')
+          .mockResolvedValue(mockProfileResponse);
+
+        const result = await client.fetchProfile('test-token');
+
+        expect(result).toEqual({
+          provider: 'AAP oauth2',
+          username: 'testuser',
+          email: 'testuser@example.com',
+          displayName: 'Test User',
+        });
+      });
+
+      it('should throw error if response is not ok', async () => {
+        const error = new Error('Failed to retrieve profile data from RH AAP.');
+        jest
+          .spyOn(client as any, 'executeGetRequest')
+          .mockRejectedValueOnce(error);
+
+        await expect(client.fetchProfile('bad-token')).rejects.toThrow(
+          'Failed to retrieve profile data from RH AAP.',
+        );
+      });
+
+      it('should throw error if no results in response', async () => {
+        const mockProfileResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({
+            results: [],
+          }),
+        };
+        jest
+          .spyOn(client as any, 'executeGetRequest')
+          .mockResolvedValueOnce(mockProfileResponse);
+
+        await expect(client.fetchProfile('test-token')).rejects.toThrow(
+          'Profile data from RH AAP is in an unexpected format. Please contact your system administrator',
+        );
+      });
+
+      it('should throw error if fetch fails', async () => {
+        jest
+          .spyOn(client as any, 'executeGetRequest')
+          .mockRejectedValueOnce(new Error('Network error'));
+
+        await expect(client.fetchProfile('test-token')).rejects.toThrow(
+          'Failed to retrieve profile data from RH AAP.',
+        );
       });
     });
   });

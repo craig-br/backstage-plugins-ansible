@@ -16,7 +16,26 @@ import {
   MOCK_CONFIG,
   TOKEN_RESPONSE,
 } from './mockData';
+import { ansibleServiceRef } from '@ansible/backstage-rhaap-common';
+import { createServiceFactory } from '@backstage/backend-plugin-api';
 
+const mockAnsibleService = {
+  rhAAPAuthenticate: jest.fn().mockResolvedValue({
+    session: {
+      accessToken: 'accessToken',
+      tokenType: 'Bearer',
+      scope: 'scope',
+      expiresInSeconds: 3600,
+      refreshToken: 'refreshToken',
+    },
+  }),
+  fetchProfile: jest.fn().mockResolvedValue({
+    provider: 'AAP oauth2',
+    username: 'userName',
+    email: 'someEmail@domain.com',
+    displayName: 'userFirstName userLastName',
+  }),
+};
 jest.mock('undici', () => ({
   ...jest.requireActual('undici'),
   fetch: jest.fn(async (input: any, init: any) => {
@@ -75,6 +94,11 @@ describe('authModuleRHAAPProvider', () => {
         authModuleRhaapProvider,
         import('@backstage/plugin-auth-backend'),
         mockServices.rootConfig.factory(MOCK_CONFIG),
+        createServiceFactory({
+          service: ansibleServiceRef,
+          deps: {},
+          factory: async () => mockAnsibleService as any,
+        }),
       ],
     });
     backstageServer = backend.server;
