@@ -18,7 +18,6 @@ jest.mock('@backstage/plugin-catalog-react', () => ({
   useEntityList: jest.fn(),
 }));
 
-import React from 'react';
 import { EntityCreateContent } from './CreateContent';
 import { TestApiProvider, renderInTestApp } from '@backstage/test-utils';
 import { configApiRef, errorApiRef } from '@backstage/core-plugin-api';

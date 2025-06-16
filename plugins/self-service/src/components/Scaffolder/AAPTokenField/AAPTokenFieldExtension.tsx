@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { useApi } from '@backstage/core-plugin-api';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import React from 'react';
 import { TestApiProvider, renderInTestApp } from '@backstage/test-utils';
 import { MockSearchApi, searchApiRef } from '@backstage/plugin-search-react';
 import { EntityLearnContent } from './LearnContent';

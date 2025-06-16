@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { InfoCard, ItemCardGrid, Link } from '@backstage/core-components';
 import { Grid, Typography, makeStyles } from '@material-ui/core';
 import OpenInNew from '@material-ui/icons/OpenInNew';

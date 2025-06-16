@@ -5,6 +5,7 @@
   "compilerOptions": {
     "outDir": "./dist-types",
     "esModuleInterop": true,
-    "rootDir": "."
+    "rootDir": ".",
+    "jsx": "react-jsx"
   }
 }

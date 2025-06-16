@@ -15,6 +15,6 @@ declare function createRouter(options: RouterOptions): Promise<express.Router>;
  *
  * @public
  */
-declare const backstageRHAAPPlugin: _backstage_backend_plugin_api.BackendFeatureCompat;
+declare const backstageRHAAPPlugin: _backstage_backend_plugin_api.BackendFeature;
 
-export { RouterOptions, createRouter, backstageRHAAPPlugin as default };
+export { type RouterOptions, createRouter, backstageRHAAPPlugin as default };

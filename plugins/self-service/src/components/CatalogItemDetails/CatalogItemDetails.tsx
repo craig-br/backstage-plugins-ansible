@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useApi, useRouteRef } from '@backstage/core-plugin-api';
 import { useNavigate, useParams } from 'react-router-dom';
 import {

@@ -1,4 +1,3 @@
-import React from 'react';
 import { TaskList } from './TaskList';
 import { rest } from 'msw';
 import { setupServer } from 'msw/node';

@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import * as React from 'react';
+import { forwardRef, useState } from 'react';
 import OpenInNew from '@material-ui/icons/OpenInNew';
 import { useAnalytics } from '@backstage/core-plugin-api';
 import { Link } from '@backstage/core-components';
@@ -43,7 +42,7 @@ type IProps = {
   open: boolean;
 };
 
-const SlideTransition = React.forwardRef(function Transition(
+const SlideTransition = forwardRef(function Transition(
   props: SlideProps,
   ref: React.Ref<unknown>,
 ) {
@@ -53,17 +52,17 @@ const SlideTransition = React.forwardRef(function Transition(
 export default function RatingsFeedbackModal(props: IProps) {
   const analytics = useAnalytics();
 
-  const [ratings, setRatings] = React.useState<number>(0);
-  const [feedback, setFeedback] = React.useState<string>('');
-  const [shareFeedback, setShareFeedback] = React.useState<boolean>(false);
+  const [ratings, setRatings] = useState<number>(0);
+  const [feedback, setFeedback] = useState<string>('');
+  const [shareFeedback, setShareFeedback] = useState<boolean>(false);
 
   const [selectedIssueType, setSelectedIssueType] =
-    React.useState<string>('sentiment');
-  const [title, setTitle] = React.useState<string>('');
-  const [description, setDescription] = React.useState<string>('');
+    useState<string>('sentiment');
+  const [title, setTitle] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
 
-  const [showSnackbar, setShowSnackbar] = React.useState<boolean>(false);
-  const [snackbarMsg, setSnackbarMsg] = React.useState<string>(
+  const [showSnackbar, setShowSnackbar] = useState<boolean>(false);
+  const [snackbarMsg, setSnackbarMsg] = useState<string>(
     'Thank you for sharing your feedback!',
   );
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Progress } from '@backstage/core-components';
 import { Divider, Grid, Typography, makeStyles } from '@material-ui/core';
 import {

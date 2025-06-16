@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PersonIcon from '@material-ui/icons/Person';
 import { TemplateEntityV1beta3 } from '@backstage/plugin-scaffolder-common';

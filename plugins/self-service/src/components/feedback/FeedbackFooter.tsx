@@ -1,11 +1,11 @@
-import React from 'react';
-import RatingsFeedbackModal from './RatingsFeedbackModal';
+import { useState } from 'react';
 import { Fab, Typography, useTheme } from '@material-ui/core';
 import CommentIcon from '@material-ui/icons/Comment';
+import RatingsFeedbackModal from './RatingsFeedbackModal';
 
 export const FeedbackFooter = () => {
   const theme = useTheme();
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   return (

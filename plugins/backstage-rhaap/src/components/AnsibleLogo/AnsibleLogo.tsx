@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import React from 'react';
 import Logo from '../../../images/ansible-logo.png';
 
 export const AnsibleLogo = () => <img src={Logo} alt="ansible-logo" />;

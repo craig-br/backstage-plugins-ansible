@@ -1,4 +1,3 @@
-import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';

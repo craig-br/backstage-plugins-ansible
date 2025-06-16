@@ -1,4 +1,4 @@
-import { Strategy as Oauth2Strategy } from 'passport-oauth2';
+import { Strategy as OAuth2Strategy } from 'passport-oauth2';
 import {
   createOAuthAuthenticator,
   PassportOAuthAuthenticatorHelper,
@@ -8,8 +8,18 @@ import {
 import { IAAPService } from '@ansible/backstage-rhaap-common';
 
 /** @public */
+export interface AAPAuthenticatorContext {
+  helper: PassportOAuthAuthenticatorHelper;
+  host: string;
+  clientId: string;
+  clientSecret: string;
+  callbackURL: string;
+  checkSSL: boolean;
+}
+
+/** @public */
 export const aapAuthAuthenticator = (aapService: IAAPService) =>
-  createOAuthAuthenticator({
+  createOAuthAuthenticator<AAPAuthenticatorContext, PassportProfile>({
     scopes: {
       persist: true,
     },
@@ -25,7 +35,7 @@ export const aapAuthAuthenticator = (aapService: IAAPService) =>
       const checkSSL = config.getBoolean('checkSSL') ?? true;
 
       const helper = PassportOAuthAuthenticatorHelper.from(
-        new Oauth2Strategy(
+        new OAuth2Strategy(
           {
             clientID: clientId,
             clientSecret: clientSecret,

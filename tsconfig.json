@@ -12,8 +12,8 @@
   "compilerOptions": {
     "outDir": "dist-types",
     "rootDir": ".",
+    "jsx": "react-jsx",
     "skipLibCheck": true,
-    "jsx": "preserve",
     "useUnknownInCatchVariables": false
   }
 }

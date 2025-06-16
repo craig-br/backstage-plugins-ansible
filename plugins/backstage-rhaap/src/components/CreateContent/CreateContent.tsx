@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { ContentHeader } from '@backstage/core-components';
 import {
   CatalogFilterLayout,

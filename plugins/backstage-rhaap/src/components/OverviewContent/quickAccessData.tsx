@@ -16,7 +16,6 @@
 import { Link } from '@backstage/core-components';
 import { Tool } from '@backstage/plugin-home';
 import OpenInNew from '@material-ui/icons/OpenInNew';
-import React from 'react';
 import { WorkspaceIcon } from '../WorkspaceIcon';
 import { DocumentIcon } from '../DocumentIcon';
 

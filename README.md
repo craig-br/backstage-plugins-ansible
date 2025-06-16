@@ -13,7 +13,7 @@ Once the install step is done update `app-config.yaml` file with changes to `int
 Then start the project with
 
 ```sh
-yarn dev
+yarn start
 ```
 
 # Ansible plugins for Red Hat Developer Hub

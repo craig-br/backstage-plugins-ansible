@@ -45,3 +45,7 @@ repos:
           - prettier-plugin-sort-json
           - '@spotify/prettier-config'
           - '@ianvs/prettier-plugin-sort-imports'
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks

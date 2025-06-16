@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Header,
   Page,
@@ -87,14 +87,14 @@ export const AnsiblePage = () => {
   const param = useParams();
   const section = param['*'];
 
-  const [open, setOpen] = React.useState(false);
-  const [showSubscriptionAlert, setShowSubscriptionAlert] =
-    React.useState(true);
+  const [open, setOpen] = useState(false);
+  const [showSubscriptionAlert, setShowSubscriptionAlert] = useState(true);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  const [subscription, setSubscription] =
-    React.useState<AAPSubscriptionCheck | null>(null);
+  const [subscription, setSubscription] = useState<AAPSubscriptionCheck | null>(
+    null,
+  );
   const ansibleApi = useApi(ansibleApiRef);
 
   const selectedTabIndex = tabs.findIndex(item => item.nav === section);

@@ -1,4 +1,3 @@
-import React from 'react';
 import { SignInPageProps } from '@backstage/core-plugin-api';
 import { SignInPage as SelfServiceSignInPage } from '@backstage/core-components';
 import { rhAapAuthApiRef } from '../../apis';

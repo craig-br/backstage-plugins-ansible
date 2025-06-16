@@ -15,7 +15,6 @@
  */
 
 import { TestApiProvider, renderInTestApp } from '@backstage/test-utils';
-import React from 'react';
 import { EntityOverviewContent } from './OverviewContent';
 import { configApiRef } from '@backstage/core-plugin-api';
 import {

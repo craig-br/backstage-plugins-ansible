@@ -1,4 +1,3 @@
-import React from 'react';
 import { Content, Header, InfoCard, Page } from '@backstage/core-components';
 import { Grid, makeStyles, Typography } from '@material-ui/core';
 import { ImportStepper } from '@backstage/plugin-catalog-import';

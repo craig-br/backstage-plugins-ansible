@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Page, Header, Content } from '@backstage/core-components';
 import { useParams } from 'react-router-dom';
 import { useTaskEventStream } from '@backstage/plugin-scaffolder-react';

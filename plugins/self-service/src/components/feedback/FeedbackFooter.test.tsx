@@ -1,4 +1,3 @@
-import React from 'react';
 import { FeedbackFooter } from './FeedbackFooter';
 import { rest } from 'msw';
 import { setupServer } from 'msw/node';
