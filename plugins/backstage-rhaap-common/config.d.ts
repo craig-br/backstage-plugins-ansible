@@ -125,26 +125,7 @@ export interface Config {
   catalog?: {
     providers?: {
       rhaap?: {
-        /**
-         * Development environment schedule configuration
-         * @visibility backend
-         */
-        developement?: {
-          schedule?: {
-            frequency?: {
-              hours?: number;
-              minutes?: number;
-            };
-            timeout?: {
-              minutes?: number;
-            };
-          };
-        };
-        /**
-         * Production environment schedule configuration
-         * @visibility backend
-         */
-        production?: {
+        [authEnv: string]: {
           schedule?: {
             frequency?: {
               hours?: number;

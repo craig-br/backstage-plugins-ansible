@@ -111,9 +111,9 @@ export class AAPClient implements IAAPService {
       timeout: { minutes: 1 },
     };
     let schedule: SchedulerServiceTaskScheduleDefinition = DEFAULT_SCHEDULE;
-    if (this.config.has('catalog.providers.rhaap.developement.schedule')) {
+    if (this.config.has('catalog.providers.rhaap.development.schedule')) {
       schedule = readSchedulerServiceTaskScheduleDefinitionFromConfig(
-        this.config.getConfig('catalog.providers.rhaap.developement.schedule'),
+        this.config.getConfig('catalog.providers.rhaap.development.schedule'),
       );
     } else if (this.config.has('catalog.providers.rhaap.production.schedule')) {
       schedule = readSchedulerServiceTaskScheduleDefinitionFromConfig(

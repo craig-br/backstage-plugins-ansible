@@ -61,11 +61,6 @@ export interface Config {
          */
         githubEmail: string;
       };
-
-      /**
-       * Set schedule for subscription check
-       */
-      schedule?: TaskScheduleDefinitionConfig;
     };
   };
 }

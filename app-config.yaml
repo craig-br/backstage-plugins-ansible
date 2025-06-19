@@ -173,11 +173,6 @@ ansible:
     showCaseLocation:
       type: file
       target: '/tmp/aap-showcases/'
-    schedule:
-      frequency:
-        hours: 24
-      timeout:
-        minutes: 1
   creatorService:
     baseUrl: 'localhost'
     port: '8000'

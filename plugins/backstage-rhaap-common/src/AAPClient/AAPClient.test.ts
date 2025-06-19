@@ -149,7 +149,7 @@ describe('AAPClient', () => {
           };
         }
         if (
-          key === 'catalog.providers.rhaap.developement.schedule' ||
+          key === 'catalog.providers.rhaap.development.schedule' ||
           key === 'catalog.providers.rhaap.production.schedule'
         ) {
           const scheduleConfig = {
@@ -264,7 +264,7 @@ describe('AAPClient', () => {
           'rhaap.token',
           'rhaap.checkSSL',
           'analytics.enabled',
-          'catalog.providers.rhaap.developement.schedule',
+          'catalog.providers.rhaap.development.schedule',
           'catalog.providers.rhaap.development',
           'catalog.providers.rhaap.production',
         ].includes(key);
