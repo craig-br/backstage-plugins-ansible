@@ -6,7 +6,7 @@ on:
       node-version:
         description: node-version to execute the export
         required: false
-        default: '18.x'
+        default: '22.x'
   push:
     tags: ["v*.*.*"]
 
