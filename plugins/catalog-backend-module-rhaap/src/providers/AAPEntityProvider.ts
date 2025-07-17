@@ -325,6 +325,5 @@ export class AAPEntityProvider implements EntityProvider {
   async connect(connection: EntityProviderConnection): Promise<void> {
     this.connection = connection;
     await this.scheduleFn();
-    await this.run();
   }
 }

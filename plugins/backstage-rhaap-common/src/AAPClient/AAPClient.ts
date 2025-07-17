@@ -592,7 +592,6 @@ export class AAPClient implements IAAPService {
     payload: LaunchJobTemplate,
     token: string,
   ): Promise<any> {
-    const endPoint = `api/controller/v2/job_templates/${payload.template.id}/launch/`;
     const data = { extra_vars: payload?.extraVariables ?? '' } as {
       inventory?: number;
       job_type?: string;
@@ -662,6 +661,34 @@ export class AAPClient implements IAAPService {
       }
       data.credentials = payload.credentials.map(c => c.id);
     }
+
+    let templateID;
+    const urlSearchParams = new URLSearchParams();
+    urlSearchParams.set('name', payload.template);
+    const templateIdEndpoint = `api/controller/v2/job_templates/?${decodeURIComponent(urlSearchParams.toString())}`;
+    try {
+      const templateResponse = await this.executeGetRequest(
+        templateIdEndpoint,
+        token,
+      );
+      const templateJsonResp = await templateResponse.json();
+
+      if (!templateJsonResp.results || templateJsonResp.results.length === 0) {
+        this.logger.error(
+          `No job template found with name: ${payload.template}. Please check the template name and access.`,
+        );
+        throw new Error(`No job template found with name: ${payload.template}`);
+      }
+      templateID = templateJsonResp.results[0].id;
+    } catch (e) {
+      this.logger.error(
+        `Failed to fetch job template ${payload.template}. Please make sure that the template name is correct and template is available on AAP. ${e}`,
+      );
+      throw e;
+    }
+
+    const endPoint = `api/controller/v2/job_templates/${templateID}/launch/`;
+
     this.logger.info(`Start executing job template.`);
     const response = await this.executePostRequest(endPoint, token, data);
     const jobResponseJson = await response.json();
@@ -732,11 +759,18 @@ export class AAPClient implements IAAPService {
       }
     }
     if (resource.includes('job_templates')) {
-      const orgName = this.config.getString(
-        'catalog.providers.rhaap.development.orgs',
-      );
-      // TODO: Add support for multiple orgs with OR operator
-      urlSearchParams.set('organization__name', orgName);
+      if (this.catalogConfig.organizations.length === 1) {
+        urlSearchParams.set(
+          'organization__name__icontains',
+          this.catalogConfig.organizations.toString(),
+        );
+      }
+      // Adds support for multiple orgs with OR operator
+      else if (this.catalogConfig.organizations.length > 1) {
+        this.catalogConfig.organizations.forEach(orgName => {
+          urlSearchParams.set('or__organization__name__icontains', orgName);
+        });
+      }
       if (this.catalogConfig.surveyEnabled !== undefined) {
         urlSearchParams.set(
           'survey_enabled',
@@ -929,22 +963,23 @@ export class AAPClient implements IAAPService {
     const orgEndPoint = 'api/controller/v2/organizations/';
     try {
       const token = this.ansibleConfig.rhaap?.token ?? null;
-      let orgSync: string;
-      if (this.config.has('catalog.providers.rhaap.development')) {
-        orgSync =
-          this.config.getOptionalString(
-            'catalog.providers.rhaap.development.orgs',
-          ) ?? '';
-      } else if (this.config.has('catalog.providers.rhaap.production')) {
-        orgSync =
-          this.config.getOptionalString(
-            'catalog.providers.rhaap.production.orgs',
-          ) ?? '';
+      let urlSearchParams = new URLSearchParams();
+      urlSearchParams.set('page_size', '200');
+      if (this.catalogConfig.organizations.length === 1) {
+        urlSearchParams.set(
+          'name__icontains',
+          this.catalogConfig.organizations.toString(),
+        );
       }
-      let rawOrgs = await this.executeCatalogRequest(orgEndPoint, token);
-      rawOrgs = rawOrgs.filter(
-        (org: any) =>
-          orgSync.toLocaleLowerCase() === org.name.toLocaleLowerCase(),
+      // Adds support for multiple orgs with OR operator
+      else if (this.catalogConfig.organizations.length > 1) {
+        this.catalogConfig.organizations.forEach(orgName => {
+          urlSearchParams.set('or__name__icontains', orgName);
+        });
+      }
+      const rawOrgs = await this.executeCatalogRequest(
+        `${orgEndPoint}?${decodeURIComponent(urlSearchParams.toString())}`,
+        token,
       );
 
       if (!userAndTeamDetails) {
@@ -961,20 +996,31 @@ export class AAPClient implements IAAPService {
         rawOrgs.map(async (org: any) => {
           const usersUrl: string | undefined = org.related?.users;
           const teamsUrl: string = org.related.teams;
+          urlSearchParams = new URLSearchParams();
+          urlSearchParams.set('page_size', '200');
 
           const [rawTeams, users] = await Promise.all([
-            teamsUrl ? this.executeCatalogRequest(teamsUrl, token) : [],
+            teamsUrl
+              ? this.executeCatalogRequest(
+                  `${teamsUrl}?${decodeURIComponent(urlSearchParams.toString())}`,
+                  token,
+                )
+              : [],
             (usersUrl
-              ? this.executeCatalogRequest(usersUrl, token)
+              ? this.executeCatalogRequest(
+                  `${usersUrl}?${decodeURIComponent(urlSearchParams.toString())}`,
+                  token,
+                )
               : []) as Users,
           ]);
 
           rawTeams.map(async (team: any) => {
-            const teamUsersUrl: string | undefined = team.related?.users;
+            let teamUsersUrl: string | undefined = team.related?.users;
             if (!teamUsersUrl) {
               return;
             }
 
+            teamUsersUrl = `${teamUsersUrl}?${decodeURIComponent(urlSearchParams.toString())}`;
             let teamUsers = ((await this.executeCatalogRequest(
               teamUsersUrl,
               token,
@@ -1023,11 +1069,11 @@ export class AAPClient implements IAAPService {
   }
 
   public async listSystemUsers(): Promise<Users> {
-    const endPoint = 'api/controller/v2/users/';
+    const endPoint = 'api/controller/v2/users/?is_superuser=true';
     const token = this.ansibleConfig.rhaap?.token ?? null;
     this.logger.info(`Fetching users from RH AAP.`);
-    const users = await this.executeCatalogRequest(endPoint, token);
-    return users.filter((user: User) => user.is_superuser) as Users;
+    const users = (await this.executeCatalogRequest(endPoint, token)) as Users;
+    return users;
   }
 
   public async getTeamsByUserId(
@@ -1036,7 +1082,12 @@ export class AAPClient implements IAAPService {
     const endPoint = `api/controller/v2/users/${userID}/teams/`;
     const token = this.ansibleConfig.rhaap?.token ?? null;
     this.logger.info(`Fetching teams for user ID: ${userID} from RH AAP.`);
-    const teams = await this.executeCatalogRequest(endPoint, token);
+    const urlSearchParams = new URLSearchParams();
+    urlSearchParams.set('page_size', '200');
+    const teams = await this.executeCatalogRequest(
+      `${endPoint}?${decodeURIComponent(urlSearchParams.toString())}`,
+      token,
+    );
     return teams
       .filter((team: any) => team?.name)
       .map((team: any) => ({
@@ -1076,12 +1127,21 @@ export class AAPClient implements IAAPService {
     jobTemplateLabels: string[],
   ): Promise<{ job: IJobTemplate; survey: ISurvey | null }[]> {
     const endPoint = '/api/controller/v2/job_templates';
-    const orgName = this.config.getString(
-      'catalog.providers.rhaap.development.orgs',
-    );
     const urlSearchParams = new URLSearchParams();
-    // TODO: Add support for multiple orgs with OR operator
-    urlSearchParams.set('organization__name', orgName);
+    urlSearchParams.set('page_size', '200');
+    if (this.catalogConfig.organizations.length === 1) {
+      urlSearchParams.set(
+        'organization__name__icontains',
+        this.catalogConfig.organizations.toString(),
+      );
+    }
+    // Adds support for multiple orgs with OR operator
+    else if (this.catalogConfig.organizations.length > 1) {
+      this.catalogConfig.organizations.forEach(orgName => {
+        urlSearchParams.set(`or__organization__name__icontains`, orgName);
+      });
+    }
+
     if (surveyEnabled !== undefined) {
       urlSearchParams.set('survey_enabled', surveyEnabled.toString());
     }

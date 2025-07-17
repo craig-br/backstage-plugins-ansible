@@ -143,10 +143,6 @@ catalog:
     #   target: https://github.com/ansible/ansible-rhdh-templates/blob/devel/seed.yaml
     #   rules:
     #     - allow: [Template]
-    - type: file
-      target: /tmp/aap-showcases/all.yaml
-      rules:
-        - allow: [Template]
   # Experimental: Always use the search method in UrlReaderProcessor.
   # New adopters are encouraged to enable it as this behavior will be the default in a future release.
   useUrlReadersSearch: true

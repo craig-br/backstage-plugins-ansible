@@ -2,7 +2,7 @@ import { Config } from '@backstage/config';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { AAPClient } from './AAPClient';
 import { fetch } from 'undici';
-import { AnsibleConfig, CatalogConfig } from '../types';
+import { AnsibleConfig } from '../types';
 import { mockJobTemplateResponse, mockSurveyResponse } from './mockData';
 
 jest.mock('undici', () => ({
@@ -79,15 +79,35 @@ describe('AAPClient', () => {
       },
     };
 
-    const mockCatalogConfig: CatalogConfig = {
-      surveyEnabled: false,
-      jobTemplateLabels: [],
+    const mockCatalogRhaapConfig = {
+      keys: jest.fn().mockReturnValue(['development']),
+      getConfig: jest.fn().mockImplementation((key: string) => {
+        if (key === 'development') {
+          return {
+            getString: jest.fn().mockImplementation((path: string) => {
+              if (path === 'orgs') {
+                return 'TestOrg';
+              }
+              throw new Error(`No value for ${path}`);
+            }),
+            getStringArray: jest.fn().mockImplementation((path: string) => {
+              if (path === 'orgs') {
+                return ['TestOrg'];
+              }
+              throw new Error(`No value for ${path}`);
+            }),
+            getOptionalBoolean: jest.fn().mockReturnValue(false),
+            getOptionalStringArray: jest.fn().mockReturnValue([]),
+          };
+        }
+        throw new Error(`No config for key ${key}`);
+      }),
     };
 
     mockConfig = {
       getOptionalConfig: jest.fn().mockImplementation((path: string) => {
         if (path === 'catalog.providers.rhaap') {
-          return mockCatalogConfig;
+          return mockCatalogRhaapConfig;
         }
         return mockAnsibleConfig;
       }),
@@ -271,6 +291,24 @@ describe('AAPClient', () => {
           };
           return scheduleConfig;
         }
+        if (key === 'development' || key === 'production') {
+          return {
+            getString: jest.fn().mockImplementation((path: string) => {
+              if (path === 'orgs') {
+                return 'TestOrg';
+              }
+              throw new Error(`No value for ${path}`);
+            }),
+            getStringArray: jest.fn().mockImplementation((path: string) => {
+              if (path === 'orgs') {
+                return ['TestOrg'];
+              }
+              throw new Error(`No value for ${path}`);
+            }),
+            getOptionalBoolean: jest.fn().mockReturnValue(false),
+            getOptionalStringArray: jest.fn().mockReturnValue([]),
+          };
+        }
         return mockAnsibleConfig;
       }),
       has: jest.fn().mockImplementation((key: string) => {
@@ -281,6 +319,8 @@ describe('AAPClient', () => {
           'analytics.enabled',
           'catalog.providers.rhaap.development.sync.orgsUsersTeams.schedule',
           'catalog.providers.rhaap.development.sync.jobTemplates.schedule',
+          'catalog.providers.rhaap.development.orgs',
+          'catalog.providers.rhaap.production.orgs',
           'catalog.providers.rhaap.development',
           'catalog.providers.rhaap.production',
         ].includes(key);
@@ -725,6 +765,12 @@ describe('AAPClient', () => {
       });
 
       it('should launch a job template and handle success', async () => {
+        const mockTemplateResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({
+            results: [{ id: 456, name: 'test-template' }],
+          }),
+        };
         const mockLaunchResponse = {
           ok: true,
           json: jest.fn().mockResolvedValue({ job: 123 }),
@@ -742,13 +788,14 @@ describe('AAPClient', () => {
         };
 
         mockFetch
+          .mockResolvedValueOnce(mockTemplateResponse)
           .mockResolvedValueOnce(mockLaunchResponse)
           .mockResolvedValueOnce(mockStatusResponse)
           .mockResolvedValueOnce(mockEventsResponse);
 
         const result = await client.launchJobTemplate(
           {
-            template: { id: 1, name: 'test-template' },
+            template: 'test-template',
             inventory: { id: 1, name: 'test-inventory' },
             credentials: [
               {
@@ -777,7 +824,7 @@ describe('AAPClient', () => {
         await expect(
           client.launchJobTemplate(
             {
-              template: { id: 1, name: 'test-template' },
+              template: 'test-template',
               credentials: [
                 {
                   id: 1,
@@ -807,6 +854,12 @@ describe('AAPClient', () => {
       });
 
       it('should handle failed job execution with error parsing', async () => {
+        const mockTemplateResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({
+            results: [{ id: 456, name: 'test-template' }],
+          }),
+        };
         const mockLaunchResponse = {
           ok: true,
           json: jest.fn().mockResolvedValue({ job: 123 }),
@@ -828,6 +881,7 @@ describe('AAPClient', () => {
         };
 
         mockFetch
+          .mockResolvedValueOnce(mockTemplateResponse)
           .mockResolvedValueOnce(mockLaunchResponse)
           .mockResolvedValueOnce(mockStatusResponse)
           .mockResolvedValueOnce(mockEventsResponse)
@@ -836,7 +890,7 @@ describe('AAPClient', () => {
         await expect(
           client.launchJobTemplate(
             {
-              template: { id: 1, name: 'test-template' },
+              template: 'test-template',
             },
             'test-token',
           ),
@@ -844,6 +898,12 @@ describe('AAPClient', () => {
       });
 
       it('should handle failed job execution with stdout error', async () => {
+        const mockTemplateResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({
+            results: [{ id: 456, name: 'test-template' }],
+          }),
+        };
         const mockLaunchResponse = {
           ok: true,
           json: jest.fn().mockResolvedValue({ job: 123 }),
@@ -861,6 +921,7 @@ describe('AAPClient', () => {
         };
 
         mockFetch
+          .mockResolvedValueOnce(mockTemplateResponse)
           .mockResolvedValueOnce(mockLaunchResponse)
           .mockResolvedValueOnce(mockStatusResponse)
           .mockResolvedValueOnce(mockEventsResponse)
@@ -869,11 +930,33 @@ describe('AAPClient', () => {
         await expect(
           client.launchJobTemplate(
             {
-              template: { id: 1, name: 'test-template' },
+              template: 'test-template',
             },
             'test-token',
           ),
         ).rejects.toThrow('Job execution failed due to Undefined Error');
+      });
+
+      it('should handle template not found error', async () => {
+        const mockTemplateResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({
+            results: [],
+          }),
+        };
+
+        mockFetch.mockResolvedValueOnce(mockTemplateResponse);
+
+        await expect(
+          client.launchJobTemplate(
+            {
+              template: 'non existing template',
+            },
+            'test-token',
+          ),
+        ).rejects.toThrow(
+          'No job template found with name: non existing template',
+        );
       });
     });
 
@@ -1265,7 +1348,114 @@ describe('AAPClient', () => {
 
         expect(result).toEqual({ results: [{ id: 1 }] });
         expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining('organization__name=TestOrg'),
+          expect.stringContaining('organization__name__icontains=testorg'),
+          expect.any(Object),
+        );
+      });
+
+      it('should handle job_templates resource with multiple organizations', async () => {
+        // Create a new client with multiple organizations
+        const mockMultiOrgCatalogRhaapConfig = {
+          keys: jest.fn().mockReturnValue(['development']),
+          getConfig: jest.fn().mockImplementation((key: string) => {
+            if (key === 'development') {
+              return {
+                getString: jest.fn().mockImplementation((path: string) => {
+                  if (path === 'orgs') {
+                    return 'TestOrg1,TestOrg2';
+                  }
+                  throw new Error(`No value for ${path}`);
+                }),
+                getStringArray: jest.fn().mockImplementation((path: string) => {
+                  if (path === 'orgs') {
+                    return ['TestOrg1', 'TestOrg2'];
+                  }
+                  throw new Error(`No value for ${path}`);
+                }),
+                getOptionalBoolean: jest.fn().mockReturnValue(false),
+                getOptionalStringArray: jest.fn().mockReturnValue([]),
+              };
+            }
+            throw new Error(`No config for key ${key}`);
+          }),
+        };
+
+        const mockMultiOrgConfig = {
+          ...mockConfig,
+          getOptionalConfig: jest.fn().mockImplementation((path: string) => {
+            if (path === 'catalog.providers.rhaap') {
+              return mockMultiOrgCatalogRhaapConfig;
+            }
+            return mockConfig.getOptionalConfig(path);
+          }),
+        };
+
+        const multiOrgClient = new AAPClient({
+          rootConfig: mockMultiOrgConfig,
+          logger: mockLogger,
+        });
+
+        const mockResponse = {
+          ok: true,
+          json: jest
+            .fn()
+            .mockResolvedValue({ results: [{ id: 1 }, { id: 2 }] }),
+        };
+        mockFetch.mockResolvedValue(mockResponse);
+
+        const result = await multiOrgClient.getResourceData(
+          'job_templates',
+          'test-token',
+        );
+
+        expect(result).toEqual({ results: [{ id: 1 }, { id: 2 }] });
+        // Due to urlSearchParams.set() overwriting values, only the last organization will be in the URL
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('or__organization__name__icontains=testorg2'),
+          expect.any(Object),
+        );
+      });
+
+      it('should handle job_templates resource with no organizations', async () => {
+        // Create a new client with no organizations
+        const mockNoOrgCatalogRhaapConfig = {
+          keys: jest.fn().mockReturnValue([]), // No keys means no organizations configured
+        };
+
+        const mockNoOrgConfig = {
+          ...mockConfig,
+          getOptionalConfig: jest.fn().mockImplementation((path: string) => {
+            if (path === 'catalog.providers.rhaap') {
+              return mockNoOrgCatalogRhaapConfig;
+            }
+            return mockConfig.getOptionalConfig(path);
+          }),
+        };
+
+        const noOrgClient = new AAPClient({
+          rootConfig: mockNoOrgConfig,
+          logger: mockLogger,
+        });
+
+        const mockResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({ results: [{ id: 1 }] }),
+        };
+        mockFetch.mockResolvedValue(mockResponse);
+
+        const result = await noOrgClient.getResourceData(
+          'job_templates',
+          'test-token',
+        );
+
+        expect(result).toEqual({ results: [{ id: 1 }] });
+        // When no organizations are configured, no organization filter should be applied
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.not.stringContaining('organization__name__icontains'),
+          expect.any(Object),
+        );
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.not.stringContaining('or__organization__name__icontains'),
           expect.any(Object),
         );
       });
@@ -1431,7 +1621,7 @@ describe('AAPClient', () => {
         );
       });
 
-      it('should filter organizations based on config orgs setting', async () => {
+      it('should fetch organizations based on config orgs setting', async () => {
         const mockOrgsData = [
           {
             id: 1,
@@ -1442,17 +1632,6 @@ describe('AAPClient', () => {
                 'https://test.example.com/api/controller/v2/organizations/1/users/',
               teams:
                 'https://test.example.com/api/controller/v2/organizations/1/teams/',
-            },
-          },
-          {
-            id: 2,
-            name: 'OtherOrg',
-            namespace: 'otherorg',
-            related: {
-              users:
-                'https://test.example.com/api/controller/v2/organizations/2/users/',
-              teams:
-                'https://test.example.com/api/controller/v2/organizations/2/teams/',
             },
           },
         ];
@@ -1473,14 +1652,6 @@ describe('AAPClient', () => {
     describe('listSystemUsers', () => {
       it('should fetch only superuser users', async () => {
         const mockUsersData = [
-          {
-            id: 1,
-            username: 'user1',
-            email: 'user1@example.com',
-            first_name: 'User',
-            last_name: 'One',
-            is_superuser: false,
-          },
           {
             id: 2,
             username: 'user2',

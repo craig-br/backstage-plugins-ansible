@@ -186,13 +186,23 @@ export const AAPResourcePicker = (props: ScaffolderRJSFFieldProps) => {
           renderValue: renderSelectedValues,
         })}
       >
-        {availableResources.map((item, index) => (
-          // @ts-ignore
-          <MenuItem key={index} value={item[_idKey]}>
-            {/* @ts-ignore */}
-            {item[_nameKey]}
+        {availableResources.length > 0 ? (
+          availableResources.map((item, index) => (
+            // @ts-ignore
+            <MenuItem key={index} value={item[_idKey]}>
+              {/* @ts-ignore */}
+              {item[_nameKey]}
+            </MenuItem>
+          ))
+        ) : (
+          <MenuItem value={0} disabled>
+            No{' '}
+            {resource.includes('_')
+              ? resource.replace(/[\s.,_]+/g, '-')
+              : resource}{' '}
+            found
           </MenuItem>
-        ))}
+        )}
       </Select>
       {errors}
       <FormHelperText>{description}</FormHelperText>

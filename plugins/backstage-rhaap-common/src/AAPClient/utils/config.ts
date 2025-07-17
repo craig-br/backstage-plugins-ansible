@@ -60,12 +60,23 @@ export function getCatalogConfig(rootConfig: Config): CatalogConfig {
     'catalog.providers.rhaap',
   );
   const catalogConfig: CatalogConfig = {
+    organizations: [],
     surveyEnabled: undefined,
     jobTemplateLabels: [],
   };
   if (catalogRhaapConfig && typeof catalogRhaapConfig.keys === 'function') {
     catalogRhaapConfig.keys().forEach(key => {
       const config = catalogRhaapConfig.getConfig(key);
+      try {
+        catalogConfig.organizations = config
+          .getString('orgs')
+          .split(',')
+          .map(o => o.toLocaleLowerCase());
+      } catch (error) {
+        catalogConfig.organizations = config
+          .getStringArray('orgs')
+          .map(o => o.toLocaleLowerCase());
+      }
       catalogConfig.surveyEnabled = config.getOptionalBoolean(
         `sync.jobTemplates.surveyEnabled`,
       );

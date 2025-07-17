@@ -990,6 +990,14 @@ describe('dynamicJobTemplate', () => {
           max: 100,
           new_question: false,
         },
+        {
+          type: 'integer',
+          default: 80,
+          required: true,
+          variable: 'iis_port',
+          question_name: 'Server Port',
+          question_description: 'Network port to listen on',
+        },
       ] as ISpec[],
     };
 
@@ -1032,10 +1040,9 @@ describe('dynamicJobTemplate', () => {
       expect((result.spec as any).steps[0].input.token).toBe(
         '${{ parameters.token }}',
       );
-      expect((result.spec as any).steps[0].input.values.template).toEqual({
-        id: 123,
-        name: 'Test Job Template',
-      });
+      expect((result.spec as any).steps[0].input.values.template).toEqual(
+        'Test Job Template',
+      );
 
       expect((result.spec as any).output.text).toHaveLength(1);
       expect((result.spec as any).output.text[0].title).toBe(

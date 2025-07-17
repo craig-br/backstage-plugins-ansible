@@ -72,10 +72,7 @@ export type CleanUp = {
 };
 
 export type LaunchJobTemplate = {
-  template: {
-    id: number;
-    name: string;
-  };
+  template: string;
   jobType?: 'run' | 'check';
   inventory?: Inventory;
   executionEnvironment?: ExecutionEnvironment;
@@ -144,6 +141,7 @@ export type RHAAPConfig = {
 };
 
 export type CatalogConfig = {
+  organizations: string[];
   surveyEnabled: boolean | undefined;
   jobTemplateLabels: string[];
 };

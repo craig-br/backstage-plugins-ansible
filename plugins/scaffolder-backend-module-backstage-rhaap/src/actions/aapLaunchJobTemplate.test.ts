@@ -8,10 +8,7 @@ describe('ansible-aap:jobTemplate:launch', () => {
   const action = launchJobTemplate(mockAnsibleService);
 
   const projectData: LaunchJobTemplate = {
-    template: {
-      id: 1,
-      name: 'Test job template',
-    },
+    template: 'Test job template',
     jobType: 'run',
   };
 

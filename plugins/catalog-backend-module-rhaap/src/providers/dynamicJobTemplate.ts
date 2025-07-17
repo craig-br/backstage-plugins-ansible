@@ -241,9 +241,10 @@ export const getSurveyDetails = (survey: ISurvey | null) => {
       item.type === 'password'
     ) {
       inputType = 'string';
-    }
-    if (item.type === 'multiselect') {
+    } else if (item.type === 'multiselect') {
       inputType = 'array';
+    } else if (item.type === 'integer') {
+      inputType = 'integer';
     }
     const paramVar = item.variable;
     surveyParams[paramVar] = {
@@ -336,10 +337,7 @@ export const generateTemplate = (options: {
           input: {
             token: '${{ parameters.token }}',
             values: {
-              template: {
-                id: job.id,
-                name: job.name,
-              },
+              template: job.name,
               ...inputVars,
               ...(survey && { extraVariables }),
             },

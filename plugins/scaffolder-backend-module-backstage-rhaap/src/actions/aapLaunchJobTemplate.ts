@@ -20,17 +20,8 @@ export const launchJobTemplate = (ansibleServiceRef: IAAPService) => {
             required: ['template'],
             properties: {
               template: {
-                type: 'object',
-                properties: {
-                  id: {
-                    type: 'number',
-                    description: 'Job template id',
-                  },
-                  name: {
-                    type: 'string',
-                    description: 'Job template name',
-                  },
-                },
+                type: 'string',
+                description: 'Job template name',
               },
               inventory: {
                 title: 'Inventory',

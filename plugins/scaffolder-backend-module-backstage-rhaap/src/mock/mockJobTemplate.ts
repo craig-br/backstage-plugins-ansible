@@ -53,10 +53,7 @@ export const MOCK_NEW_JOB_TEMPLATE_POST_DATA = {
 };
 
 export const MOCK_JOB_TEMPLATE_LAUNCH_DATA = {
-  template: {
-    id: MOCK_JOB_TEMPLATE.id,
-    name: MOCK_JOB_TEMPLATE.templateName,
-  },
+  template: MOCK_JOB_TEMPLATE.templateName,
   jobType: 'run',
   inventory: MOCK_INVENTORY,
   executionEnvironment: MOCK_EXECUTION_ENVIRONMENT,

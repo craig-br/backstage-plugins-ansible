@@ -39,9 +39,18 @@ function readAapApiEntityConfig(
         catalogConfig.getConfig(`sync.${syncEntity}.schedule`),
       )
     : undefined;
-  const orgSync = catalogConfig.has('orgs')
-    ? catalogConfig.getString('orgs')
-    : '';
+  let organizations: string[] = [];
+  try {
+    if (catalogConfig.has('orgs'))
+      organizations = catalogConfig
+        .getString('orgs')
+        .split(',')
+        .map(o => o.toLocaleLowerCase());
+  } catch (error) {
+    organizations = catalogConfig
+      .getStringArray('orgs')
+      .map(o => o.toLocaleLowerCase());
+  }
   let surveyEnabled: boolean | undefined = undefined;
   let jobTemplateLabels: string[] = [];
   if (syncEntity === 'jobTemplates') {
@@ -62,7 +71,7 @@ function readAapApiEntityConfig(
     token,
     checkSSL,
     schedule,
-    orgSync,
+    organizations,
     surveyEnabled,
     jobTemplateLabels,
   };
