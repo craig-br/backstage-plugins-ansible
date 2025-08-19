@@ -14,6 +14,7 @@ export const launchJobTemplate = (ansibleServiceRef: IAAPService) => {
         properties: {
           token: {
             type: 'string',
+            description: 'Authorization token',
           },
           values: {
             type: 'object',
@@ -155,8 +156,10 @@ export const launchJobTemplate = (ansibleServiceRef: IAAPService) => {
       },
     },
     async handler(ctx) {
-      const { input, logger } = ctx;
-      const token = input.token;
+      const {
+        input: { token, values },
+        logger,
+      } = ctx;
       if (!token?.length) {
         const error = new Error('Authorization token not provided.');
         error.stack = '';
@@ -165,10 +168,7 @@ export const launchJobTemplate = (ansibleServiceRef: IAAPService) => {
       ansibleServiceRef.setLogger(logger);
       let jobResult;
       try {
-        jobResult = await ansibleServiceRef.launchJobTemplate(
-          input.values,
-          input.token,
-        );
+        jobResult = await ansibleServiceRef.launchJobTemplate(values, token);
       } catch (e: any) {
         const message = e?.message ?? 'Something went wrong.';
         const error = new Error(message);

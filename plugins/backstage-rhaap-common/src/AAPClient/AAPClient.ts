@@ -591,7 +591,7 @@ export class AAPClient implements IAAPService {
   }
 
   public async launchJobTemplate(
-    payload: LaunchJobTemplate,
+    payload: Omit<LaunchJobTemplate, 'token'>,
     token: string,
   ): Promise<any> {
     const data = { extra_vars: payload?.extraVariables ?? '' } as {
@@ -697,10 +697,11 @@ export class AAPClient implements IAAPService {
     const jobID = jobResponseJson.job;
     this.logger.info(`Waiting for result of the executed job template.`);
 
-    const result = await this.fetchResult(jobID, token);
     let lastEvent;
-    if (result.jobData.status !== 'successful') {
-      try {
+    let result;
+    try {
+      result = await this.fetchResult(jobID, token);
+      if (result.jobData.status !== 'successful') {
         const stdoutEndPoint = `api/controller/v2/jobs/${jobID}/stdout/?format=txt`;
         const stdoutResponse = await this.executeGetRequest(
           stdoutEndPoint,
@@ -710,11 +711,19 @@ export class AAPClient implements IAAPService {
         const errorRegex = /"msg":\s*"([^"]+)"/g;
         const matchRegex = [...stdoutRespText.matchAll(errorRegex)];
         lastEvent = matchRegex[matchRegex.length - 1][1];
-      } catch (error) {
-        lastEvent =
-          'Undefined Error. Please check the RHAAP portal for job execution logs.';
-        this.logger.error(`${error}`);
+        this.logger.error(`Job failed: ${lastEvent}`);
+        throw new Error(`Job execution failed due to ${lastEvent}`);
       }
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes('Job execution failed due to')
+      ) {
+        throw error;
+      }
+      lastEvent =
+        'Undefined Error. Please check the RHAAP portal for job execution logs.';
+      this.logger.error(`${error}`);
       this.logger.error(`Error while executing job template.`);
       this.logger.error(`Job failed: ${lastEvent}`);
       throw new Error(`Job execution failed due to ${lastEvent}`);
@@ -1018,29 +1027,33 @@ export class AAPClient implements IAAPService {
               : []) as Users,
           ]);
 
-          await Promise.all(
-            rawTeams.map(async (team: any) => {
+          // Process team users in smaller batches to avoid API overload
+          const batchSize = 100;
+          for (let i = 0; i < rawTeams.length; i += batchSize) {
+            const batch = rawTeams.slice(i, i + batchSize);
+            const batchUrlSearchParams = new URLSearchParams();
+            batchUrlSearchParams.set('page_size', '200');
+            const batchPromises = batch.map(async (team: any) => {
               let teamUsersUrl: string | undefined = team.related?.users;
               if (!teamUsersUrl) {
-                return;
+                return [];
               }
-
-              teamUsersUrl = `${teamUsersUrl}?${decodeURIComponent(urlSearchParams.toString())}`;
-              let teamUsers = ((await this.executeCatalogRequest(
+              teamUsersUrl = `${teamUsersUrl}?${decodeURIComponent(batchUrlSearchParams.toString())}`;
+              const teamUsers = ((await this.executeCatalogRequest(
                 teamUsersUrl,
                 token,
               )) ?? []) as Users;
-
-              teamUsers = teamUsers.map((user: User) => {
+              return teamUsers.map((user: User) => {
                 if (!users.some(orgUser => orgUser.id === user.id)) {
                   user.is_orguser = false;
                 }
                 return user;
               });
-              // merge elements of array rawUsers into the teamUsers
-              users.push(...teamUsers);
-            }),
-          );
+            });
+            const batchResults = await Promise.all(batchPromises);
+            const teamUsers = batchResults.flat();
+            users.push(...teamUsers);
+          }
 
           const teams: Team[] = (rawTeams || []).map((item: Team) => ({
             id: item.id,
@@ -1119,6 +1132,20 @@ export class AAPClient implements IAAPService {
     this.logger.info(`Fetching orgs for user ID: ${userID} from RH AAP.`);
     const urlSearchParams = new URLSearchParams();
     urlSearchParams.set('page_size', '200');
+
+    // Fetch details of orgs that are configured in app-config.
+    if (this.catalogConfig.organizations.length === 1) {
+      urlSearchParams.set(
+        'name__icontains',
+        this.catalogConfig.organizations.toString(),
+      );
+    }
+    // Adds support for multiple orgs with OR operator
+    else if (this.catalogConfig.organizations.length > 1) {
+      this.catalogConfig.organizations.forEach(orgName => {
+        urlSearchParams.set('or__name__icontains', orgName);
+      });
+    }
     const orgs = await this.executeCatalogRequest(
       `${endPoint}?${decodeURIComponent(urlSearchParams.toString())}`,
       token,

@@ -32,7 +32,7 @@ describe('dynamicJobTemplate', () => {
       const result = getPromptForm();
 
       expect(result).toEqual({
-        title: 'Prompt on Launch',
+        title: 'Please enter the following details',
         required: ['token'],
         properties: {
           token: {
@@ -40,11 +40,15 @@ describe('dynamicJobTemplate', () => {
             type: 'string',
             description: 'Oauth2 token',
             'ui:field': 'AAPTokenField',
-            'ui:widget': 'password',
+            'ui:widget': 'hidden',
             'ui:backstage': {
               review: {
                 show: false,
               },
+            },
+            'ui:options': {
+              disabled: true,
+              hidden: true,
             },
           },
         },
@@ -521,7 +525,7 @@ describe('dynamicJobTemplate', () => {
 
       const [promptForm, inputVars] = getPromptFormDetails(jobWithAllFlags);
 
-      expect(promptForm.title).toBe('Prompt on Launch');
+      expect(promptForm.title).toBe('Please enter the following details');
       expect(promptForm.required).toEqual(['token']);
       expect((promptForm.properties as any).token).toBeDefined();
       expect((promptForm.properties as any).job_type).toBeDefined();
@@ -560,7 +564,7 @@ describe('dynamicJobTemplate', () => {
     it('should return minimal prompt form for job with no ask_on_launch flags', () => {
       const [promptForm, inputVars] = getPromptFormDetails(mockJob);
 
-      expect(promptForm.title).toBe('Prompt on Launch');
+      expect(promptForm.title).toBe('Please enter the following details');
       expect(promptForm.required).toEqual(['token']);
       expect((promptForm.properties as any).token).toBeDefined();
       expect((promptForm.properties as any).job_type).toBeUndefined();
@@ -572,7 +576,7 @@ describe('dynamicJobTemplate', () => {
 
   describe('getSurveyDetails', () => {
     it('should return empty objects when survey is null', () => {
-      const [surveyForm, extraVariables] = getSurveyDetails(null);
+      const [surveyForm, extraVariables] = getSurveyDetails({}, null);
 
       expect(surveyForm).toEqual({});
       expect(extraVariables).toEqual({});
@@ -646,10 +650,8 @@ describe('dynamicJobTemplate', () => {
         ] as ISpec[],
       };
 
-      const [surveyForm, extraVariables] = getSurveyDetails(mockSurvey);
+      const [surveyForm, extraVariables] = getSurveyDetails({}, mockSurvey);
 
-      expect(surveyForm.title).toBe('Test Survey');
-      expect(surveyForm.description).toBe('A test survey');
       expect(surveyForm.required).toEqual([
         'text_var',
         'textarea_var',
@@ -731,11 +733,10 @@ describe('dynamicJobTemplate', () => {
         spec: [],
       };
 
-      const [surveyForm, extraVariables] = getSurveyDetails(mockSurvey);
+      const [surveyForm, extraVariables] = getSurveyDetails({}, mockSurvey);
 
-      expect(surveyForm.title).toBe('Empty Survey');
       expect(surveyForm.required).toEqual([]);
-      expect(surveyForm.properties).toEqual({});
+      expect(surveyForm.properties).toBeUndefined();
       expect(extraVariables).toEqual({});
     });
   });
@@ -1029,7 +1030,9 @@ describe('dynamicJobTemplate', () => {
 
       expect((result.spec as any).type).toBe('service');
       expect((result.spec as any).parameters).toHaveLength(1);
-      expect((result.spec as any).parameters[0].title).toBe('Prompt on Launch');
+      expect((result.spec as any).parameters[0].title).toBe(
+        'Please enter the following details',
+      );
 
       expect((result.spec as any).steps).toHaveLength(1);
       expect((result.spec as any).steps[0].id).toBe('launch-job');
@@ -1043,6 +1046,8 @@ describe('dynamicJobTemplate', () => {
       expect((result.spec as any).steps[0].input.values.template).toEqual(
         'Test Job Template',
       );
+      // Verify token is NOT in values object
+      expect((result.spec as any).steps[0].input.values.token).toBeUndefined();
 
       expect((result.spec as any).output.text).toHaveLength(1);
       expect((result.spec as any).output.text[0].title).toBe(
@@ -1061,11 +1066,12 @@ describe('dynamicJobTemplate', () => {
 
       const result = generateTemplate(options);
 
-      expect((result.spec as any).parameters).toHaveLength(2);
-      expect((result.spec as any).parameters[0].title).toBe('Prompt on Launch');
-      expect((result.spec as any).parameters[1].title).toBe('Test Survey');
+      expect((result.spec as any).parameters).toHaveLength(1);
+      expect((result.spec as any).parameters[0].title).toBe(
+        'Please enter the following details',
+      );
       expect(
-        (result.spec as any).parameters[1].properties.env_var,
+        (result.spec as any).parameters[0].properties.env_var,
       ).toBeDefined();
 
       expect(

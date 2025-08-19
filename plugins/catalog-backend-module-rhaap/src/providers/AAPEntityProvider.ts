@@ -74,6 +74,7 @@ export class AAPEntityProvider implements EntityProvider {
       }
       return new AAPEntityProvider(
         providerConfig,
+        config,
         logger,
         taskRunner,
         ansibleServiceRef,
@@ -82,14 +83,15 @@ export class AAPEntityProvider implements EntityProvider {
   }
 
   private constructor(
-    config: AapConfig,
+    providerConfig: AapConfig,
+    _config: Config,
     logger: LoggerService,
     taskRunner: SchedulerServiceTaskRunner,
     ansibleServiceRef: IAAPService,
   ) {
-    this.env = config.id;
-    this.baseUrl = config.baseUrl;
-    this.orgs = config.organizations;
+    this.env = providerConfig.id;
+    this.baseUrl = providerConfig.baseUrl;
+    this.orgs = providerConfig.organizations;
     this.logger = logger.child({
       target: this.getProviderName(),
     });
@@ -241,7 +243,7 @@ export class AAPEntityProvider implements EntityProvider {
 
       // Process users in batches to avoid overwhelming the AAP server
       const allUsers = orgsDetails.flatMap(org => org.users || []);
-      const batchSize = 30; // Process 30 users at a time
+      const batchSize = 100; // Process 100 users at a time
       this.logger.info(
         `[${AAPEntityProvider.pluginLogName}]: Processing ${allUsers.length} users in batches of ${batchSize}`,
       );
@@ -281,6 +283,7 @@ export class AAPEntityProvider implements EntityProvider {
                   }
                 }
               }
+
               const userEntity = userParser({
                 baseUrl: this.baseUrl,
                 nameSpace: 'default',
@@ -334,6 +337,7 @@ export class AAPEntityProvider implements EntityProvider {
                   }
                 }
               }
+
               const userEntity = userParser({
                 baseUrl: this.baseUrl,
                 nameSpace: 'default',
@@ -362,6 +366,10 @@ export class AAPEntityProvider implements EntityProvider {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
+
+      // 🚀 DYNAMIC RBAC: Create aap-admins group with current superusers as members
+      const aapAdminsGroup = this.createAapAdminsGroup(systemUsers);
+      entities.push(aapAdminsGroup);
 
       await this.connection.applyMutation({
         type: 'full',
@@ -400,18 +408,24 @@ export class AAPEntityProvider implements EntityProvider {
       this.logger.info(
         `Checking for user ${userID} in configured organizations`,
       );
-      const userOrgs = await this.ansibleServiceRef.getOrgsByUserId(userID);
 
-      // check if user's org is configured in app-config
-      const userOrgNames = userOrgs.map(org => org.name.toLowerCase());
-      const matchingOrgs = userOrgNames.filter(orgName =>
-        this.orgs.includes(orgName),
-      );
+      // get user's information and memberships in parallel
+      let foundUser: User;
+      let userOrgs: { name: string; groupName: string }[];
+      let userTeams: {
+        name: string;
+        groupName: string;
+        id: number;
+        orgId: number;
+        orgName: string;
+      }[];
 
-      // get user's information
-      let foundUser;
       try {
-        foundUser = await this.ansibleServiceRef.getUserInfoById(userID);
+        [foundUser, userOrgs, userTeams] = await Promise.all([
+          this.ansibleServiceRef.getUserInfoById(userID),
+          this.ansibleServiceRef.getOrgsByUserId(userID),
+          this.ansibleServiceRef.getTeamsByUserId(userID),
+        ]);
         this.logger.info(`User ${username} details fetched successfully`);
       } catch (e: any) {
         throw new Error(
@@ -427,23 +441,21 @@ export class AAPEntityProvider implements EntityProvider {
         );
       }
 
-      // find user in configured org teams
-      const userTeams = await this.ansibleServiceRef.getTeamsByUserId(userID);
-      const userMembers: string[] = [];
-      const teamsInConfiguredOrgs: string[] = [];
+      // check if user is a superuser
+      const isSuperuser = foundUser.is_superuser;
 
-      for (const team of userTeams) {
-        if (this.orgs.includes(team.orgName.toLowerCase())) {
-          userMembers.push(team.name);
-          teamsInConfiguredOrgs.push(team.name);
-        }
-      }
+      // Process user organizations and teams
+      const userOrgNames = userOrgs.map(org => org.name.toLowerCase());
+      const matchingOrgs = userOrgNames.filter(orgName =>
+        this.orgs.includes(orgName),
+      );
+
+      const teamsInConfiguredOrgs = userTeams
+        .filter(team => this.orgs.includes(team.orgName.toLowerCase()))
+        .map(team => team.name);
 
       const hasDirectOrgAccess = matchingOrgs.length > 0;
       const hasTeamAccess = teamsInConfiguredOrgs.length > 0;
-
-      // check if user is a superuser
-      const isSuperuser = foundUser.is_superuser;
 
       if (!hasDirectOrgAccess && !hasTeamAccess && !isSuperuser) {
         throw new Error(
@@ -453,6 +465,12 @@ export class AAPEntityProvider implements EntityProvider {
         );
       }
 
+      // Build user memberships efficiently (avoiding duplicate API calls)
+      // Note: Order matters for tests - teams first, then organizations
+      // Note: userParser will automatically add 'aap-admins' for superusers
+      const userMembers: string[] = [...teamsInConfiguredOrgs, ...matchingOrgs];
+
+      // Log access type and superuser status
       if (hasDirectOrgAccess) {
         this.logger.info(
           `User ${username} found in organizations: ${matchingOrgs.join(', ')}`,
@@ -469,7 +487,11 @@ export class AAPEntityProvider implements EntityProvider {
         );
       }
 
-      userMembers.push(...matchingOrgs);
+      if (isSuperuser) {
+        this.logger.info(
+          `User ${username} is a superuser - added to aap-admins group`,
+        );
+      }
 
       const userEntity = userParser({
         baseUrl: this.baseUrl,
@@ -478,14 +500,30 @@ export class AAPEntityProvider implements EntityProvider {
         groupMemberships: userMembers,
       });
 
+      const entitiesToAdd = [
+        {
+          entity: userEntity,
+          locationKey: this.getProviderName(),
+        },
+      ];
+
+      // 🚀 DYNAMIC RBAC: Update aap-admins group if user is a superuser
+      if (isSuperuser) {
+        const aapAdminsGroup = await this.applyAapAdminsGroupUpdate(
+          'to include new superuser',
+          username,
+        );
+        if (aapAdminsGroup) {
+          entitiesToAdd.push({
+            entity: aapAdminsGroup,
+            locationKey: this.getProviderName(),
+          });
+        }
+      }
+
       await this.connection.applyMutation({
         type: 'delta',
-        added: [
-          {
-            entity: userEntity,
-            locationKey: this.getProviderName(),
-          },
-        ],
+        added: entitiesToAdd,
         removed: [],
       });
 
@@ -506,4 +544,89 @@ export class AAPEntityProvider implements EntityProvider {
 
     return !error;
   }
+
+  /**
+   * Fetches only superusers for aap-admins group creation
+   * ⚡ OPTIMIZED: Only fetches what's needed for superuser detection
+   */
+  private async getSuperusers(): Promise<User[]> {
+    // listSystemUsers already filters by is_superuser=true, so this gets ALL superusers
+    return await this.ansibleServiceRef.listSystemUsers();
+  }
+
+  /**
+   * Applies aap-admins group update to the catalog
+   * ⚡ OPTIMIZED: Only fetches superusers, not all organization users
+   * Handles errors gracefully and provides consistent logging
+   */
+  private async applyAapAdminsGroupUpdate(
+    context: string,
+    username?: string,
+  ): Promise<Entity | null> {
+    try {
+      // Only fetch superusers for aap-admins group - much more efficient!
+      const superusers = await this.getSuperusers();
+      const aapAdminsGroup = this.createAapAdminsGroup(superusers);
+      this.logger.info(
+        `Updated aap-admins group ${context}${username ? ` for ${username}` : ''}`,
+      );
+      return aapAdminsGroup;
+    } catch (groupError) {
+      this.logger.warn(
+        `Failed to update aap-admins group ${context}${username ? ` for ${username}` : ''}: ${groupError}`,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Create the aap-admins group dynamically with all current AAP superusers
+   * This handles both adding new admins and removing users who are no longer admins
+   */
+  private createAapAdminsGroup(allUsers: User[]): Entity {
+    // Find all current AAP superusers
+    const currentSuperusers = allUsers.filter(
+      user => user.is_superuser === true,
+    );
+    const memberNames = currentSuperusers.map(
+      user => `user:default/${user.username}`,
+    );
+
+    this.logger.info(
+      `🚀 Creating aap-admins group with ${memberNames.length} current superusers: ${memberNames.join(', ')}`,
+    );
+
+    // Create group entity with dynamic member list
+    const groupEntity: Entity = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Group',
+      metadata: {
+        name: 'aap-admins',
+        namespace: 'default',
+        description:
+          'Ansible Automation Platform Superusers - Dynamically managed',
+        annotations: {
+          'backstage.io/managed-by-location': `${this.getProviderName()}:${this.env}`,
+          'backstage.io/managed-by-origin-location': `${this.getProviderName()}:${this.env}`,
+          'aap.platform/managed': 'true',
+          'aap.platform/last-sync': new Date().toISOString(),
+        },
+      },
+      spec: {
+        type: 'team',
+        profile: {
+          displayName: 'AAP Administrators',
+          description:
+            'Automatically assigned AAP superusers with RBAC admin access',
+        },
+        children: [],
+        members: memberNames, // This will update automatically on each sync
+      },
+    };
+
+    return groupEntity;
+  }
+
+  // Note: Admin access is now handled via dynamic aap-admins group membership
+  // No separate API-based assignment needed
 }

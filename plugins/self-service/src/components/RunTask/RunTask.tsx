@@ -1,5 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Page, Header, Content } from '@backstage/core-components';
+import {
+  Page,
+  Header,
+  Content,
+  MarkdownContent,
+} from '@backstage/core-components';
 import { useParams } from 'react-router-dom';
 import { useTaskEventStream } from '@backstage/plugin-scaffolder-react';
 import { TaskSteps } from '@backstage/plugin-scaffolder-react/alpha';
@@ -171,7 +176,7 @@ export const RunTask = () => {
                         variant="body2"
                         style={{ whiteSpace: 'break-spaces' }}
                       >
-                        {log}
+                        <MarkdownContent content={log} />
                       </Typography>
                     ))}
                   </div>

@@ -98,6 +98,9 @@ jest.mock('@backstage/core-components', () => {
     Content: ({ children }: { children: ReactNode }) => (
       <div data-testid="content">{children}</div>
     ),
+    MarkdownContent: ({ content }: { content: string }) => (
+      <div data-testid="markdown-content">{content}</div>
+    ),
     CircularProgress: () => <div role="progressbar" />,
   };
 });

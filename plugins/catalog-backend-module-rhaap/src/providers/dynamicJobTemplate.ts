@@ -15,7 +15,7 @@ import { formatNameSpace } from '../helpers';
 
 export const getPromptForm = () => {
   return {
-    title: 'Prompt on Launch',
+    title: 'Please enter the following details',
     required: ['token'],
     properties: {
       token: {
@@ -23,11 +23,15 @@ export const getPromptForm = () => {
         type: 'string',
         description: 'Oauth2 token',
         'ui:field': 'AAPTokenField',
-        'ui:widget': 'password',
+        'ui:widget': 'hidden',
         'ui:backstage': {
           review: {
             show: false,
           },
+        },
+        'ui:options': {
+          disabled: true,
+          hidden: true,
         },
       },
     },
@@ -228,10 +232,12 @@ export const getPromptFormDetails = (job: IJobTemplate) => {
   return [promptForm, inputVars];
 };
 
-export const getSurveyDetails = (survey: ISurvey | null) => {
-  const surveyParams: any = {};
+export const getSurveyDetails = (
+  promptForm: JsonObject,
+  survey: ISurvey | null,
+) => {
   const extraVariables: any = {};
-  if (!survey) return [surveyParams, extraVariables];
+  if (!survey) return [promptForm, extraVariables];
   (survey.spec ?? []).forEach((item: ISpec) => {
     let inputType: string | null = null;
     if (
@@ -247,7 +253,8 @@ export const getSurveyDetails = (survey: ISurvey | null) => {
       inputType = 'integer';
     }
     const paramVar = item.variable;
-    surveyParams[paramVar] = {
+    if (!promptForm.properties) promptForm.properties = {} as JsonObject;
+    (promptForm.properties as JsonObject)[paramVar] = {
       title: item.question_name,
       description: item.question_description,
       ...(inputType && { type: inputType }),
@@ -287,16 +294,23 @@ export const getSurveyDetails = (survey: ISurvey | null) => {
     extraVariables[paramVar] = `\${{ parameters.${paramVar} }}`;
   });
 
-  const surveyForm = {
-    title: survey.name,
-    description: survey.description,
-    required: (survey.spec || [])
+  promptForm.required = [
+    ...((promptForm.required as string[]) || []),
+    ...(survey.spec || [])
       .filter(item => item.required)
       .map(item => item.variable),
-    properties: surveyParams,
-  };
+  ];
 
-  return [surveyForm, extraVariables];
+  // const surveyForm = {
+  //   title: survey.name,
+  //   description: survey.description,
+  //   required: (survey.spec || [])
+  //     .filter(item => item.required)
+  //     .map(item => item.variable),
+  //   properties: surveyParams,
+  // };
+
+  return [promptForm, extraVariables];
 };
 
 export const generateTemplate = (options: {
@@ -307,7 +321,10 @@ export const generateTemplate = (options: {
 }): Entity => {
   const { baseUrl, nameSpace, job, survey } = options;
   const [promptForm, inputVars] = getPromptFormDetails(job);
-  const [surveyForm, extraVariables] = getSurveyDetails(survey);
+  const [finalPromptForm, extraVariables] = getSurveyDetails(
+    promptForm,
+    survey,
+  );
   const template: Entity = {
     apiVersion: 'scaffolder.backstage.io/v1beta3',
     kind: 'Template',
@@ -327,8 +344,7 @@ export const generateTemplate = (options: {
     },
     spec: {
       type: 'service',
-      ...(!survey && { parameters: [promptForm] }),
-      ...(survey && { parameters: [promptForm, surveyForm] }),
+      parameters: [finalPromptForm],
       steps: [
         {
           id: 'launch-job',
@@ -338,7 +354,9 @@ export const generateTemplate = (options: {
             token: '${{ parameters.token }}',
             values: {
               template: job.name,
-              ...inputVars,
+              ...Object.fromEntries(
+                Object.entries(inputVars).filter(([key]) => key !== 'token'),
+              ),
               ...(survey && { extraVariables }),
             },
           },

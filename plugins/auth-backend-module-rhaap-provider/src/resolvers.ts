@@ -87,9 +87,11 @@ export namespace AAPAuthSignInResolvers {
           }
 
           try {
-            await ctx.findCatalogUser({
-              entityRef: { name: username },
-            });
+            if (username) {
+              await ctx.findCatalogUser({
+                entityRef: { name: username },
+              });
+            }
           } catch {
             await createUserInCatalog(username, userID, discovery);
           }

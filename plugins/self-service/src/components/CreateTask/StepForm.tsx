@@ -180,10 +180,7 @@ export const StepForm = ({ steps, submitFunction }: StepFormProps) => {
                       </TableRow>,
                       ...Object.entries(step.schema.properties || {}).flatMap(
                         ([key, _]) => {
-                          if (
-                            step.schema?.properties?.[key]?.['ui:backstage']
-                              ?.review?.show === false
-                          ) {
+                          if (key === 'token') {
                             return [];
                           }
                           const label = getLabel(key, stepIndex);

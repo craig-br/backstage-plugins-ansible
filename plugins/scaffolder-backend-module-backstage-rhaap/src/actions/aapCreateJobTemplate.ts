@@ -15,6 +15,7 @@ export const createJobTemplate = (ansibleServiceRef: IAAPService) => {
         properties: {
           token: {
             type: 'string',
+            description: 'Oauth2 token',
           },
           deleteIfExist: {
             type: 'boolean',

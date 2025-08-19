@@ -1,38 +1,56 @@
+# Ansible RHDH / Self-Service Configuration
+# 
+# This configuration includes a DYNAMIC RBAC solution for AAP superusers:
+# 
+# 🚀 DYNAMIC RBAC FEATURES:
+#   • AAP superusers automatically get /rbac admin access
+#   • Zero backend restarts needed for user changes  
+#   • Automatic user addition/removal based on is_superuser status
+#   • Group-based assignment via aap-admins group
+#
+# 🔄 HOW IT WORKS:
+#   1. AAPEntityProvider syncs AAP users every 60 minutes
+#   2. Creates dynamic 'aap-admins' group with current superusers
+#   3. RBAC grants admin permissions to group members
+#   4. New superusers get access automatically on next sync
+#   5. Former superusers lose access automatically on next sync
+#
+
 app:
   title: Ansible RHDH / Self-Service
   baseUrl: http://localhost:3000
-
 organization:
   name: Ansible RHDH
-
 backend:
-  # Used for enabling authentication, secret is shared by all backend plugins
-  # See https://backstage.io/docs/auth/service-to-service-auth for
-  # information on the format
-  # auth:
-  #   keys:
-  #     - secret: ${BACKEND_SECRET}
+  auth:
+    keys:
+      - secret: ${BACKEND_SECRET:-development-secret-change-in-production}
+    sessions:
+      # Persistent signing key prevents JWT token invalidation on backend restarts
+      # This is essential for dynamic RBAC automation and service-to-service authentication
+      signingKey: ${AUTH_SIGNING_KEY:-myPersistentSigningKey123456789012345678901234567890}
   baseUrl: http://localhost:7007
   listen:
     port: 7007
-    # Uncomment the following host directive to bind to specific interfaces
-    # host: 127.0.0.1
   csp:
-    connect-src: ["'self'", 'http:', 'https:']
-    # Content-Security-Policy directives follow the Helmet format: https://helmetjs.github.io/#reference
-    # Default Helmet Content-Security-Policy values can be removed by setting the key to false
+    connect-src:
+      - '''self'''
+      - 'http:'
+      - 'https:'
   cors:
     origin: http://localhost:3000
-    methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+    methods:
+      - GET
+      - HEAD
+      - PATCH
+      - POST
+      - PUT
+      - DELETE
     credentials: true
-  # This is for local development only, it is not recommended to use this in production
-  # The production database configuration is stored in app-config.production.yaml
   database:
     client: better-sqlite3
     connection: ':memory:'
   # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
-  auth:
-    dangerouslyDisableDefaultAuthPolicy: true
   reading:
     allow:
       - host: gitlab.com
@@ -47,52 +65,28 @@ backend:
 integrations:
   github:
     - host: github.com
-      # This is a Personal Access Token or PAT from GitHub. You can find out how to generate this token, and more information
-      # about setting up the GitHub integration here: https://backstage.io/docs/integrations/github/locations#configuration
       token: <YOUR_GITHUB_PAT>
-    ### Example for how to add your GitHub Enterprise instance using the API:
-    # - host: ghe.example.net
-    #   apiBaseUrl: https://ghe.example.net/api/v3
-    #   token: ${GHE_TOKEN}
   gitlab:
     - host: gitlab.com
       token: <YOUR_GITLAB_PAT>
-
-proxy:
-  ### Example for how to add a proxy endpoint for the frontend.
-  ### A typical reason to do this is to handle HTTPS and CORS for internal services.
-  # endpoints:
-  #   '/test':
-  #     target: 'https://example.com'
-  #     changeOrigin: true
-
-# Reference documentation http://backstage.io/docs/features/techdocs/configuration
-# Note: After experimenting with basic setup, use CI/CD to generate docs
-# and an external cloud storage when deploying TechDocs for production use-case.
-# https://backstage.io/docs/features/techdocs/how-to-guides#how-to-migrate-from-techdocs-basic-to-recommended-deployment-approach
+proxy: {}
 techdocs:
-  builder: 'local' # Alternatives - 'external'
+  builder: local
   generator:
-    runIn: 'docker' # Alternatives - 'local'
+    runIn: docker
   publisher:
-    type: 'local' # Alternatives - 'googleGcs' or 'awsS3'. Read documentation for using alternatives.
-
+    type: local
 enableExperimentalRedirectFlow: true
 signInPage: rhaap
 auth:
-  # see https://backstage.io/docs/auth/ to learn about auth providers
   environment: development
   providers:
-    # See https://backstage.io/docs/auth/guest/provider
-    # guest: {}
     github:
       development:
-        # Need to create a github app and use the client ID and client secret here
         clientId: <changeme>
         clientSecret: <changeme>
     rhaap:
       development:
-        # Need to create an app on AAP instance and use the client ID and client secret here
         host: <changeme>
         checkSSL: false
         clientId: <changeme>
@@ -100,78 +94,48 @@ auth:
         signIn:
           resolvers:
             - resolver: allowNewAAPUserSignIn
-
-scaffolder:
-  # see https://backstage.io/docs/features/software-templates/configuration for software template options
-
+scaffolder: {}
 catalog:
   stitchingStrategy:
     immediate: true
   orphanStrategy: delete
-  processingInterval: { seconds: 10 }
-  pollingInterval: { seconds: 1 }
-  stitchTimeout: { minutes: 1 }
+  processingInterval:
+    seconds: 10
+  pollingInterval:
+    seconds: 1
+  stitchTimeout:
+    minutes: 1
   import:
     entityFilename: catalog-info.yaml
     pullRequestBranchName: backstage-integration
   rules:
     - allow:
-        [Component, System, Group, Resource, Location, Template, API, Users]
-  # rules:
-  #   - allow: [Component, System, API, Resource, Location]
-  locations:
-    # Local example data, file locations are relative to the backend process, typically `packages/backend`
-    # - type: file
-    #   target: ../../examples/entities.yaml
-
-    # # Local example template
-    # - type: file
-    #   target: ../../examples/template/template.yaml
-    #   rules:
-    #     - allow: [Template]
-
-    # # Local example organizational data
-    # - type: file
-    #   target: ../../examples/org.yaml
-    #   rules:
-    #     - allow: [User, Group]
-
-    ## Uncomment these lines to add more example data
-    # - type: url
-    #   target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/all.yaml
-
-    ## Uncomment these lines to add an example org
-    # - type: url
-    #   target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/acme-corp.yaml
-    #   rules:
-    #     - allow: [User, Group]
-    # - type: url
-    #   target: https://github.com/ansible/ansible-rhdh-templates/blob/devel/all.yaml
-    #   rules:
-    #     - allow: [Template]
-    # - type: url
-    #   target: https://github.com/ansible/ansible-rhdh-templates/blob/devel/seed.yaml
-    #   rules:
-    #     - allow: [Template]
-  # Experimental: Always use the search method in UrlReaderProcessor.
-  # New adopters are encouraged to enable it as this behavior will be the default in a future release.
+        - Component
+        - System
+        - Group
+        - Resource
+        - Location
+        - Template
+        - API
+        - Users
+  # Note: No static locations needed - aap-admins group is dynamically managed by AAPEntityProvider
   useUrlReadersSearch: true
   providers:
     rhaap:
       development:
         orgs: Default
         sync:
+          # Syncs AAP organizations, users, and teams
+          # Also creates dynamic aap-admins group with current superusers
           orgsUsersTeams:
             schedule:
               frequency: { minutes: 60 }
-              timeout: { seconds: 30 }
+              timeout: { minutes: 15 }
           jobTemplates:
             enabled: true
-            # labels?: []
-            # surveyEnabled?: false
             schedule:
               frequency: { minutes: 60 }
-              timeout: { seconds: 30 }
+              timeout: { minutes: 15 }
           # ADDED FOR FUTURE REFERENCE
           # TODO: UNCOMMENT FOR PATTERN INTEGRATION
           # collections:
@@ -184,35 +148,37 @@ ansible:
   analytics:
     enabled: true
   devSpaces:
-    baseUrl: 'https://devspaces.apps.ansible-rhdh.testing.ansible.com/'
+    baseUrl: https://devspaces.apps.ansible-rhdh.testing.ansible.com/
   automationHub:
-    baseUrl: 'https://example.com'
+    baseUrl: https://example.com
   rhaap:
-    # Need to create a AAP token and use token here
-    baseUrl: <changeme>
-    token: <changeme>
-    checkSSL: false
+    # Ansible Automation Platform connection settings
+    baseUrl: <changeme>    # AAP controller URL
+    token: <changeme>      # AAP API token with appropriate permissions
+    checkSSL: false        # Set to true in production
     showCaseLocation:
       type: file
-      target: '/tmp/aap-showcases/'
+      target: /tmp/aap-showcases/
   creatorService:
-    baseUrl: 'localhost'
+    baseUrl: localhost
     port: '8000'
+kubernetes: {}
 
-kubernetes:
-  # see https://backstage.io/docs/features/kubernetes/configuration for kubernetes configuration options
-
-# see https://backstage.io/docs/permissions/getting-started for more on the permission framework
 permission:
-  # setting this to `false` will disable permissions
   enabled: true
   rbac:
+    # if you want to use a csv file for rbac, uncomment the following lines.
+    # Refer default-rbac-policy.csv for the policy file.
+    # policies-csv-file: /Users/audgirka/src/ansible-backstage-plugins/default-rbac-policy.csv
+    # policyFileReload: true
     admin:
-      superUsers:
-        - name: user:default/admin
       users:
-        - name: user:default/admin
-        - name: group:default/admins
+        - name: user:default/admin              # Bootstrap admin for initial setup
+        - name: group:default/aap-admins        # 🚀 DYNAMIC RBAC: AAP superusers with full permissions
+      superUsers:
+        - name: user:default/admin              # Bootstrap admin with full permissions  
+        - name: group:default/aap-admins        # 🚀 DYNAMIC RBAC: AAP superusers with full permissions
+    # Plugins that require permission evaluation
     pluginsWithPermission:
       - catalog
       - scaffolder

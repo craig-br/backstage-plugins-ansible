@@ -11,6 +11,7 @@ export const cleanUp = (ansibleServiceRef: IAAPService) => {
         properties: {
           token: {
             type: 'string',
+            description: 'Oauth2 token',
           },
           values: {
             type: 'object',

@@ -7,7 +7,6 @@
     "node": "20 || 22"
   },
   "author": "Red Hat <ansible-devtools@redhat.com>",
-  "license": "TBD",
   "scripts": {
     "prepare": "husky install",
     "start": "NODE_OPTIONS=\"${NODE_OPTIONS:-} --no-node-snapshot\" backstage-cli repo start",
@@ -17,7 +16,8 @@
     "tsc": "tsc",
     "tsc:full": "tsc --skipLibCheck false --incremental false",
     "clean": "backstage-cli repo clean",
-    "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" backstage-cli repo test",
+    "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" backstage-cli repo test --watch=false",
+    "test:watch": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" backstage-cli repo test",
     "test:all": "NODE_OPTIONS=\"--experimental-vm-modules\" backstage-cli repo test --coverage",
     "test:e2e": "playwright test",
     "fix": "backstage-cli repo fix",
@@ -32,7 +32,8 @@
   "workspaces": {
     "packages": [
       "packages/*",
-      "plugins/*"
+      "plugins/*",
+      "e2e-tests/*"
     ]
   },
   "devDependencies": {

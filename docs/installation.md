@@ -11,7 +11,7 @@ Once the install step is done update `app-config.yaml` file with changes to `int
 Then start the project with
 
 ```sh
-yarn dev
+yarn start
 ```
 
 ## Test plugins for ansible experience

@@ -177,6 +177,7 @@ describe('entityParser', () => {
           name: 'johndoe',
           title: 'John Doe',
           annotations: {
+            'aap.platform/is_superuser': 'false',
             [ANNOTATION_LOCATION]:
               'url:https://example.com/access/users/1/details',
             [ANNOTATION_ORIGIN_LOCATION]:

@@ -77,10 +77,26 @@ export function userParser(options: {
   groupMemberships: string[];
 }): Entity {
   const { baseUrl, user, nameSpace, groupMemberships } = options;
+
+  // Add aap-admins group for superusers
+  const finalGroupMemberships = [...groupMemberships];
+  if (user.is_superuser === true) {
+    finalGroupMemberships.push('aap-admins');
+  }
   const name =
     user.first_name?.length || user.last_name?.length
       ? `${user.first_name} ${user.last_name}`
       : user.username;
+
+  const annotations: Record<string, string> = {
+    [ANNOTATION_LOCATION]: `url:${baseUrl}/access/users/${user.id}/details`,
+    [ANNOTATION_ORIGIN_LOCATION]: `url:${baseUrl}/access/users/${user.id}/details`,
+  };
+
+  // Add RBAC-relevant annotations
+  if (user.is_superuser !== undefined) {
+    annotations['aap.platform/is_superuser'] = String(user.is_superuser);
+  }
 
   return {
     apiVersion: 'backstage.io/v1alpha1',
@@ -89,10 +105,7 @@ export function userParser(options: {
       namespace: nameSpace,
       name: user.username,
       title: name,
-      annotations: {
-        [ANNOTATION_LOCATION]: `url:${baseUrl}/access/users/${user.id}/details`,
-        [ANNOTATION_ORIGIN_LOCATION]: `url:${baseUrl}/access/users/${user.id}/details`,
-      },
+      annotations,
     },
     spec: {
       profile: {
@@ -100,7 +113,7 @@ export function userParser(options: {
         displayName: name,
         email: user?.email ? user.email : ' ',
       },
-      memberOf: groupMemberships,
+      memberOf: finalGroupMemberships,
     },
   };
 }

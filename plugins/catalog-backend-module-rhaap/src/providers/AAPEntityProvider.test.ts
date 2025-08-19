@@ -143,6 +143,7 @@ describe('AAPEntityProvider', () => {
         name: 'user1',
         title: 'User1 Last1',
         annotations: {
+          'aap.platform/is_superuser': 'false',
           'backstage.io/managed-by-location':
             'url:https://rhaap.test/access/users/1/details',
           'backstage.io/managed-by-origin-location':
@@ -166,6 +167,7 @@ describe('AAPEntityProvider', () => {
         name: 'user2',
         title: 'User2 Last2',
         annotations: {
+          'aap.platform/is_superuser': 'false',
           'backstage.io/managed-by-location':
             'url:https://rhaap.test/access/users/2/details',
           'backstage.io/managed-by-origin-location':
@@ -186,6 +188,7 @@ describe('AAPEntityProvider', () => {
       kind: 'User',
       metadata: {
         annotations: {
+          'aap.platform/is_superuser': 'false',
           'backstage.io/managed-by-location':
             'url:https://rhaap.test/access/users/1/details',
           'backstage.io/managed-by-origin-location':
@@ -209,6 +212,7 @@ describe('AAPEntityProvider', () => {
       kind: 'User',
       metadata: {
         annotations: {
+          'aap.platform/is_superuser': 'false',
           'backstage.io/managed-by-location':
             'url:https://rhaap.test/access/users/2/details',
           'backstage.io/managed-by-origin-location':
@@ -225,6 +229,34 @@ describe('AAPEntityProvider', () => {
           email: 'teamuser2@test.com',
           username: 'team_user2',
         },
+      },
+    },
+    {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Group',
+      metadata: {
+        annotations: {
+          'aap.platform/last-sync': expect.any(String),
+          'aap.platform/managed': 'true',
+          'backstage.io/managed-by-location':
+            'AapEntityProvider:development:development',
+          'backstage.io/managed-by-origin-location':
+            'AapEntityProvider:development:development',
+        },
+        description:
+          'Ansible Automation Platform Superusers - Dynamically managed',
+        name: 'aap-admins',
+        namespace: 'default',
+      },
+      spec: {
+        children: [],
+        members: [], // No superusers in the mock data
+        profile: {
+          description:
+            'Automatically assigned AAP superusers with RBAC admin access',
+          displayName: 'AAP Administrators',
+        },
+        type: 'team',
       },
     },
   ].map(entity => ({
@@ -486,12 +518,26 @@ describe('AAPEntityProvider', () => {
 
       mockAnsibleService.getTeamsByUserId.mockResolvedValue([]);
 
+      // Mock the listSystemUsers call for aap-admins group creation
+      mockAnsibleService.listSystemUsers.mockResolvedValue([
+        {
+          id: 456,
+          username: 'admin',
+          email: 'admin@example.com',
+          first_name: 'Admin',
+          last_name: 'User',
+          is_superuser: true,
+          is_orguser: false,
+          url: 'https://test.example.com/users/456',
+        },
+      ]);
+
       const result = await provider.createSingleUser(username, userID);
 
       expect(result).toBe(true);
       expect(mockConnection.applyMutation).toHaveBeenCalledWith({
         type: 'delta',
-        added: [
+        added: expect.arrayContaining([
           {
             entity: expect.objectContaining({
               kind: 'User',
@@ -499,12 +545,21 @@ describe('AAPEntityProvider', () => {
                 name: 'admin',
               }),
               spec: expect.objectContaining({
-                memberOf: [],
+                memberOf: ['aap-admins'],
               }),
             }),
             locationKey: 'AapEntityProvider:development',
           },
-        ],
+          {
+            entity: expect.objectContaining({
+              kind: 'Group',
+              metadata: expect.objectContaining({
+                name: 'aap-admins',
+              }),
+            }),
+            locationKey: 'AapEntityProvider:development',
+          },
+        ]),
         removed: [],
       });
     });
