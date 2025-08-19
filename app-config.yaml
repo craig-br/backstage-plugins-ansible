@@ -57,11 +57,9 @@ backend:
       - host: github.com
       - host: raw.githubusercontent.com
       - host: localhost
-  # Fix for body parser conflicts in catalog import
   request:
     bodyParsing:
       sizeLimit: 10mb
-
 integrations:
   github:
     - host: github.com
