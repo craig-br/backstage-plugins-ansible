@@ -40,7 +40,7 @@ export const CatalogImport = () => {
               titleTypographyProps={{ component: 'h3' }}
               deepLink={{
                 title: 'View template YAML example',
-                link: 'https://github.com/ansible/ansible-rhdh-templates/blob/main/generic-seed/template.yaml',
+                link: 'https://red.ht/portal_template_example',
               }}
             >
               <Typography variant="body2" paragraph>
