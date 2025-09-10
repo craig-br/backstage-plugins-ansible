@@ -447,6 +447,8 @@ spec:
         - "false"
     - name: sast-snyk-check
       params:
+      - name: PROJECT_NAME
+        value: 'ansible-backstage-plugins'
       - name: image-digest
         value: $(tasks.build-image-index.results.IMAGE_DIGEST)
       - name: image-url
@@ -535,6 +537,10 @@ spec:
         resolver: bundles
       when:
       - input: $(params.skip-checks)
+        operator: in
+        values:
+        - "false"
+      - input: $(params.skip-coverity)
         operator: in
         values:
         - "false"
