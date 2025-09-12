@@ -1,24 +1,22 @@
 #!/bin/bash
 set -euo pipefail
+YARN_CMD="yarn"
 
 # Optimize build performance
-export NODE_OPTIONS="--max-old-space-size=8192"
+export NODE_OPTIONS="--max-old-space-size=16384"
 
-# Run yarn install using Cachi2's pre-built dependencies
-echo "Setting up node_modules from Cachi2 pre-built dependencies..."
-# Install with graceful handling of build failures
-node .yarn/releases/yarn-4.9.2.cjs install --immutable || {
+$YARN_CMD install --immutable || {
     echo "Yarn install failed, but continuing with available packages..."
     echo "This may be due to native package build failures in hermetic environment"
 }
 
 echo "Running tsc"
-node .yarn/releases/yarn-4.9.2.cjs tsc
+$YARN_CMD tsc
 echo "tsc completed successfully"
 
 # Build all plugins
 echo "Building all plugins"
-node .yarn/releases/yarn-4.9.2.cjs build
+$YARN_CMD build
 
 # Handle different build types based on environment variables
 if [ "${BUILD_TYPE:-}" = "portal" ]; then
@@ -30,7 +28,7 @@ if [ "${BUILD_TYPE:-}" = "portal" ]; then
   fi
 
   # Export dynamic plugins for Portal automation
-  node .yarn/releases/yarn-4.9.2.cjs export-local
+  $YARN_CMD export-local
 
 elif [ "${BUILD_TYPE:-}" = "rhdh" ]; then
   echo "Building for RHDH - including only backstage-rhaap and scaffolder-backend-module-backstage-rhaap"
@@ -46,12 +44,12 @@ elif [ "${BUILD_TYPE:-}" = "rhdh" ]; then
   done
 
   # Export only RHDH plugins
-  node .yarn/releases/yarn-4.9.2.cjs export-local
+  $YARN_CMD export-local
 
 else
   echo "Building all plugins (default behavior)"
   # Export all plugins (default behavior)
-  node .yarn/releases/yarn-4.9.2.cjs export-local
+  $YARN_CMD export-local
 fi
 
 echo "Dynamic plugins built successfully"

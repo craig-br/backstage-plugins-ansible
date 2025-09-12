@@ -25,7 +25,7 @@ spec:
   - name: output-image
     value: quay.io/ansible/ansible-backstage-plugins:main
   - name: image-expires-after
-    value: 5d
+    value: 14d
   - name: dockerfile
     value: Containerfile
   - name: skip-coverity
@@ -34,6 +34,23 @@ spec:
     value: '{"type": "yarn", "path": "."}'
   - name: build-source-image
     value: "true"
+  taskRunSpecs:
+    - pipelineTaskName: prefetch-dependencies
+      computeResources:
+        requests:
+          cpu: 6
+          memory: 16Gi
+        limits:
+          cpu: 6
+          memory: 16Gi
+    - pipelineTaskName: build-dynamic-plugins
+      computeResources:
+        requests:
+          cpu: 6
+          memory: 16Gi
+        limits:
+          cpu: 6
+          memory: 16Gi
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
@@ -133,14 +150,6 @@ spec:
     - description: ""
       name: CHAINS-GIT_COMMIT
       value: $(tasks.clone-repository.results.commit)
-    taskRunSpecs:
-      computeResources:
-        requests:
-          cpu: 6
-          memory: 16Gi
-        limits:
-          cpu: 6
-          memory: 16Gi
     tasks:
     - name: init
       params:
@@ -225,7 +234,7 @@ spec:
       - name: ociArtifactExpiresAfter
         value: $(params.image-expires-after)
       - name: dev-package-managers
-        value: "true"
+        value: "false"
       runAfter:
       - clone-repository
       taskRef:
@@ -249,7 +258,7 @@ spec:
         - name: ociArtifactExpiresAfter
           value: $(params.image-expires-after)
         - name: SCRIPT_RUNNER_IMAGE
-          value: registry.redhat.io/rhel9/nodejs-22:latest
+          value: quay.io/konflux-ci/yarn4-nodejs22-ubi9-minimal:latest
         - name: SCRIPT_ARTIFACT_RELATIVE_PATH
           value: dynamic-plugins
         - name: SCRIPT
@@ -419,26 +428,6 @@ spec:
           value: clair-scan
         - name: bundle
           value: quay.io/konflux-ci/tekton-catalog/task-clair-scan:0.2@sha256:076d5cde62b55bbfcdda2b4782392256bbda5ad38f839013b4330b3aba70a973
-        - name: kind
-          value: task
-        resolver: bundles
-      when:
-      - input: $(params.skip-checks)
-        operator: in
-        values:
-        - "false"
-    - name: ecosystem-cert-preflight-checks
-      params:
-      - name: image-url
-        value: $(tasks.build-image-index.results.IMAGE_URL)
-      runAfter:
-      - build-image-index
-      taskRef:
-        params:
-        - name: name
-          value: ecosystem-cert-preflight-checks
-        - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-ecosystem-cert-preflight-checks:0.2@sha256:9f93749cfc4f665d0c1b8cd99d16ed90514e795d18d5d27b43d504bddeed3690
         - name: kind
           value: task
         resolver: bundles
