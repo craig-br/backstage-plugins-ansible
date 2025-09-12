@@ -732,6 +732,25 @@ export class AAPClient implements IAAPService {
       this.logger.error(`Job failed: ${lastEvent}`);
       throw new Error(`Job execution failed due to ${lastEvent}`);
     }
+
+    if (
+      result.jobEvents &&
+      Array.isArray(result.jobEvents) &&
+      result.jobEvents.length > 0
+    ) {
+      this.logger.info(`Job Events Summary:`);
+      result.jobEvents
+        .filter(
+          (event: any) =>
+            event.event_display && !event.event_display.includes('Verbose'),
+        )
+        .forEach((event: any) => {
+          this.logger.info(`${event.event_display}`);
+        });
+    } else {
+      this.logger.info(`No job events found.`);
+    }
+
     return {
       id: jobID,
       status: result.jobData.status,
