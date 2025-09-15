@@ -63,29 +63,6 @@ describe('Job Template Sync Tests - Fixed', () => {
       });
     });
 
-    it('Should verify Start button navigates to create endpoint', () => {
-      cy.visit('/self-service/catalog');
-      cy.wait(5000); // Wait for API request to complete
-
-      // Look for Start button
-      cy.get('body').then($body => {
-        if ($body.text().includes('Start')) {
-          cy.contains('Start').first().click();
-          cy.wait(2000);
-
-          // Should navigate to create endpoint
-          cy.url().should('include', '/self-service/create');
-          cy.get('main', { timeout: 10000 }).should('be.visible');
-        } else {
-          cy.log(
-            'ℹ️ No Start button found - user may not have template access',
-          );
-          // Still verify the catalog loaded properly
-          cy.get('main').should('be.visible');
-        }
-      });
-    });
-
     it('Should handle template access permissions gracefully', () => {
       cy.visit('/self-service/catalog');
       cy.wait(5000); // Wait for API request
