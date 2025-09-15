@@ -56,6 +56,15 @@ mkdir -p "$packDestination"
 # Move source code tar to the pack destination directory
 mv $sourcePackDir-$VERSION.tar.gz "$packDestination"
 
+# Define plugin categories
+rhdh_plugins=("backstage-rhaap" "scaffolder-backend-module-backstage-rhaap")
+self_service_plugins=("auth-backend-module-rhaap-provider" "catalog-backend-module-rhaap" "self-service" "scaffolder-backend-module-backstage-rhaap")
+
+# Create separate directories for each bundle
+rhdh_pack_dir="rhdh-plugins-archives"
+self_service_pack_dir="self-service-plugins-archives"
+mkdir -p "$rhdh_pack_dir" "$self_service_pack_dir"
+
 # Loop through each subdirectory in the ./plugins directory
 for pluginDir in "$pluginsDir"/*; do
   if [ -d "$pluginDir" ]; then
@@ -63,7 +72,21 @@ for pluginDir in "$pluginsDir"/*; do
     if [ "$pluginName" == "backstage-rhaap-common" ]; then
       continue
     fi
+    
+    # Pack the plugin
     .github/actions/pack/pack_one.sh "$pluginDir"
+    
+    # Copy the packed plugin to appropriate directories
+    if [[ " ${rhdh_plugins[*]} " == *" ${pluginName} "* ]]; then
+      # Copy to RHDH plugins directory
+      cp "$packDestination"/* "$rhdh_pack_dir/" 2>/dev/null || true
+    fi
+    if [[ " ${self_service_plugins[*]} " == *" ${pluginName} "* ]]; then
+      # Copy to self-service plugins directory
+      cp "$packDestination"/* "$self_service_pack_dir/" 2>/dev/null || true
+    fi
+    # Clean up the temporary files in packDestination after copying
+    rm -f "$packDestination"/* 2>/dev/null || true
   fi
 done
 
@@ -72,19 +95,29 @@ echo "Completed processing all plugin directories."
 # Create the final pack directory if it doesn't exist
 mkdir -p "$finalPackDir"
 
-# Create a tarball of the dynamic-plugins-archives directory
-tarballName="ansible-backstage-rhaap-bundle-$VERSION.tar.gz"
-tar -czvf "$tarballName" -C "$packDestination" .
+# Add source code to both directories
+cp "$packDestination/$sourcePackDir-$VERSION.tar.gz" "$rhdh_pack_dir/" 2>/dev/null || true
+cp "$packDestination/$sourcePackDir-$VERSION.tar.gz" "$self_service_pack_dir/" 2>/dev/null || true
 
-# Move the tarball to the final pack directory
-mv "$tarballName" "$finalPackDir"
+# Create RHDH plugins tarball
+rhdh_tarball_name="ansible-rhdh-plugins-$VERSION.tar.gz"
+tar -czvf "$rhdh_tarball_name" -C "$rhdh_pack_dir" .
+mv "$rhdh_tarball_name" "$finalPackDir"
 
-# Copy the content of dynamic-plugins-archives to ansible-plugins-pack
-cp -r "$packDestination/." "$finalPackDir/"
+# Create self-service automation portal plugins tarball
+self_service_tarball_name="self-service-automation-portal-plugins-$VERSION.tar.gz"
+tar -czvf "$self_service_tarball_name" -C "$self_service_pack_dir" .
+mv "$self_service_tarball_name" "$finalPackDir"
 
-# Delete the dynamic-plugins-archives directory
-rm -rf "$packDestination"
+# Copy the content of both directories to ansible-plugins-pack
+cp -r "$rhdh_pack_dir/." "$finalPackDir/"
+cp -r "$self_service_pack_dir/." "$finalPackDir/"
 
-echo "Tarball created and moved to $finalPackDir"
-echo "Contents of dynamic-plugins-archives copied to $finalPackDir"
-echo "Deleted dynamic-plugins-archives directory"
+# Delete the temporary directories
+rm -rf "$packDestination" "$rhdh_pack_dir" "$self_service_pack_dir"
+
+echo "Two tarballs created and moved to $finalPackDir:"
+echo "  - ansible-rhdh-plugins-$VERSION.tar.gz (contains backstage-rhaap and scaffolder-backend-module plugins)"
+echo "  - self-service-automation-portal-plugins-$VERSION.tar.gz (contains auth-backend-module, catalog-backend-module, and self-service plugins)"
+echo "Contents of both plugin archives copied to $finalPackDir"
+echo "Deleted temporary directories"
