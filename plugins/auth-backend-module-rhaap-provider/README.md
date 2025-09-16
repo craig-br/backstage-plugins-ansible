@@ -47,11 +47,12 @@ auth:
       signIn:
         resolvers:
           - resolver: usernameMatchingUser
+```
 
 ## Detailed Documentation
 
 For comprehensive configuration, troubleshooting, and advanced usage, see:
+
 - [External Authentication Documentation](../../docs/features/external-authentication.md) - Complete setup and configuration guide
 - [Users, Teams, and Organizations Sync](../../docs/features/users-teams-organizations.md) - User catalog synchronization
 - [Job Template Execution](../../docs/features/job-templates.md) - Executing AAP job templates with authenticated users
-```
