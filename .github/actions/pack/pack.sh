@@ -78,15 +78,15 @@ for pluginDir in "$pluginsDir"/*; do
     
     # Copy the packed plugin to appropriate directories
     if [[ " ${rhdh_plugins[*]} " == *" ${pluginName} "* ]]; then
-      # Copy to RHDH plugins directory
-      cp "$packDestination"/* "$rhdh_pack_dir/" 2>/dev/null || true
+      # Copy only this plugin's files to RHDH plugins directory
+      cp "$packDestination"/*"$pluginName"* "$rhdh_pack_dir/" 2>/dev/null || true
     fi
     if [[ " ${self_service_plugins[*]} " == *" ${pluginName} "* ]]; then
-      # Copy to self-service plugins directory
-      cp "$packDestination"/* "$self_service_pack_dir/" 2>/dev/null || true
+      # Copy only this plugin's files to self-service plugins directory
+      cp "$packDestination"/*"$pluginName"* "$self_service_pack_dir/" 2>/dev/null || true
     fi
-    # Clean up the temporary files in packDestination after copying
-    rm -f "$packDestination"/* 2>/dev/null || true
+    # Clean up the temporary plugin files in packDestination after copying (but preserve source code)
+    find "$packDestination" -name "*$pluginName*" -delete 2>/dev/null || true
   fi
 done
 
@@ -95,9 +95,38 @@ echo "Completed processing all plugin directories."
 # Create the final pack directory if it doesn't exist
 mkdir -p "$finalPackDir"
 
-# Add source code to both directories
-cp "$packDestination/$sourcePackDir-$VERSION.tar.gz" "$rhdh_pack_dir/" 2>/dev/null || true
-cp "$packDestination/$sourcePackDir-$VERSION.tar.gz" "$self_service_pack_dir/" 2>/dev/null || true
+# Create plugin-specific source code tarballs
+echo "Creating plugin-specific source code tarballs..."
+
+# Create RHDH plugins source code tarball
+rhdh_source_files=""
+for plugin in "${rhdh_plugins[@]}"; do
+  if [ -d "plugins/$plugin/src" ]; then
+    rhdh_source_files="$rhdh_source_files plugins/$plugin/src plugins/$plugin/package.json plugins/$plugin/README.md plugins/$plugin/config.d.ts"
+  fi
+done
+
+if [ -n "$rhdh_source_files" ]; then
+  rhdh_source_tarball="ansible-rhdh-plugins-source-code-$VERSION.tar.gz"
+  tar -czvf "$rhdh_source_tarball" $rhdh_source_files 2>/dev/null || true
+  mv "$rhdh_source_tarball" "$rhdh_pack_dir/"
+  echo "Created RHDH plugins source code tarball with source directories only"
+fi
+
+# Create self-service plugins source code tarball
+self_service_source_files=""
+for plugin in "${self_service_plugins[@]}"; do
+  if [ -d "plugins/$plugin/src" ]; then
+    self_service_source_files="$self_service_source_files plugins/$plugin/src plugins/$plugin/package.json plugins/$plugin/README.md plugins/$plugin/config.d.ts"
+  fi
+done
+
+if [ -n "$self_service_source_files" ]; then
+  self_service_source_tarball="self-service-automation-portal-plugins-source-code-$VERSION.tar.gz"
+  tar -czvf "$self_service_source_tarball" $self_service_source_files 2>/dev/null || true
+  mv "$self_service_source_tarball" "$self_service_pack_dir/"
+  echo "Created self-service plugins source code tarball with source directories only"
+fi
 
 # Create RHDH plugins tarball
 rhdh_tarball_name="ansible-rhdh-plugins-$VERSION.tar.gz"
@@ -117,7 +146,7 @@ cp -r "$self_service_pack_dir/." "$finalPackDir/"
 rm -rf "$packDestination" "$rhdh_pack_dir" "$self_service_pack_dir"
 
 echo "Two tarballs created and moved to $finalPackDir:"
-echo "  - ansible-rhdh-plugins-$VERSION.tar.gz (contains backstage-rhaap and scaffolder-backend-module plugins)"
-echo "  - self-service-automation-portal-plugins-$VERSION.tar.gz (contains auth-backend-module, catalog-backend-module, and self-service plugins)"
+echo "  - ansible-rhdh-plugins-$VERSION.tar.gz (contains backstage-rhaap and scaffolder-backend-module plugins + their source code)"
+echo "  - self-service-automation-portal-plugins-$VERSION.tar.gz (contains auth-backend-module, catalog-backend-module, self-service, and scaffolder-backend-module plugins + their source code)"
 echo "Contents of both plugin archives copied to $finalPackDir"
 echo "Deleted temporary directories"
