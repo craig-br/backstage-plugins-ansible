@@ -22,24 +22,25 @@ export class Common {
   static SignIntoRHDHusingGithub() {
     this.LogintoGithub();
     cy.visit('/');
-    cy.wait(5000);
+    cy.wait(9000);
     cy.get('body').then($body => {
       if (
-        $body.find('li:nth-child(2) > div > .MuiCardActions-root-220 > button')
-          .length > 0
+        $body.find('button').filter(':contains("Sign In")').length > 0 ||
+        $body.text().includes('Sign In')
       ) {
         cy.contains('Sign In').invoke('removeAttr', 'target').click();
-        cy.wait(5000);
+        cy.wait(6000);
         cy.get('body').then($body => {
-          if ($body.text().includes('Authorize')) {
-            cy.get(
-              'body > div.logged-in.env-production.page-responsive.color-bg-subtle > div.application-main > main > div > div.px-3.mt-5 > div.Box.color-shadow-small > div.Box-footer.p-3.p-md-4.clearfix > div:nth-child(1) > form > div > button.js-oauth-authorize-btn.btn.btn-primary.width-full.ws-normal',
-            ).click();
-            cy.wait(3000);
-          }
-          cy.contains('Ansible').click();
-          cy.url().should('include', '/ansible');
-          cy.wait(5000);
+          cy.get('body').then($body => {
+            if ($body.text().includes('Authorize')) {
+              // Use a more flexible selector to find the Authorize button
+              cy.contains('button', 'Authorize').click();
+              cy.wait(3000);
+            }
+            cy.contains('Ansible').click();
+            cy.url().should('include', '/ansible');
+            cy.wait(5000);
+          });
         });
       }
     });
