@@ -199,7 +199,7 @@ spec:
         - name: label-templates
           value:
             - "release=$SOURCE_DATE"
-            - "version=2.0.0"
+            - "version=2.0.1"
         - name: source-date-epoch
           value: '$(tasks.clone-repository.results.commit-timestamp)'
       runAfter:
