@@ -1,5 +1,5 @@
 # RHDH Quadlet Bootc Image Management  
-# Red Hat Developer Hub with Ansible Self-Service Portal using Logically Bound Images on RHEL 9 Image Mode
+# self-service automation portal with Ansible self-service portal using Logically Bound Images on RHEL 9 Image Mode
 
 # Configuration
 IMAGE_NAME := rhdh-bootc-quadlet
@@ -74,9 +74,48 @@ validate: ## Validate Quadlet configuration files
 		exit 1; \
 	fi
 
-build-local: validate ## Build bootc image locally using build-quadlet.sh
+build-local: validate ## Build bootc image locally (run with: sudo make build-local)
 	@echo "$(GREEN)Building RHDH Quadlet bootc image locally...$(NC)"
-	$(BUILD_SCRIPT) -n $(IMAGE_NAME) -t $(IMAGE_TAG) -f quadlet/$(CONTAINERFILE)
+	@echo "$(YELLOW)Note: This requires rootful podman - run as: sudo make build-local$(NC)"
+	@# Verify auth.json exists for registry authentication
+	@if [ ! -f files/auth.json ]; then \
+		echo "$(RED)Error: auth.json not found in quadlet/files directory$(NC)"; \
+		echo "$(YELLOW)Please copy your registry authentication:$(NC)"; \
+		echo "  sudo podman login --authfile files/auth.json registry.redhat.io"; \
+		echo ""; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Registry authentication found$(NC)"
+	@# Load credentials from .credentials.env if it exists
+	@if [ -f .credentials.env ]; then \
+		echo "$(YELLOW)Loading custom credentials from .credentials.env$(NC)"; \
+		. ./.credentials.env && \
+		BUILD_ARGS=""; \
+		[ -n "$$ADMIN_USER" ] && BUILD_ARGS="$$BUILD_ARGS --build-arg ADMIN_USER=$$ADMIN_USER"; \
+		[ -n "$$ADMIN_PASSWORD" ] && BUILD_ARGS="$$BUILD_ARGS --build-arg ADMIN_PASSWORD=$$ADMIN_PASSWORD"; \
+		[ -n "$$ROOT_PASSWORD" ] && BUILD_ARGS="$$BUILD_ARGS --build-arg ROOT_PASSWORD=$$ROOT_PASSWORD"; \
+		if [ -n "$$SSH_PUBLIC_KEY_FILE" ]; then \
+			if [ -f "../$$SSH_PUBLIC_KEY_FILE" ] || [ -f "$$SSH_PUBLIC_KEY_FILE" ]; then \
+				BUILD_ARGS="$$BUILD_ARGS --build-arg SSH_PUBLIC_KEY_FILE=$$SSH_PUBLIC_KEY_FILE"; \
+			fi; \
+		fi; \
+		[ -n "$$SSH_SECURITY_MODE" ] && BUILD_ARGS="$$BUILD_ARGS --build-arg SSH_SECURITY_MODE=$$SSH_SECURITY_MODE"; \
+		echo "$(BLUE)Security Mode: $$SSH_SECURITY_MODE$(NC)"; \
+		VOLUME_ARGS=""; \
+		if subscription-manager status 2>/dev/null | grep -q "Overall Status: Current"; then \
+			echo "$(BLUE)Traditional subscription detected, mounting entitlement certificates$(NC)"; \
+			VOLUME_ARGS="--volume /etc/pki/entitlement:/etc/pki/entitlement:ro --volume /etc/rhsm:/etc/rhsm:ro --volume /etc/yum.repos.d:/etc/yum.repos.d:ro --volume /etc/pki/rpm-gpg:/etc/pki/rpm-gpg:ro"; \
+		else \
+			echo "$(BLUE)Simple Content Access detected - using bootc container's built-in repositories$(NC)"; \
+			VOLUME_ARGS=""; \
+		fi; \
+		podman build $$BUILD_ARGS $$VOLUME_ARGS \
+			--authfile $(QUADLET_DIR)/files/auth.json \
+			-f quadlet/$(CONTAINERFILE) -t $(IMAGE_NAME):$(IMAGE_TAG) ..; \
+	else \
+		echo "$(YELLOW)No .credentials.env found, using defaults$(NC)"; \
+		$(BUILD_SCRIPT) -n $(IMAGE_NAME) -t $(IMAGE_TAG) -f quadlet/$(CONTAINERFILE); \
+	fi
 	@echo "$(GREEN)✅ Local build completed: $(IMAGE_NAME):$(IMAGE_TAG)$(NC)"
 
 build: validate ## Build bootc image for registry using build-quadlet.sh
@@ -104,13 +143,10 @@ push: tag ## Push image to registry
 # QCOW2 Image Creation
 prepare-rootful-image: ## Ensure image is available in rootful storage
 	@echo "$(GREEN)Preparing image for rootful podman...$(NC)"
-	@# Check if image already exists in rootful storage - exit early if found
+	@# All logic in single shell command to ensure exit works properly
 	@if sudo podman images | grep "$(IMAGE_NAME)" | grep "$(IMAGE_TAG)" >/dev/null; then \
-		echo "$(GREEN)✅ Image $(IMAGE_NAME):$(IMAGE_TAG) already available in rootful storage - skipping transfer$(NC)"; \
-		exit 0; \
-	fi
-	@# Single shell command to handle transfer logic properly (fixes Makefile multi-shell exit issue)
-	@if [ "$$EUID" -eq 0 ] || [ -n "$$SUDO_USER" ]; then \
+		echo "$(GREEN)✅ Image $(IMAGE_NAME):$(IMAGE_TAG) already available in rootful storage$(NC)"; \
+	elif [ "$$EUID" -eq 0 ] || [ -n "$$SUDO_USER" ]; then \
 		echo "$(YELLOW)Running as root/sudo - checking user $$SUDO_USER storage...$(NC)"; \
 		if [ -n "$$SUDO_USER" ]; then \
 			USER_HOME=$$(getent passwd $$SUDO_USER | cut -d: -f6); \
@@ -144,16 +180,16 @@ prepare-rootful-image: ## Ensure image is available in rootful storage
 		fi; \
 	fi
 
-qcow2-local: check-rootful-podman prepare-rootful-image pull-all-images ## Create QCOW2 from local image (requires sudo/root)
+qcow2-local: check-rootful-podman prepare-rootful-image pull-all-images ## Create QCOW2 from local image (run with: sudo make qcow2-local)
 	@echo "$(GREEN)Creating QCOW2 image from local $(IMAGE_NAME):$(IMAGE_TAG)...$(NC)"
-	@echo "$(YELLOW)Note: bootc-image-builder requires rootful podman (sudo)$(NC)"
+	@echo "$(YELLOW)Note: bootc-image-builder requires rootful podman - run as: sudo make qcow2-local$(NC)"
 	@echo "$(BLUE)INFO: bootc automatically discovers and pulls logically bound images during installation$(NC)"
 	@echo "$(BLUE)INFO: Using configuration file to create 20GB disk (vs default 10GB) for RHDH application$(NC)"
 	@echo "$(BLUE)INFO: Using larger temporary filesystems to accommodate image extraction$(NC)"
 	@mkdir -p $(QUADLET_DIR)/output
 	@echo "$(BLUE)Mounting config file: $(QUADLET_DIR)/config.toml$(NC)"
 	@test -f $(QUADLET_DIR)/config.toml || { echo "$(RED)❌ Config file not found: $(QUADLET_DIR)/config.toml$(NC)"; exit 1; }
-	@cd $(QUADLET_DIR) && sudo podman run --rm -it \
+	@cd $(QUADLET_DIR) && podman run --rm -it \
 		--privileged \
 		--pull=newer \
 		--security-opt label=type:unconfined_t \
@@ -688,7 +724,7 @@ postgres-setup: ## Setup PostgreSQL data directory and permissions
 postgres-start: postgres-setup ## Start PostgreSQL container service
 	@echo "$(GREEN)Starting PostgreSQL container service...$(NC)"
 	@sudo cp postgres.container /etc/containers/systemd/
-	@sudo cp postgres.env /etc/rhdh/ || true
+	@sudo cp .portal.env /etc/rhdh/ || true
 	@sudo systemctl daemon-reload
 	@sudo systemctl start postgres.service
 	@sudo systemctl enable postgres.service

@@ -1,10 +1,20 @@
 # ---------------------------------------------------------------------------
-# RHEL 9 Image Mode with RHDH and Ansible Self-Service Portal using Logically Bound Images
+# RHEL 9 Image Mode with RHDH and Ansible self-service portal using Logically Bound Images
 # This Containerfile creates a RHEL 9 bootc-based image that uses Podman Quadlet
 # and logically bound images for RHDH, avoiding multi-stage builds.
 # ---------------------------------------------------------------------------
 
 FROM registry.redhat.io/rhel9/rhel-bootc:latest
+
+# Build arguments for customizable credentials
+# Override these during build: --build-arg ADMIN_USER=myuser --build-arg ADMIN_PASSWORD=mypass
+ARG ADMIN_USER=admin
+ARG ADMIN_PASSWORD=admin123
+ARG ROOT_PASSWORD=root123
+# Optional: Path to SSH public key file (will be copied to admin user's authorized_keys)
+ARG SSH_PUBLIC_KEY_FILE=""
+# SSH Security Mode: "keys-only", "keys-and-password" (default), "password-only"
+ARG SSH_SECURITY_MODE=keys-and-password
 
 # Install required packages including Node.js and Podman for container management
 RUN dnf install -y nodejs npm python3 curl sudo podman && \
@@ -17,14 +27,18 @@ RUN useradd -r -u 1001 -g root -d /opt/app-root/src -s /sbin/nologin rhdh && \
     # Install SSH server for remote access \
     dnf install -y openssh-server && \
     systemctl enable sshd && \
-    # Create simple admin user for VM console and SSH access \
-    useradd -m -u 1000 -G wheel -s /bin/bash admin && \
-    # Set passwords using usermod for more reliable password setting \
-    echo 'admin123' | passwd --stdin admin && \
-    echo 'root123' | passwd --stdin root && \
-    passwd -u admin && \
+    # Create admin user with customizable username (from build arg) \
+    useradd -m -u 1000 -G wheel -s /bin/bash ${ADMIN_USER} && \
+    # Set passwords using build args \
+    echo "${ADMIN_PASSWORD}" | passwd --stdin ${ADMIN_USER} && \
+    echo "${ROOT_PASSWORD}" | passwd --stdin root && \
+    passwd -u ${ADMIN_USER} && \
     passwd -u root && \
-    # Configure SSH for password authentication \
+    # Create .ssh directory for admin user \
+    mkdir -p /home/${ADMIN_USER}/.ssh && \
+    chmod 700 /home/${ADMIN_USER}/.ssh && \
+    chown ${ADMIN_USER}:${ADMIN_USER} /home/${ADMIN_USER}/.ssh && \
+    # Configure SSH for both password and key authentication \
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
     sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
     sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
@@ -32,17 +46,53 @@ RUN useradd -r -u 1001 -g root -d /opt/app-root/src -s /sbin/nologin rhdh && \
     # Allow wheel group sudo access \
     echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
+# Copy SSH public key if provided (optional)
+# Usage: --build-arg SSH_PUBLIC_KEY_FILE=my_key.pub (relative to build context)
+RUN if [ -n "${SSH_PUBLIC_KEY_FILE}" ]; then \
+        echo "SSH_PUBLIC_KEY_FILE is set: ${SSH_PUBLIC_KEY_FILE}"; \
+    else \
+        echo "No SSH_PUBLIC_KEY_FILE provided, skipping SSH key setup"; \
+    fi
+
+COPY ${SSH_PUBLIC_KEY_FILE:-quadlet/Containerfile.rhdh-bootc-quadlet} /tmp/ssh_key_temp
+RUN if [ -n "${SSH_PUBLIC_KEY_FILE}" ] && [ -f /tmp/ssh_key_temp ] && grep -q "ssh-" /tmp/ssh_key_temp 2>/dev/null; then \
+        mv /tmp/ssh_key_temp /home/${ADMIN_USER}/.ssh/authorized_keys && \
+        chmod 600 /home/${ADMIN_USER}/.ssh/authorized_keys && \
+        chown ${ADMIN_USER}:${ADMIN_USER} /home/${ADMIN_USER}/.ssh/authorized_keys && \
+        echo "✓ SSH public key installed for ${ADMIN_USER}"; \
+    else \
+        rm -f /tmp/ssh_key_temp && \
+        echo "ℹ No valid SSH key provided - password authentication will be used"; \
+    fi
+
+# Configure SSH security based on SSH_SECURITY_MODE
+RUN if [ "${SSH_SECURITY_MODE}" = "keys-only" ]; then \
+        echo "Configuring SSH for key-based authentication only (most secure)"; \
+        sed -i 's/^PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config; \
+        sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config; \
+        sed -i 's/^PasswordAuthentication no/PasswordAuthentication no/' /etc/ssh/sshd_config; \
+        echo "PasswordAuthentication no" >> /etc/ssh/sshd_config; \
+        echo "⚠️  WARNING: Password SSH disabled - SSH key required for access"; \
+        echo "⚠️  Console access still available with password"; \
+    elif [ "${SSH_SECURITY_MODE}" = "password-only" ]; then \
+        echo "Configuring SSH for password authentication only (least secure)"; \
+        sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config; \
+        echo "⚠️  WARNING: Using password-only SSH - not recommended for production"; \
+    else \
+        echo "Configuring SSH for keys + password fallback (balanced security)"; \
+    fi
+
 # Copy configuration and scripts (from local build context)
 COPY ./configs /etc/rhdh/configs
-# COPY ./default.env /etc/rhdh/default.env  # Not needed for Quadlet - using rhdh.env only
-COPY ./quadlet/rhdh.env /etc/rhdh/rhdh.env
+# COPY ./default.env /etc/rhdh/default.env  # Not needed for Quadlet - using .portal.env only
+COPY ./quadlet/.portal.env /etc/rhdh/.portal.env
 COPY ./local-plugins /var/lib/rhdh/local-plugins
 COPY ./scripts/prepare-and-install-dynamic-plugins.sh /usr/local/bin/
 COPY ./scripts/wait-for-plugins-and-start.sh /usr/local/bin/
 COPY ./scripts/detect-and-set-base-url.sh /usr/local/bin/
 
 # Copy registry authentication for bootc upgrade support
-COPY ./auth.json /etc/containers/auth.json
+COPY ./quadlet/files/auth.json /etc/containers/auth.json
 
 # Clean architecture: prepare script runs inside container where all files exist
 
@@ -52,8 +102,7 @@ COPY ./quadlet/rhdh.container /usr/share/containers/systemd/rhdh.container
 COPY ./quadlet/postgres.container /usr/share/containers/systemd/postgres.container
 COPY ./quadlet/rhdh-network.network /usr/share/containers/systemd/rhdh-network.network
 
-# Copy PostgreSQL environment configuration
-COPY ./quadlet/postgres.env /etc/rhdh/postgres.env
+# PostgreSQL uses the same .portal.env file (already copied above)
 
 # Create logically bound images by symlinking container files to bootc bound-images directory
 # This enables both RHDH and PostgreSQL containers to be managed by bootc with automatic image pulling
@@ -108,15 +157,15 @@ RUN printf '%s\n' \
   'podman exec rhdh-postgres pg_isready -U rhdh_user >/dev/null 2>&1 && echo "✓ PostgreSQL database is ready" || { echo "✗ PostgreSQL database not ready"; exit 1; }' \
   '# Check if RHDH quadlet container is running' \
   'if systemctl is-active --quiet rhdh.service; then' \
-  '    echo "✓ RHDH Quadlet service is active"' \
+  '    echo "✓ portal Quadlet service is active"' \
   'else' \
-  '    echo "✗ RHDH Quadlet service is not active"' \
+  '    echo "✗ portal Quadlet service is not active"' \
   '    systemctl status rhdh.service --no-pager || true' \
   '    exit 1' \
   'fi' \
-  '# Check RHDH application health' \
-  'curl -f http://localhost:7007 >/dev/null 2>&1 && echo "✓ RHDH Backend is healthy" || { echo "✗ RHDH Backend not responding"; exit 1; }' \
-  'curl -f http://localhost:7007/self-service >/dev/null 2>&1 && echo "✓ Ansible Self-Service Portal available" || { echo "✗ Self-Service Portal not available"; exit 1; }' \
+  '# Check portal application health' \
+  'curl -f http://localhost:7007 >/dev/null 2>&1 && echo "✓ portal backend is healthy" || { echo "✗ portal backend not responding"; exit 1; }' \
+  'curl -f http://localhost:7007/self-service >/dev/null 2>&1 && echo "✓ Ansible self-service portal available" || { echo "✗ self-service portal not available"; exit 1; }' \
   'echo "=== All services are healthy ==="' \
   > /usr/local/bin/health-check.sh && chmod +x /usr/local/bin/health-check.sh
 
@@ -127,13 +176,13 @@ RUN printf '%s\n' \
   'echo "Bound images directory: /usr/lib/bootc/bound-images.d/"' \
   'ls -la /usr/lib/bootc/bound-images.d/ || echo "No bound images found"' \
   'echo "Expected bound images:"' \
-  'echo "  - rhdh.container -> RHDH application"' \
+  'echo "  - rhdh.container -> portal application"' \
   'echo "  - postgres.container -> PostgreSQL database"' \
   'echo "Available images in bootc storage:"' \
   'podman --storage-opt=additionalimagestore=/usr/lib/bootc/storage images || echo "No images in bootc storage yet"' \
   'echo "Container services status:"' \
   'systemctl is-active postgres.service >/dev/null 2>&1 && echo "  ✓ PostgreSQL service active" || echo "  ✗ PostgreSQL service inactive"' \
-  'systemctl is-active rhdh.service >/dev/null 2>&1 && echo "  ✓ RHDH service active" || echo "  ✗ RHDH service inactive"' \
+  'systemctl is-active rhdh.service >/dev/null 2>&1 && echo "  ✓ portal service active" || echo "  ✗ portal service inactive"' \
   > /usr/local/bin/manage-bound-images.sh && chmod +x /usr/local/bin/manage-bound-images.sh
 
 # Expose application ports (handled by quadlet containers, but declared for clarity)
@@ -143,6 +192,6 @@ EXPOSE 7007 5432
 WORKDIR /opt/app-root/src
 
 # bootc images always run systemd as init
-# The RHDH service will be managed by Podman Quadlet via systemd
+# The portal service will be managed by Podman Quadlet via systemd
 CMD ["/usr/sbin/init"]
 

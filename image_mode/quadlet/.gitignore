@@ -1,0 +1,31 @@
+# Environment configuration files (hidden by default for security)
+# These files contain sensitive credentials and should never be committed
+.portal.env
+.credentials.env
+
+# Build outputs and temporary files
+output/
+*.qcow2
+*.raw
+
+# VM and container artifacts
+*.tmp
+*.swp
+
+# SSH keys (prevent accidental commits)
+*.pem
+*.key
+*.pub
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+authorized_keys
+known_hosts
+
+# User-provided files directory (except README and .gitkeep)
+files/auth.json
+files/*.pub
+files/*.pem
+files/*.key
+

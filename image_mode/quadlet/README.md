@@ -1,6 +1,40 @@
-# RHDH Quadlet Deployment
+# Quadlet Deployment
 
-Red Hat Developer Hub with PostgreSQL database using Podman Quadlet and RHEL 9 bootc.
+self-service automation portal with PostgreSQL database using Podman Quadlet and RHEL 9 bootc.
+
+## Quick Start - Environment Setup Required
+
+Before building or deploying, you must create configuration files from the examples.
+
+### Required Setup
+
+```bash
+cd /opt/ansible-self-service-portal/image_mode/quadlet
+
+# Copy all example files (creates hidden files starting with .)
+cp portal.env.example .portal.env
+cp credentials.env.example .credentials.env
+```
+
+### Edit with Your Values
+
+Edit each hidden file in your editor:
+- `.portal.env` - Portal, database, AAP, GitHub, GitLab configuration
+- `.credentials.env` - VM user credentials (only needed for building)
+
+### Why Hidden Files?
+
+- **Hidden by default** - Not shown in `ls` output (cleaner workspace)
+- **Automatically git-ignored** - Prevents accidental commits
+- **Clear separation** - Templates (`.example`) vs actual configs (hidden)
+- **Standard practice** - Common pattern for sensitive configuration
+
+### Benefits of Consolidated Configuration
+
+- **Single source of truth** - All portal and database config in `.portal.env`
+- **No password duplication** - Database password defined once, referenced automatically
+- **Simpler setup** - Copy and edit one file instead of two
+- **Fewer errors** - Impossible to have mismatched passwords between portal and database
 
 ## Overview
 
@@ -10,18 +44,17 @@ This deployment approach uses **logically bound images** with Podman Quadlet for
 - **Atomic updates** for both system and applications
 - **PostgreSQL database** for persistent data storage
 
-## Quick Start
+## Prerequisites
 
-### Prerequisites
 - **Podman** v5.4.1+ with rootful access (`sudo`)
 - **Red Hat Registry** authentication (see Authentication section below)
 - **8GB+ RAM** and network connectivity
 
-### Red Hat Registry Authentication
+## Red Hat Registry Authentication
 
 This deployment requires images from `registry.redhat.io`. Authentication is needed at **two levels**:
 
-#### 1. Superuser Authentication (Required for Building)
+### 1. Superuser Authentication (Required for Building)
 ```bash
 # REQUIRED: Authenticate as root for bootc-image-builder
 sudo podman login registry.redhat.io
@@ -30,7 +63,7 @@ sudo podman login registry.redhat.io
 podman login registry.redhat.io
 ```
 
-#### 2. Embedded Auth File (Required for VM Upgrades)
+### 2. Embedded Auth File (Required for VM Upgrades)
 Update the embedded `auth.json` file before building:
 
 ```bash
@@ -49,7 +82,7 @@ cat > ../auth.json << 'EOF'
 EOF
 ```
 
-#### Service Account Method (CI/CD)
+### Service Account Method (CI/CD)
 ```bash
 # REQUIRED: Authenticate as root with service account (for bootc-image-builder)
 sudo podman login registry.redhat.io --username="your-service-account" --password="your-token"
@@ -61,21 +94,21 @@ podman login registry.redhat.io --username="your-service-account" --password="yo
 echo '{"auths":{"registry.redhat.io":{"auth":"'$(echo -n "your-service-account:your-token" | base64 -w 0)'"}}}' > ../auth.json
 ```
 
-#### Verify Authentication
+### Verify Authentication
 ```bash
 # Test access to required images (must use sudo - same as bootc-image-builder)
 sudo podman pull registry.redhat.io/rhel9/rhel-bootc:latest --quiet && echo "✅ Root registry access confirmed"
 ```
 
-> **⚠️ Critical**: `bootc-image-builder` runs as **root**, so `sudo podman login` is **required** for building. The embedded `auth.json` enables VM upgrade operations without manual authentication.
+> **Critical**: `bootc-image-builder` runs as **root**, so `sudo podman login` is **required** for building. The embedded `auth.json` enables VM upgrade operations without manual authentication.
 
 ### Superuser Access Required
 
 This deployment uses **Podman Quadlet** and **bootc** for system-level container management. Most commands require `sudo` because they interact with system-level container and virtualization infrastructure.
 
-> **📖 Architecture Details**: For complete technical details about why superuser access is required and the architectural benefits, see [Architecture Guide](ARCHITECTURE.md)
+> **Architecture Details**: For complete technical details about why superuser access is required and the architectural benefits, see [Architecture Guide](ARCHITECTURE.md)
 
-### Deploy VM with PostgreSQL
+## Deploy VM with PostgreSQL
 
 ```bash
 # Complete deployment (builds bootc image + creates VM)
@@ -84,7 +117,7 @@ make deploy-vm-local
 # Monitor deployment
 make vm-status
 
-# Access RHDH (after 3-5 minutes)
+# Access portal (after 3-5 minutes)
 # Open http://VM-IP:7007 in browser
 # SSH: ssh admin@VM-IP (password: admin123)
 ```
@@ -116,7 +149,7 @@ make vm-destroy-local   # Destroy local VM and cleanup
 
 ### Testing and Validation
 ```bash
-make test-vm            # Test RHDH in VM (requires VM to be running)
+make test-vm            # Test portal in VM (requires VM to be running)
 make info               # Show configuration and status
 ```
 
@@ -148,23 +181,23 @@ make clean-all          # Complete cleanup including VM
 ## Architecture
 
 ### Container Services
-- **RHDH**: `registry.redhat.io/rhdh/rhdh-hub-rhel9:1.6` (container: `rhdh`)
+- **Portal**: `registry.redhat.io/rhdh/rhdh-hub-rhel9:1.6` (container: `rhdh`)
 - **PostgreSQL**: `registry.redhat.io/rhel9/postgresql-15:latest` (container: `rhdh-postgres`)
 - **Network**: `rhdh-network` (isolated bridge network)
 - **PostgreSQL Storage**: Named volume `postgres-data` mounted to `/var/lib/pgsql/data`
-- **RHDH Storage**: Multiple host paths mounted for configuration and plugins
+- **Portal Storage**: Multiple host paths mounted for configuration and plugins
 
 ### Key Files
 - `Containerfile.rhdh-bootc-quadlet` - Bootc image definition
-- `rhdh.container` - RHDH service configuration (creates `rhdh.service`)
+- `rhdh.container` - Portal service configuration (creates `rhdh.service`)
 - `postgres.container` - PostgreSQL service configuration (creates `postgres.service`)
 - `rhdh-network.network` - Network definition (creates `rhdh-network-network.service`)
-- `rhdh.env` - Environment variables
+- `.portal.env` - Environment variables (portal + database)
 - `config.toml` - Disk configuration for VM
 
 ### Generated Services
 When deployed, Quadlet automatically creates these systemd services:
-- `rhdh.service` - RHDH application container
+- `rhdh.service` - Portal application container
 - `postgres.service` - PostgreSQL database container  
 - `rhdh-network-network.service` - Isolated network for containers
 
@@ -177,10 +210,10 @@ Images are **referenced** (not copied) in the bootc image:
 ## Configuration
 
 ### Environment Variables
-Edit `rhdh.env` for RHDH configuration:
+Edit `.portal.env` for all configuration (portal + database):
 
 ```bash
-# Core Configuration
+# Core Portal Configuration
 BASE_URL=http://localhost:7007  # Auto-detected at startup
 AAP_HOST_URL=https://your-aap-instance.com
 AAP_TOKEN=your-aap-token
@@ -188,30 +221,25 @@ OAUTH_CLIENT_ID=your-oauth-client-id
 OAUTH_CLIENT_SECRET=your-oauth-client-secret
 BACKEND_SECRET=your-backend-secret-key-here-must-be-set
 
-# PostgreSQL Database Connection (connects to rhdh-postgres container)
+# Database Configuration
 POSTGRES_HOST=rhdh-postgres
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=secure_admin_password_123
 POSTGRES_DB=rhdh_backstage
-```
 
-### PostgreSQL Configuration
-PostgreSQL container uses inline environment variables in `postgres.container`:
-
-```bash
-# PostgreSQL Red Hat format (in postgres.container file)
-POSTGRESQL_DATABASE=rhdh_backstage
+# PostgreSQL Container Configuration (same file)
+POSTGRESQL_DATABASE=${POSTGRES_DB}
 POSTGRESQL_USER=rhdh_user
 POSTGRESQL_PASSWORD=secure_rhdh_password_123
-POSTGRESQL_ADMIN_PASSWORD=secure_admin_password_123
+POSTGRESQL_ADMIN_PASSWORD=${POSTGRES_PASSWORD}  # Automatically synced
 ```
 
-**Important**: RHDH connects as `postgres` superuser, PostgreSQL creates `rhdh_user` for application use.
+**Key Point**: `POSTGRES_PASSWORD` is defined once and automatically used by PostgreSQL via `${POSTGRES_PASSWORD}` reference. Both portal and PostgreSQL read from the same `.portal.env` file.
 
 ### Database Configuration
 PostgreSQL is configured by default. For external databases or advanced setup:
 - **[PostgreSQL Setup Guide](EXTERNAL-POSTGRES-SETUP.md)** - External database configuration
-- **[RHDH PostgreSQL Docs](https://docs.redhat.com/en/documentation/red_hat_developer_hub/1.6/html/configuring_red_hat_developer_hub/configuring-external-postgresql-databases)** - Official RHDH PostgreSQL configuration guide
+- **[Portal PostgreSQL Docs](https://docs.redhat.com/en/documentation/red_hat_developer_hub/1.6/html/configuring_red_hat_developer_hub/configuring-external-postgresql-databases)** - Official PostgreSQL configuration guide
 
 ### Network Configuration
 VM automatically detects IP address and configures CORS settings. Manual override:
@@ -239,7 +267,7 @@ make vm-ip
 # Validate configuration
 make validate
 
-# Test RHDH accessibility
+# Test portal accessibility
 make test-vm
 ```
 
@@ -252,7 +280,7 @@ make test-vm
 | **Build fails** | Check rootful podman: `sudo podman version` |
 | **Permission denied** | Use `sudo` - Quadlet/bootc requires system-level access |
 | **VM won't start** | Check VM resources: `make vm-status` |
-| **RHDH not accessible** | Wait 3-5 minutes, check `make test-vm` |
+| **Portal not accessible** | Wait 3-5 minutes, check `make test-vm` |
 | **Database errors** | See [PostgreSQL Setup Guide](EXTERNAL-POSTGRES-SETUP.md#troubleshooting) |
 
 ### Service Debugging
@@ -278,7 +306,7 @@ sudo podman ps -a | grep -E "(rhdh|postgres)"
 ## Production Considerations
 
 ### Security
-- Change default passwords in `rhdh.env` and `postgres.container` environment variables
+- Change default passwords in `.portal.env` environment variables
 - Configure TLS certificates for HTTPS
 - Review firewall settings and network security
 - Use external secret management for production
@@ -358,13 +386,17 @@ minsize = "20GiB"
 
 1. **VM Status**: `make vm-status` shows VM running
 2. **IP Address**: `make vm-ip` returns valid IP
-3. **RHDH Test**: `make test-vm` connects successfully  
+3. **Portal Test**: `make test-vm` connects successfully  
 4. **Web Access**: Open `http://VM-IP:7007` in browser
 5. **Services**: SSH to VM and check `sudo systemctl status rhdh.service postgres.service`
 
 ---
 
-## 📚 Documentation
+## Documentation
 
+- **[Installation Guide](INSTALLATION_GUIDE.md)** - Detailed installation and configuration
+- **[Environment Setup](ENV_SETUP.md)** - Environment configuration guide
+- **[Custom Credentials](CUSTOM_CREDENTIALS.md)** - VM credential customization
+- **[SSH Security Guide](SSH_SECURITY_GUIDE.md)** - SSH security modes
 - **[PostgreSQL Setup Guide](EXTERNAL-POSTGRES-SETUP.md)** - Database configuration and troubleshooting
 - **[Architecture Guide](ARCHITECTURE.md)** - Technical details and system design

@@ -1,6 +1,10 @@
 # Sensitive files - never commit these
 auth.json
 *.auth
+.build-certs/
+*.pub
+*-key.pem
+*.pem
 
 # Build artifacts and output directories
 quadlet/output/
@@ -21,3 +25,7 @@ vm.monitor
 # Environment files with secrets (use .env.example instead)
 .env.local
 .env.production
+
+# VM Credentials (local configuration only)
+quadlet/credentials.env
+credentials.env

@@ -12,11 +12,7 @@ SecurityLabelDisable=true
 # Use bootc storage for logically bound images
 GlobalArgs=--storage-opt=additionalimagestore=/usr/lib/bootc/storage
 
-# Environment variables for PostgreSQL (Red Hat format)
-Environment=POSTGRESQL_DATABASE=rhdh_backstage
-Environment=POSTGRESQL_USER=rhdh_user
-Environment=POSTGRESQL_PASSWORD=secure_rhdh_password_123
-Environment=POSTGRESQL_ADMIN_PASSWORD=secure_admin_password_123
+EnvironmentFile=/etc/rhdh/.portal.env
 
 # Persistent storage
 Volume=postgres-data:/var/lib/pgsql/data:Z
@@ -32,6 +28,9 @@ HealthTimeout=10s
 HealthRetries=3
 
 [Service]
+# Only start if using local PostgreSQL (not external)
+# Check USE_EXTERNAL_POSTGRES in the environment file
+ExecCondition=/bin/bash -c '! grep -q "^USE_EXTERNAL_POSTGRES=true" /etc/rhdh/.portal.env'
 Restart=always
 RestartSec=10
 TimeoutStartSec=300

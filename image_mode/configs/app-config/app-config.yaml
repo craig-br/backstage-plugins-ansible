@@ -18,11 +18,11 @@ app:
       testMode: true #
       writeKey: "dummy-key-for-testing"
 auth:
-  environment: development
+  environment: ${PORTAL_ENVIRONMENT}
   omitIdentityTokenOwnershipClaim: true
   providers:
     rhaap:
-      development:
+      default:
         checkSSL: false
         clientId: ${OAUTH_CLIENT_ID}
         clientSecret: ${OAUTH_CLIENT_SECRET}
@@ -64,9 +64,6 @@ backend:
     origin: ${BASE_URL}
     methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
     credentials: true
-  # database:
-  #   client: better-sqlite3
-  #   connection: ':memory:'
   database:
     client: pg
     connection:
@@ -78,8 +75,8 @@ backend:
       ssl: false
   reading:
     allow:
-    - host: gitlab.com
-    - host: github.com
+    - host: ${GITLAB_URL}
+    - host: ${GITHUB_URL}
     - host: raw.githubusercontent.com
     - host: localhost
   request:
@@ -96,8 +93,8 @@ catalog:
     seconds: 10
   providers:
     rhaap:
-      'development':
-        orgs: SIG-IDE
+      default:
+        orgs: Default
         sync:
           jobTemplates:
             enabled: true
@@ -238,10 +235,10 @@ dynamicPlugins:
 enableExperimentalRedirectFlow: true
 integrations:
   github:
-  - host: github.com
+  - host: ${GITHUB_URL}
     token: ${GITHUB_TOKEN}
   gitlab:
-  - host: gitlab.com
+  - host: ${GITLAB_URL}
     token: ${GITLAB_TOKEN}
 permission:
   enabled: true

@@ -1,7 +1,7 @@
 # Podman Quadlet .container file for RHDH (with PostgreSQL dependency)
 # This file defines how to run the RHDH container as a systemd service
 [Unit]
-Description=Red Hat Developer Hub with Ansible Self-Service Portal
+Description=self-service automation portal with Ansible self-service portal
 After=network-online.target postgres.service
 Wants=network-online.target
 Requires=postgres.service
@@ -15,7 +15,7 @@ SecurityLabelDisable=true
 GlobalArgs=--storage-opt=additionalimagestore=/usr/lib/bootc/storage
 
 # Environment variables from file (cleaner approach)
-EnvironmentFile=/etc/rhdh/rhdh.env
+EnvironmentFile=/etc/rhdh/.portal.env
 
 # Mount configuration and persistent data
 Volume=/etc/rhdh/configs:/opt/app-root/src/configs:Z
@@ -30,6 +30,11 @@ Volume=/var/lib/rhdh/scripts/prepare-and-install-dynamic-plugins.sh:/usr/local/b
 Volume=/var/lib/rhdh/config/dynamic-plugins.yaml:/opt/app-root/src/dynamic-plugins.yaml:Z
 
 # Network and ports
+# Format: HostPort:ContainerPort
+# To change the port: Edit this file and change HostPort (e.g., 8080:7007)
+# Container always listens on 7007 internally, only HostPort can be changed
+# Note: Quadlet does not support environment variable substitution for PublishPort
+# After changing port, also update BASE_URL in .rhdh.env to match
 PublishPort=7007:7007
 
 # User and working directory

@@ -1,6 +1,6 @@
-# PostgreSQL Database Setup for RHDH
+# PostgreSQL Database Setup
 
-Configure PostgreSQL database for Red Hat Developer Hub (RHDH) Quadlet deployment.
+Configure PostgreSQL database for self-service automation portal Quadlet deployment.
 
 > **Current Setup**: PostgreSQL container is included by default in VM deployments. This guide covers external database configuration and troubleshooting.
 
@@ -16,7 +16,7 @@ Configure PostgreSQL database for Red Hat Developer Hub (RHDH) Quadlet deploymen
 
 ### Prerequisites
 
-- PostgreSQL 13+ server accessible from RHDH
+- PostgreSQL 13+ server accessible from portal
 - Database admin credentials
 - Network connectivity on port 5432
 
@@ -28,15 +28,18 @@ CREATE DATABASE rhdh_backstage;
 CREATE USER rhdh_user WITH PASSWORD 'secure_password_here';
 GRANT ALL PRIVILEGES ON DATABASE rhdh_backstage TO rhdh_user;
 
--- Required: RHDH needs CREATE DATABASE permission for plugins
+-- Required: Portal needs CREATE DATABASE permission for plugins
 ALTER USER rhdh_user CREATEDB;
 ```
 
 ### Environment Configuration
 
-Edit `rhdh.env`:
+Edit `.portal.env` and set `USE_EXTERNAL_POSTGRES=true`, then update the database connection settings:
 
 ```bash
+# Enable external PostgreSQL (disables local container)
+USE_EXTERNAL_POSTGRES=true
+
 # Database Configuration
 POSTGRES_HOST=your-postgres-server.example.com
 POSTGRES_PORT=5432
@@ -44,15 +47,17 @@ POSTGRES_USER=rhdh_user
 POSTGRES_PASSWORD=secure_password_here
 POSTGRES_DB=rhdh_backstage
 
-# Backstage Backend Configuration
+# Backend Configuration (these should already be present)
 BACKEND_DATABASE_CLIENT=pg
 BACKEND_DATABASE_CONNECTION_HOST=${POSTGRES_HOST}
 BACKEND_DATABASE_CONNECTION_PORT=${POSTGRES_PORT}
 BACKEND_DATABASE_CONNECTION_USER=${POSTGRES_USER}  
 BACKEND_DATABASE_CONNECTION_PASSWORD=${POSTGRES_PASSWORD}
 BACKEND_DATABASE_CONNECTION_DATABASE=${POSTGRES_DB}
-BACKEND_DATABASE_CONNECTION_SSL=false
+BACKEND_DATABASE_CONNECTION_SSL=false  # Set to true if your external DB requires SSL
 ```
+
+**Note**: Setting `USE_EXTERNAL_POSTGRES=true` automatically prevents the local PostgreSQL container from starting. No need to delete any files.
 
 ### Application Configuration
 
@@ -81,7 +86,7 @@ backend:
 # Test connectivity first
 psql -h your-postgres-server.example.com -U rhdh_user -d rhdh_backstage -c "SELECT version();"
 
-# Deploy RHDH with external database
+# Deploy portal with external database
 make build-local
 make deploy-vm-local
 ```
@@ -99,8 +104,7 @@ The included PostgreSQL container configuration:
 ### Configuration Files
 
 - `postgres.container` - Container definition
-- `postgres.env` - Environment variables
-- `rhdh.env` - RHDH database connection settings
+- `.portal.env` - All environment variables (portal + database)
 
 ## Troubleshooting
 
@@ -123,7 +127,7 @@ sudo podman ps | grep postgres
 # Test database connection
 podman exec -it rhdh psql -h rhdh-postgres -U postgres -d rhdh_backstage
 
-# Check RHDH logs for database errors
+# Check portal logs for database errors
 sudo journalctl -u rhdh.service | grep -i database
 ```
 
@@ -131,7 +135,7 @@ sudo journalctl -u rhdh.service | grep -i database
 
 **"permission denied to create database"**
 ```bash
-# Solution: Use postgres superuser in rhdh.env
+# Solution: Use postgres superuser in .portal.env
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=secure_admin_password_123
 ```
@@ -178,7 +182,7 @@ CPUQuota=50%
 
 ### PostgreSQL Settings
 
-Add to `postgres.env`:
+Add to `.portal.env`:
 
 ```bash
 POSTGRESQL_MAX_CONNECTIONS=100
@@ -215,16 +219,16 @@ podman exec -i rhdh-postgres psql -U postgres rhdh_backstage < backup-file.sql
 
 1. **Database Permissions**: User needs `CREATEDB` for plugin databases
 2. **Network Configuration**: Containers must share `rhdh-network`  
-3. **Complete Database Config**: Both environment and app-config.yaml must be configured
+3. **Complete Database Config**: Both `.portal.env` and app-config.yaml must be configured
 4. **Named Volumes**: Use Podman named volumes for automatic permissions
 
 ### Success Checklist
 
 - [ ] PostgreSQL container/server is healthy
 - [ ] Database user has CREATE DATABASE permissions
-- [ ] Network connectivity between RHDH and PostgreSQL
-- [ ] Complete database configuration in both files
-- [ ] RHDH starts without database connection errors
+- [ ] Network connectivity between portal and PostgreSQL
+- [ ] Complete database configuration in `.portal.env` and app-config.yaml
+- [ ] Portal starts without database connection errors
 - [ ] Web interface accessible
 
 ---
@@ -233,5 +237,5 @@ podman exec -i rhdh-postgres psql -U postgres rhdh_backstage < backup-file.sql
 
 ### 📚 **Additional Resources**
 
-- **[RHDH PostgreSQL Configuration](https://docs.redhat.com/en/documentation/red_hat_developer_hub/1.6/html/configuring_red_hat_developer_hub/configuring-external-postgresql-databases)** - Official Red Hat Developer Hub PostgreSQL setup guide
-- **[RHDH High Availability](https://docs.redhat.com/en/documentation/red_hat_developer_hub/1.6/html/configuring_red_hat_developer_hub/configuring-high-availability-in-red-hat-developer-hub)** - HA configuration for production deployments
+- **[Portal PostgreSQL Configuration](https://docs.redhat.com/en/documentation/red_hat_developer_hub/1.6/html/configuring_red_hat_developer_hub/configuring-external-postgresql-databases)** - Official PostgreSQL setup guide
+- **[Portal High Availability](https://docs.redhat.com/en/documentation/red_hat_developer_hub/1.6/html/configuring_red_hat_developer_hub/configuring-high-availability-in-red-hat-developer-hub)** - HA configuration for production deployments

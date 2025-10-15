@@ -137,16 +137,33 @@ fi
 
 success "Prerequisites validated"
 
+# Verify auth.json exists for registry authentication
+log "Checking registry authentication..."
+
+if [[ ! -f "${SCRIPT_DIR}/files/auth.json" ]]; then
+    error "auth.json not found in ${SCRIPT_DIR}/files/"
+    echo ""
+    echo "Please copy your registry authentication:"
+    echo "  sudo cp /root/.config/containers/auth.json ${SCRIPT_DIR}/files/auth.json"
+    echo ""
+    exit 1
+fi
+
+success "Registry authentication found"
+
 # Build the image
 log "Building bootc image with logically bound RHDH..."
 echo ""
 
 cd "${IMAGE_MODE_DIR}"
 
-podman build \
+sudo podman build \
     --file "${CONTAINERFILE}" \
     --tag "${FULL_IMAGE_NAME}" \
     --progress=plain \
+    --volume /etc/pki/entitlement:/etc/pki/entitlement:ro \
+    --volume /etc/rhsm:/etc/rhsm:ro \
+    --volume /etc/yum.repos.d:/etc/yum.repos.d:ro \
     .
 
 if [[ $? -eq 0 ]]; then
@@ -161,9 +178,9 @@ echo ""
 log "Build completed successfully!"
 echo ""
 echo "Image Details:"
-podman inspect "${FULL_IMAGE_NAME}" --format "  • Size: {{.Size}} bytes"
-podman inspect "${FULL_IMAGE_NAME}" --format "  • Created: {{.Created}}"
-podman inspect "${FULL_IMAGE_NAME}" --format "  • Architecture: {{.Architecture}}"
+sudo podman inspect "${FULL_IMAGE_NAME}" --format "  • Size: {{.Size}} bytes"
+sudo podman inspect "${FULL_IMAGE_NAME}" --format "  • Created: {{.Created}}"
+sudo podman inspect "${FULL_IMAGE_NAME}" --format "  • Architecture: {{.Architecture}}"
 
 echo ""
 log "Logically Bound Images Configuration:"
@@ -176,7 +193,7 @@ if [[ -n "$REGISTRY" ]]; then
     echo ""
     log "Pushing image to registry: ${REGISTRY}..."
     
-    podman push "${FULL_IMAGE_NAME}"
+    sudo podman push "${FULL_IMAGE_NAME}"
     
     if [[ $? -eq 0 ]]; then
         success "Image pushed successfully to: ${FULL_IMAGE_NAME}"

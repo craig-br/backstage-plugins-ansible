@@ -1,6 +1,6 @@
-# RHDH Quadlet Architecture
+# Self-Service Automation Portal (Quadlet) Architecture
 
-This document explains the architectural design and technical details of the RHDH Quadlet deployment approach.
+This document explains the architectural design and technical details of the portal Quadlet deployment approach.
 
 ## Why Superuser Access is Required
 
@@ -69,7 +69,7 @@ This deployment uses **Podman Quadlet** and **bootc** technologies that operate 
 │  │                  rhdh-network                           │ │
 │  │  ┌──────────────────┐         ┌─────────────────────┐   │ │
 │  │  │  rhdh-postgres   │◄────────┤       rhdh          │   │ │
-│  │  │  (PostgreSQL)    │         │  (RHDH Application) │   │ │
+│  │  │  (PostgreSQL)    │         │  (Portal Application) │   │ │
 │  │  │  Port: 5432      │         │  Port: 7007         │   │ │
 │  │  └──────────────────┘         └─────────────────────┘   │ │
 │  └─────────────────────────────────────────────────────────┘ │
@@ -89,7 +89,7 @@ This deployment uses **Podman Quadlet** and **bootc** technologies that operate 
 │                 bootc Image Structure                       │
 ├─────────────────────────────────────────────────────────────┤
 │  /usr/lib/bootc/bound-images.d/                            │
-│  ├── rhdh.container        → RHDH application image        │
+│  ├── rhdh.container        → Portal application image        │
 │  └── postgres.container    → PostgreSQL database image     │
 ├─────────────────────────────────────────────────────────────┤
 │  /usr/lib/bootc/storage/    (bootc-managed image storage)  │
@@ -227,19 +227,19 @@ Since bootc images contain authentication for Red Hat Registry, published images
 
 ## PostgreSQL Architecture
 
-Our PostgreSQL setup aligns with [RHDH's official external PostgreSQL configuration guide](https://docs.redhat.com/en/documentation/red_hat_developer_hub/1.6/html/configuring_red_hat_developer_hub/configuring-external-postgresql-databases). However, instead of using Kubernetes/OpenShift, we deploy PostgreSQL as a containerized service via Podman Quadlet.
+Our PostgreSQL setup aligns with the [official external PostgreSQL configuration guide](https://docs.redhat.com/en/documentation/red_hat_developer_hub/1.6/html/configuring_red_hat_developer_hub/configuring-external-postgresql-databases). However, instead of using Kubernetes/OpenShift, we deploy PostgreSQL as a containerized service via Podman Quadlet.
 
-**Key Differences from Standard RHDH Setup**:
+**Key Differences from Standard Setup**:
 - **Deployment Method**: Quadlet containers instead of Kubernetes pods  
 - **Image Management**: Logically bound images via bootc instead of registry pulls
 - **Service Management**: systemd services instead of Kubernetes services
-- **Database Creation**: RHDH automatically creates plugin databases as needed
+- **Database Creation**: Portal automatically creates plugin databases as needed
 
 ## Red Hat Registry Authentication
 
 This deployment requires authenticated access to `registry.redhat.io` for the following images:
 - `registry.redhat.io/rhel9/rhel-bootc:latest` (base bootc image)
-- `registry.redhat.io/rhdh/rhdh-hub-rhel9:1.6` (RHDH application)
+- `registry.redhat.io/rhdh/rhdh-hub-rhel9:1.6` (portal application)
 - `registry.redhat.io/rhel9/postgresql-15:latest` (PostgreSQL database)
 - `registry.redhat.io/rhel9/bootc-image-builder` (image builder tool)
 
@@ -423,7 +423,7 @@ podman login registry.redhat.io --get-login 2>/dev/null && echo "User: ✅ Authe
 - **First Access**: Additional 30-60 seconds for application warmup
 
 ### Runtime Performance
-- **Memory Usage**: ~1.5GB total (1GB RHDH, 500MB PostgreSQL)
+- **Memory Usage**: ~1.5GB total (1GB portal, 500MB PostgreSQL)
 - **CPU Usage**: Minimal when idle, scales with load
 - **Network Latency**: Near-native performance via container networking
 
