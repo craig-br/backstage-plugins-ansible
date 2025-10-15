@@ -44,12 +44,11 @@ The deployment automatically creates the following systemd services:
 
 ### Starting Environment
 
-This guide assumes you are starting with:
+Requirements:
 
-- A freshly installed Red Hat Enterprise Linux 9.6 or later system
-- x86_64 architecture (64-bit Intel or AMD processor)
-- A registered system with an active Red Hat subscription
-- Root or sudo access to the system
+- Red Hat Enterprise Linux 9.6 or later (x86_64)
+- Active Red Hat subscription
+- Root or sudo access
 
 ### System Requirements
 
@@ -79,22 +78,15 @@ Before installing the Ansible self-service automation portal, ensure your system
 
 #### Integration Requirements
 
-The self-service automation portal requires integration with the following services:
-
-- **Ansible Automation Platform**: Version 2.4 or later
+- **Ansible Automation Platform**: Version 2.5 or later (required for self-service portal features)
   - Valid AAP token for API access
   - OAuth client credentials for authentication
 - **PostgreSQL**: Version 15 (provided via container)
-- **DNS Resolution**: Proper DNS configuration for accessing external services
+- **DNS Resolution**: Proper DNS configuration for accessing AAP and external services
 
-### Why Superuser Access is Required
+### Why Sudo Access is Required
 
-This deployment uses Podman and bootc, which operate at the system level:
-
-- **bootc-image-builder**: Requires privileged access for disk image creation, loop device management, and filesystem operations
-- **Podman (rootful)**: System-level container operations and image management
-- **Container Storage**: Accesses rootful container storage at `/var/lib/containers/storage`
-- **Registry Authentication**: System-level registry authentication for pulling base images
+Building bootc images requires privileged operations: disk image creation, loop devices, container management, and system-level storage access.
 
 ### Network Requirements
 
@@ -110,20 +102,38 @@ Outbound connectivity is required for:
 - Ansible Automation Platform instance
 - Red Hat package repositories
 
-## Initial RHEL 9 System Setup
+## Step 1: Obtain the Installation Files
 
-Start with a freshly installed RHEL 9.6 or later system.
+Download or extract the Self-Service Portal installation files (tar.gz, zip, or git). Choose a directory with 20+ GB free space (e.g., `~/projects`).
 
-For installation guidance, see: [RHEL 9 Installation Guide](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/performing_a_standard_rhel_installation)
+**Extract archive:**
+```bash
+cd ~/projects
+tar -xzf ansible-self-service-portal-<version>.tar.gz
+cd ansible-self-service-portal/image_mode/quadlet
+```
 
-Update the system:
+**Or clone from git:**
+```bash
+cd ~/projects
+git clone <repository-url> ansible-self-service-portal
+cd ansible-self-service-portal/image_mode/quadlet
+```
+
+**All remaining commands assume you are in the `quadlet/` directory.**
+
+## Step 2: Initial RHEL 9 System Setup
+
+You can use an existing RHEL 9.6+ system or a fresh installation. System updates are recommended but not required.
+
+**To update your system** (recommended), see: [RHEL 9 System Update Guide](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9)
 
 ```bash
 sudo dnf update -y
 sudo reboot  # if kernel was updated
 ```
 
-### Configuring Repository Access for Cloud Systems
+## Step 3: Configure Repository Access (Cloud Systems Only)
 
 **⚠️ IMPORTANT FOR CLOUD SYSTEMS (AWS/GCP/Azure/etc.):**
 
@@ -205,224 +215,79 @@ sudo dnf config-manager --set-disabled packages-microsoft-com-prod
 
 **For Standard On-Premises RHEL Systems:**
 
-If `dnf repolist` already shows CDN repositories (`rhel-9-for-x86_64-appstream-rpms`, `rhel-9-for-x86_64-baseos-rpms`), you can skip this section entirely. Your system is already configured correctly.
+If `dnf repolist` already shows CDN repositories (`rhel-9-for-x86_64-appstream-rpms`, `rhel-9-for-x86_64-baseos-rpms`), skip this section.
 
-## Checking System Readiness
-
-Verify your system meets the requirements:
+## Step 4: Check System Readiness and Install Packages
 
 ```bash
-# Check RHEL version and architecture
-cat /etc/redhat-release  # Should show RHEL 9.6 or later
-uname -m                  # Should show x86_64
+# Verify RHEL version, architecture, and subscription
+cat /etc/redhat-release && uname -m
+sudo subscription-manager status
 
-# Verify subscription
-sudo subscription-manager status  # Should show "Overall Status: Current"
-
-# Verify required tools
-sudo podman --version  # Should show 5.4.1 or later
-make --version         # Should show GNU Make 4.x or later
-
-# Check disk space
-df -h /var/lib/containers  # Should have at least 20 GB free
+# Verify required tools and disk space
+sudo podman --version && make --version
+df -h /var/lib/containers  # Need 20+ GB free
 ```
 
-If subscription is not active:
+If not registered: `sudo subscription-manager register --auto-attach`
 
-```bash
-sudo subscription-manager register
-sudo subscription-manager attach --auto
-```
-
-**Important:** The build process requires an active RHEL subscription to install packages from RHEL repositories. Ensure your system is properly registered before building.
-
-### Red Hat Registry Authentication
-
-Authenticate to `registry.redhat.io` and save the credentials directly to the build directory. This authentication file will be embedded in the bootc image to allow automatic pulling of RHDH container images during deployment.
-
-```bash
-# Navigate to your quadlet directory
-cd <your-installation-path>/image_mode/quadlet
-
-# Authenticate and save credentials to the files directory
-podman login --authfile files/auth.json registry.redhat.io
-```
-
-Enter your Red Hat account credentials when prompted.
-
-**Note**: 
-- The auth.json file contains your registry credentials and will be embedded in the bootc image
-- This file is automatically git-ignored and should not be committed to version control
-- Rootless podman authentication is sufficient - the file will be read during the build process
-
-### Installing Required RHEL 9 Packages
-
-Install the required packages for building bootc images:
+**Install required packages:**
 
 ```bash
 sudo dnf install -y podman container-tools make
 ```
 
-## Installation
+**Authenticate to Red Hat Container Registry:**
 
-This section provides detailed instructions for installing the Red Hat Ansible Automation Platform Self-Service Portal using the Podman Quadlet deployment method on your RHEL 9 system.
+```bash
+# From the quadlet/ directory
+podman login --authfile files/auth.json registry.redhat.io
+```
 
-### Production Deployment Best Practices
+Enter your Red Hat account credentials when prompted. The `auth.json` file will be embedded in the bootc image and is automatically git-ignored.
 
-**Before you begin**, understand the security considerations for production deployments:
+## Step 5: Configure the Portal
 
-**Required for Production:**
+**Security Notes for Production:**
 - ✅ Custom VM credentials (not default `admin/admin123`)
-- ✅ SSH key authentication with `SSH_SECURITY_MODE=keys-only`
-- ✅ Strong, randomly generated passwords for all services
-- ✅ Unique `BACKEND_SECRET` and `POSTGRES_PASSWORD`
-- ✅ TLS certificate validation enabled (`NODE_TLS_REJECT_UNAUTHORIZED=1`)
-- ✅ Valid AAP OAuth credentials
-- ✅ Secure network configuration and firewall rules
+- ✅ SSH key authentication (`SSH_SECURITY_MODE=keys-only`)
+- ✅ Strong passwords: `BACKEND_SECRET`, `POSTGRES_PASSWORD`, `ADMIN_PASSWORD`
+- ✅ Valid AAP OAuth credentials and TLS enabled
 
-**Testing/Development Shortcuts:**
-- Default credentials (`admin/admin123`) are provided for quick testing only
-- Password-based SSH authentication is available but not recommended
-- These shortcuts must **never** be used for production deployments
-
-**This guide assumes you are deploying for production** unless explicitly noted otherwise.
-
-### Obtaining the Installation Files
-
-1. Download or extract the Self-Service Portal installation files to your RHEL 9 system. The files may be provided as:
-   - A compressed archive (tar.gz or zip file)
-   - A git repository
-   - From Red Hat delivery mechanisms
-
-**Choose a working directory** where you want to install the portal files. This can be:
-- Your home directory: `~/projects/`
-- Any location where you have read/write access
-- Ensure at least 20 GB of free disk space
-
-Example using a compressed archive:
-
-```bash
-# Choose your installation directory
-INSTALL_DIR=~/projects
-
-cd $INSTALL_DIR
-tar -xzf ansible-self-service-portal-<version>.tar.gz
-cd ansible-self-service-portal/image_mode/quadlet
-```
-
-Or using git:
-
-```bash
-# Choose your installation directory
-INSTALL_DIR=~/projects
-
-cd $INSTALL_DIR
-git clone <repository-url> ansible-self-service-portal
-cd ansible-self-service-portal/image_mode/quadlet
-```
-
-2. Ensure you have read/write access to the directory (no ownership changes needed if using your home directory).
-
-### Preparing the Installation Environment
-
-**Prerequisites**: Before continuing, ensure you have completed the following from the "Initial RHEL 9 System Setup" section:
-- ✅ System is registered with subscription-manager (if using CDN repos)
-- ✅ Authenticated to registry.redhat.io
-- ✅ Installed required packages (podman, container-tools, make)
-
-**Note**: You will also need to copy your SSH public key to the `quadlet/files/` directory during the credential configuration step below.
-
-1. Navigate to the quadlet directory:
-
-```bash
-cd <your-installation-path>/image_mode/quadlet
-```
-
-Replace `<your-installation-path>` with wherever you extracted the files.
-
-All commands in this guide assume you are in the `quadlet/` directory.
-
-2. Verify the installation files are present:
-
-```bash
-ls -la
-```
-
-You should see the following key files:
-- `Containerfile.rhdh-bootc-quadlet` - Container image definition
-- `Makefile` - Build and deployment automation
-- `rhdh.container` - portal Quadlet service definition
-- `postgres.container` - PostgreSQL Quadlet service definition
-- `rhdh-network.network` - Network Quadlet definition
-- `portal.env.example` - Portal and database configuration template
-- `credentials.env.example` - VM credentials template
-- `validate-quadlet.sh` - Configuration validation script
-- `build-quadlet.sh` - Image build script
-- `INSTALLATION_GUIDE.md` - This installation guide
+**For development/testing:** Default credentials are available but insecure.
 
 ### Configuring Environment Variables
 
-Before building and deploying, you must configure environment variables. This deployment uses two configuration files:
+This deployment uses two configuration files:
+1. **`.portal.env`** - Portal and database settings (REQUIRED)
+2. **`.credentials.env`** - VM credentials and SSH keys (REQUIRED for production)
 
-1. **`.portal.env`** - Portal application and database settings (REQUIRED)
-2. **`.credentials.env`** - VM access credentials and SSH keys (OPTIONAL, but recommended for production)
-
-#### Step 1: Copy Configuration Files
-
+**Copy templates:**
 ```bash
-# Navigate to your quadlet directory
 cd <your-installation-path>/image_mode/quadlet
-
-# Copy portal configuration (creates hidden file)
 cp portal.env.example .portal.env
-
-# Copy VM credentials (creates hidden file)
 cp credentials.env.example .credentials.env
 ```
 
-Both files are hidden (start with `.`) and automatically git-ignored for security.
+Both files are hidden and git-ignored for security.
 
 #### Step 2: Configure Portal Environment (REQUIRED)
 
-Edit `.portal.env` in your editor. This file contains all configuration for the portal application and PostgreSQL database.
+Edit `.portal.env` and configure:
 
-**Minimum Required Configuration:**
-
+**Required settings:**
 ```bash
-# Ansible Automation Platform Configuration
 AAP_HOST_URL=https://your-aap-instance.example.com
 AAP_TOKEN=your-aap-api-token
-
-# OAuth Configuration for AAP Authentication
 OAUTH_CLIENT_ID=your-oauth-client-id
 OAUTH_CLIENT_SECRET=your-oauth-client-secret
-
-# Backend Authentication (generate a secure random key)
-BACKEND_SECRET=your-backend-secret-key-here-must-be-set
-
-# Database Password (used by both portal and PostgreSQL)
-POSTGRES_PASSWORD=secure_admin_password_123
+BACKEND_SECRET=$(openssl rand -base64 32)
+POSTGRES_PASSWORD=$(openssl rand -base64 32)
 ```
 
-**Generate Secure Secrets:**
-
-```bash
-# Backend secret
-openssl rand -base64 32
-
-# Database password
-openssl rand -base64 32
-```
-
-Copy the generated values into `.portal.env`.
-
-**Obtain AAP Credentials:**
-
-1. Log in to your Ansible Automation Platform instance
-2. Navigate to **Administration** > **Applications**
-3. Create a new OAuth2 application or use an existing one
-4. Copy the Client ID and Client Secret
-5. Navigate to **Users** > **Tokens** and create an API token
+**Get AAP credentials:**
+1. Log in to AAP → **Administration** > **Applications** → Create/copy OAuth2 credentials
+2. Navigate to **Users** > **Tokens** → Create API token
 
 **Database Configuration:**
 
@@ -542,84 +407,18 @@ grep -E "ADMIN_USER|SSH_SECURITY_MODE|SSH_PUBLIC_KEY_FILE" .credentials.env
 
 ---
 
-**Alternative Configuration for Testing/Development Only**
+**For Development/Testing Only:** You can use password-only authentication or skip customization (default: `admin/admin123`). These options are insecure and only for isolated test environments. See `CUSTOM_CREDENTIALS.md` for details.
 
-**⚠️ WARNING**: The following options are **NOT SECURE** for production use.
+#### Step 4: Verify Configuration
 
-<details>
-<summary><strong>Option: Password-Only Authentication (Development/Testing Only)</strong></summary>
-
-```bash
-# Custom username
-ADMIN_USER=testadmin
-
-# Change from defaults (still use strong passwords)
-ADMIN_PASSWORD=$(openssl rand -base64 24)
-ROOT_PASSWORD=$(openssl rand -base64 24)
-
-# No SSH key
-SSH_PUBLIC_KEY_FILE=
-
-# Allow password authentication
-SSH_SECURITY_MODE=password-only
-```
-
-**Use this only for**:
-- Local development environments
-- Temporary testing VMs
-- Non-sensitive demonstrations
-
-</details>
-
-<details>
-<summary><strong>Option: Use Default Credentials (Quick Testing Only)</strong></summary>
-
-**🚨 DANGER**: Skip editing `.credentials.env` only for **immediate local testing**. Default credentials:
-- Username: `admin`
-- Password: `admin123`
-- Root password: `root123`
-- SSH: Password authentication enabled
-
-**These credentials are publicly documented and completely insecure.**
-
-**Acceptable use cases**:
-- Quick functionality verification on isolated networks
-- Throwaway VMs that will be destroyed immediately
-- Initial proof-of-concept testing
-
-**Never use for**:
-- Any system accessible from a network
-- Systems containing any data
-- Systems that will exist longer than a single test session
-
-</details>
-
-#### Step 4: Review and Verify Configuration
-
-Before building, verify your configuration is production-ready:
+**Quick verification:**
 
 ```bash
-# Verify portal configuration
-grep -E "AAP_HOST_URL|OAUTH_CLIENT_ID|BASE_URL|BACKEND_SECRET" .portal.env
-
-# Verify VM credentials are customized
-grep -E "ADMIN_USER|SSH_SECURITY_MODE|SSH_PUBLIC_KEY_FILE" .credentials.env
+grep -E "AAP_HOST_URL|OAUTH_CLIENT_ID|BACKEND_SECRET" .portal.env
+grep -E "ADMIN_USER|SSH_SECURITY_MODE" .credentials.env
 ```
 
-**Production Readiness Checklist:**
-
-- [ ] `.portal.env` has unique `BACKEND_SECRET` (not the example value)
-- [ ] `.portal.env` has unique `POSTGRES_PASSWORD` (not the example value)
-- [ ] `.portal.env` has valid AAP credentials (`AAP_HOST_URL`, `AAP_TOKEN`)
-- [ ] `.portal.env` has valid OAuth credentials (`OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET`)
-- [ ] Database configured: Local container OR external database setup complete
-- [ ] `.credentials.env` has custom `ADMIN_USER` (not "admin")
-- [ ] `.credentials.env` has custom `ADMIN_PASSWORD` (not "admin123")
-- [ ] `.credentials.env` has `SSH_PUBLIC_KEY_FILE` configured with your public key path
-- [ ] `.credentials.env` has `SSH_SECURITY_MODE=keys-only` for production
-- [ ] `NODE_TLS_REJECT_UNAUTHORIZED=1` in `.portal.env` (secure by default)
-
-**⚠️ For Production**: All checklist items must be completed before deploying.
+**Production checklist:** Unique secrets in `.portal.env`, custom credentials in `.credentials.env`, SSH keys configured, TLS enabled.
 
 ### Changing the Default Port (Optional)
 
@@ -955,7 +754,7 @@ GITHUB_TOKEN=<GITHUB_TOKEN>
 To generate a GitHub token:
 1. Navigate to https://github.com/settings/tokens
 2. Click "Generate new token (classic)"
-3. Select scopes: `repo`, `read:org`, `read:user`, `user:email`
+3. Select scopes: `repo` (for private repos) or `public_repo` (for public repos only)
 4. Generate and copy the token
 
 **GitLab Integration (Optional):**
@@ -972,7 +771,7 @@ GITLAB_TOKEN=<GITLAB_TOKEN>
 To generate a GitLab token:
 1. Navigate to https://gitlab.com/-/profile/personal_access_tokens
 2. Create new token with name "Portal Integration"
-3. Select scopes: `read_api`, `read_repository`, `read_user`
+3. Select scope: `read_api` (sufficient for reading repositories and catalogs)
 4. Generate and copy the token
 
 **Note**: Public repositories work without authentication tokens.
