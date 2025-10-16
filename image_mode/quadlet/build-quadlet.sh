@@ -3,9 +3,9 @@
 
 set -e
 
-# Script directory
+# Script directory (installation directory)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-IMAGE_MODE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+IMAGE_MODE_DIR="${SCRIPT_DIR}"
 
 # Default values
 IMAGE_NAME="rhdh-bootc-quadlet"

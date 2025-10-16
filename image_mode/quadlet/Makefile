@@ -1,25 +1,29 @@
-# RHDH Quadlet Bootc Image Management  
-# self-service automation portal with Ansible self-service portal using Logically Bound Images on RHEL 9 Image Mode
+# Ansible Self-Service Automation Portal - Bootc Image Management  
+# Deploy Ansible self-service automation portal using Logically Bound Images on RHEL 9 Image Mode
 
-# Configuration
-IMAGE_NAME := rhdh-bootc-quadlet
-IMAGE_TAG := latest
-VM_NAME := rhdh-quadlet-vm
-VM_MEMORY := 4096
-VM_VCPUS := 2
-PORT := 7007
-CONTAINERFILE := Containerfile.rhdh-bootc-quadlet
+# Load user configuration from .portal.env if it exists
+-include .portal.env
 
-# Registry Configuration
-REGISTRY := quay.io
-NAMESPACE := audgirka
-REGISTRY_IMAGE := $(REGISTRY)/$(NAMESPACE)/$(IMAGE_NAME)
+# Build Configuration (defaults - can be overridden in .portal.env)
+IMAGE_NAME ?= rhaap-portal-image
+IMAGE_TAG ?= latest
 
-# Build script and paths
+# VM Configuration (defaults - can be overridden in .portal.env)
+VM_NAME ?= rhaap-portal-vm
+VM_MEMORY ?= 4096
+VM_VCPUS ?= 2
+PORT ?= 7007
+
+# Registry Configuration (optional - only needed for registry push workflows)
+REGISTRY ?= localhost
+NAMESPACE ?= 
+REGISTRY_IMAGE := $(if $(NAMESPACE),$(REGISTRY)/$(NAMESPACE)/$(IMAGE_NAME),$(REGISTRY)/$(IMAGE_NAME))
+
+# Internal build paths and scripts (do not modify)
 BUILD_SCRIPT := ./build-quadlet.sh
 VALIDATE_SCRIPT := ./validate-quadlet.sh
 QUADLET_DIR := $(CURDIR)
-IMAGE_MODE_DIR := $(PWD)/..
+CONTAINERFILE := Containerfile.portal-bootc-quadlet
 
 # Colors for output
 GREEN := \033[0;32m
@@ -32,22 +36,22 @@ NC := \033[0m # No Color
 
 # Default target
 help: ## Show this help message
-	@echo "$(GREEN)RHDH Quadlet Bootc Image Management$(NC)"
-	@echo "===================================="
+	@echo "$(GREEN)Ansible Self-Service Automation Portal - Bootc Image Management$(NC)"
+	@echo "================================================================="
 	@echo ""
 	@echo "$(BLUE)Logically Bound Images with Podman Quadlet$(NC)"
-	@echo "Uses RHEL 9 Image Mode with automatic RHDH image management"
+	@echo "Uses RHEL 9 Image Mode with automatic portal image management"
 	@echo ""
 	@echo "Available targets:"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(YELLOW)%-18s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "$(BLUE)Quick Start - Local Development:$(NC)"
 	@echo "  $(GREEN)make deploy-vm-local$(NC)     # Complete local development workflow"
-	@echo "  $(GREEN)make test-vm$(NC)             # Test RHDH in VM"
+	@echo "  $(GREEN)make test-vm$(NC)             # Test portal in VM"
 	@echo ""
 	@echo "$(BLUE)Production - Registry Workflow:$(NC)"
 	@echo "  $(GREEN)make deploy-vm-registry$(NC)  # Complete registry-based deployment"
-	@echo "  $(GREEN)make test-vm$(NC)             # Test RHDH in VM"
+	@echo "  $(GREEN)make test-vm$(NC)             # Test portal in VM"
 	@echo ""
 	@echo "$(BLUE)Individual Steps:$(NC)"
 	@echo "  $(GREEN)make build-local$(NC)         # Build image locally" 
@@ -74,12 +78,12 @@ validate: ## Validate Quadlet configuration files
 		exit 1; \
 	fi
 
-build-local: validate ## Build bootc image locally (run with: sudo make build-local)
-	@echo "$(GREEN)Building RHDH Quadlet bootc image locally...$(NC)"
+build-local: ## Build bootc image locally (run with: sudo make build-local)
+	@echo "$(GREEN)Building portal bootc image locally...$(NC)"
 	@echo "$(YELLOW)Note: This requires rootful podman - run as: sudo make build-local$(NC)"
 	@# Verify auth.json exists for registry authentication
 	@if [ ! -f files/auth.json ]; then \
-		echo "$(RED)Error: auth.json not found in quadlet/files directory$(NC)"; \
+		echo "$(RED)Error: auth.json not found in files/ directory$(NC)"; \
 		echo "$(YELLOW)Please copy your registry authentication:$(NC)"; \
 		echo "  sudo podman login --authfile files/auth.json registry.redhat.io"; \
 		echo ""; \
@@ -111,16 +115,16 @@ build-local: validate ## Build bootc image locally (run with: sudo make build-lo
 		fi; \
 		podman build $$BUILD_ARGS $$VOLUME_ARGS \
 			--authfile $(QUADLET_DIR)/files/auth.json \
-			-f quadlet/$(CONTAINERFILE) -t $(IMAGE_NAME):$(IMAGE_TAG) ..; \
+			-f $(CONTAINERFILE) -t $(IMAGE_NAME):$(IMAGE_TAG) .; \
 	else \
 		echo "$(YELLOW)No .credentials.env found, using defaults$(NC)"; \
-		$(BUILD_SCRIPT) -n $(IMAGE_NAME) -t $(IMAGE_TAG) -f quadlet/$(CONTAINERFILE); \
+		$(BUILD_SCRIPT) -n $(IMAGE_NAME) -t $(IMAGE_TAG) -f $(CONTAINERFILE); \
 	fi
 	@echo "$(GREEN)✅ Local build completed: $(IMAGE_NAME):$(IMAGE_TAG)$(NC)"
 
 build: validate ## Build bootc image for registry using build-quadlet.sh
-	@echo "$(GREEN)Building RHDH Quadlet bootc image for registry...$(NC)"
-	$(BUILD_SCRIPT) -n $(IMAGE_NAME) -t $(IMAGE_TAG) -r $(REGISTRY)/$(NAMESPACE) -f quadlet/$(CONTAINERFILE)
+	@echo "$(GREEN)Building portal bootc image for registry...$(NC)"
+	$(BUILD_SCRIPT) -n $(IMAGE_NAME) -t $(IMAGE_TAG) -r $(REGISTRY)/$(NAMESPACE) -f $(CONTAINERFILE)
 	@echo "$(GREEN)✅ Registry build completed: $(REGISTRY_IMAGE):$(IMAGE_TAG)$(NC)"
 
 # Registry Operations
@@ -184,7 +188,7 @@ qcow2-local: check-rootful-podman prepare-rootful-image pull-all-images ## Creat
 	@echo "$(GREEN)Creating QCOW2 image from local $(IMAGE_NAME):$(IMAGE_TAG)...$(NC)"
 	@echo "$(YELLOW)Note: bootc-image-builder requires rootful podman - run as: sudo make qcow2-local$(NC)"
 	@echo "$(BLUE)INFO: bootc automatically discovers and pulls logically bound images during installation$(NC)"
-	@echo "$(BLUE)INFO: Using configuration file to create 20GB disk (vs default 10GB) for RHDH application$(NC)"
+	@echo "$(BLUE)INFO: Using configuration file to create 20GB disk (vs default 10GB) for portal application$(NC)"
 	@echo "$(BLUE)INFO: Using larger temporary filesystems to accommodate image extraction$(NC)"
 	@mkdir -p $(QUADLET_DIR)/output
 	@echo "$(BLUE)Mounting config file: $(QUADLET_DIR)/config.toml$(NC)"
@@ -204,12 +208,16 @@ qcow2-local: check-rootful-podman prepare-rootful-image pull-all-images ## Creat
 	@echo "$(GREEN)✅ QCOW2 image created in output/ directory$(NC)"
 	@echo "$(GREEN)📁 Files created:$(NC)"
 	@ls -lh $(QUADLET_DIR)/output/
+	@echo "$(BLUE)Fixing file permissions for user access...$(NC)"
+	@sudo chown -R $(SUDO_USER):$(SUDO_USER) $(QUADLET_DIR)/output/ 2>/dev/null || sudo chown -R $$USER:$$USER $(QUADLET_DIR)/output/
+	@sudo chmod -R u+rw,go+r $(QUADLET_DIR)/output/
+	@echo "$(GREEN)✅ Output files are now accessible without sudo$(NC)"
 
 qcow2: pull-all-images ## Create QCOW2 from registry image (requires sudo/root)
 	@echo "$(GREEN)Creating QCOW2 image from $(REGISTRY_IMAGE):$(IMAGE_TAG)...$(NC)"
 	@echo "$(YELLOW)Note: bootc-image-builder requires rootful podman (sudo)$(NC)"
 	@echo "$(BLUE)INFO: bootc automatically discovers and pulls logically bound images during installation$(NC)"
-	@echo "$(BLUE)INFO: Using configuration file to create 20GB disk (vs default 10GB) for RHDH application$(NC)"
+	@echo "$(BLUE)INFO: Using configuration file to create 20GB disk (vs default 10GB) for portal application$(NC)"
 	@echo "$(BLUE)INFO: Using larger temporary filesystems to accommodate image extraction$(NC)"
 	@mkdir -p $(QUADLET_DIR)/output
 	@echo "$(BLUE)Mounting config file: $(QUADLET_DIR)/config.toml$(NC)"
@@ -229,6 +237,10 @@ qcow2: pull-all-images ## Create QCOW2 from registry image (requires sudo/root)
 	@echo "$(GREEN)✅ QCOW2 image created in output/ directory$(NC)"
 	@echo "$(GREEN)📁 Files created:$(NC)"
 	@ls -lh $(QUADLET_DIR)/output/
+	@echo "$(BLUE)Fixing file permissions for user access...$(NC)"
+	@sudo chown -R $(SUDO_USER):$(SUDO_USER) $(QUADLET_DIR)/output/ 2>/dev/null || sudo chown -R $$USER:$$USER $(QUADLET_DIR)/output/
+	@sudo chmod -R u+rw,go+r $(QUADLET_DIR)/output/
+	@echo "$(GREEN)✅ Output files are now accessible without sudo$(NC)"
 
 qcow2-test: qcow2-local ## Create QCOW2 and test basic integrity
 	@echo "$(GREEN)Testing QCOW2 integrity...$(NC)"
@@ -257,6 +269,10 @@ iso-local: pull-all-images ## Create ISO from local image (requires sudo/root)
 		localhost/$(IMAGE_NAME):$(IMAGE_TAG)
 	@echo "$(GREEN)✅ ISO image created in output/ directory$(NC)"
 	@ls -lh $(QUADLET_DIR)/output/
+	@echo "$(BLUE)Fixing file permissions for user access...$(NC)"
+	@sudo chown -R $(SUDO_USER):$(SUDO_USER) $(QUADLET_DIR)/output/ 2>/dev/null || sudo chown -R $$USER:$$USER $(QUADLET_DIR)/output/
+	@sudo chmod -R u+rw,go+r $(QUADLET_DIR)/output/
+	@echo "$(GREEN)✅ Output files are now accessible without sudo$(NC)"
 
 # Prerequisites and Dependency Checks
 check-rootful-podman: ## Check if rootful podman is available
@@ -435,10 +451,10 @@ vm-destroy: vm-destroy-local vm-destroy-registry ## Destroy both local and regis
 
 # Direct QEMU (alternative to libvirt)
 qemu-start: qcow2-if-needed ## Start VM using direct QEMU (no libvirt required)
-	@echo "$(GREEN)Starting QEMU VM with RHDH Quadlet...$(NC)"
+	@echo "$(GREEN)Starting QEMU VM with Ansible Portal...$(NC)"
 	@echo "$(YELLOW)VM will be accessible on:$(NC)"
 	@echo "  $(GREEN)SSH:$(NC)  ssh admin@localhost -p 2222  (password: admin123)"
-	@echo "  $(GREEN)RHDH:$(NC) http://localhost:7007"
+	@echo "  $(GREEN)Portal:$(NC) http://localhost:7007"
 	@echo "  $(GREEN)VNC:$(NC)  vnc://localhost:5901"
 	@echo ""
 	@qemu-system-x86_64 \
@@ -449,7 +465,7 @@ qemu-start: qcow2-if-needed ## Start VM using direct QEMU (no libvirt required)
 		-device virtio-net,netdev=net0 \
 		-drive file=$(QUADLET_DIR)/output/qcow2/disk.qcow2,format=qcow2,if=virtio \
 		-display vnc=:1 \
-		-name "RHDH Quadlet VM"
+		-name "Ansible Portal VM"
 
 # VM Testing and Management
 # Testing
@@ -457,13 +473,13 @@ test-local: ## Test local image build
 	@echo "$(GREEN)Testing local image...$(NC)"
 	@podman images | grep $(IMAGE_NAME) && echo "$(GREEN)✅ Local image exists$(NC)" || echo "$(RED)❌ Local image not found$(NC)"
 
-test-vm: ## Test RHDH in VM (requires VM to be running)
-	@echo "$(GREEN)Testing RHDH service in VM...$(NC)"
+test-vm: ## Test portal in VM (requires VM to be running)
+	@echo "$(GREEN)Testing portal service in VM...$(NC)"
 	@echo "$(YELLOW)Attempting to connect to VM on common IPs...$(NC)"
 	@for ip in localhost 192.168.122.100 192.168.122.101 192.168.122.102; do \
 		echo "Testing $$ip:7007..."; \
 		if curl -s --connect-timeout 5 http://$$ip:7007 >/dev/null 2>&1; then \
-			echo "$(GREEN)✅ RHDH responding at $$ip:7007$(NC)"; \
+			echo "$(GREEN)✅ Portal responding at $$ip:7007$(NC)"; \
 			echo "$(GREEN)Testing endpoints:$(NC)"; \
 			curl -s http://$$ip:7007 | head -3; \
 			echo ""; \
@@ -472,11 +488,11 @@ test-vm: ## Test RHDH in VM (requires VM to be running)
 		fi; \
 	done
 
-test-vm-comprehensive: ## Comprehensive RHDH test in VM
-	@echo "$(GREEN)Comprehensive RHDH test...$(NC)"
+test-vm-comprehensive: ## Comprehensive portal test in VM
+	@echo "$(GREEN)Comprehensive portal test...$(NC)"
 	@VM_IP=$$(virsh domifaddr $(VM_NAME) 2>/dev/null | grep -oE "192\.168\.[0-9]+\.[0-9]+" | head -1); \
 	if [ -n "$$VM_IP" ]; then \
-		echo "$(GREEN)Testing RHDH at $$VM_IP:7007$(NC)"; \
+		echo "$(GREEN)Testing portal at $$VM_IP:7007$(NC)"; \
 		echo "=== Main Page ==="; \
 		timeout 10 curl -s http://$$VM_IP:7007 | head -5 || echo "Main page timeout"; \
 		echo ""; \
@@ -495,7 +511,7 @@ test-vm-comprehensive: ## Comprehensive RHDH test in VM
 # Logically bound images verification
 test-bound-images: ## Test logically bound images functionality (requires running VM)
 	@echo "$(GREEN)Testing logically bound images...$(NC)"
-	@echo "$(YELLOW)This test checks if RHDH image was pulled automatically$(NC)"
+	@echo "$(YELLOW)This test checks if portal image was pulled automatically$(NC)"
 	@VM_IP=$$(virsh domifaddr $(VM_NAME) 2>/dev/null | grep -oE "192\.168\.[0-9]+\.[0-9]+" | head -1); \
 	if [ -n "$$VM_IP" ]; then \
 		echo "$(GREEN)Connecting to VM to check bound images...$(NC)"; \
@@ -539,7 +555,7 @@ load-and-qcow2: ## Load image and create QCOW2 (run with sudo)
 		podman load -i /tmp/$(IMAGE_NAME)-$(IMAGE_TAG).tar; \
 		rm -f /tmp/$(IMAGE_NAME)-$(IMAGE_TAG).tar; \
 		echo "$(BLUE)INFO: bootc will automatically pull logically bound images during installation$(NC)"; \
-		echo "$(BLUE)INFO: Using config.toml to create 20GB disk for RHDH application space$(NC)"; \
+		echo "$(BLUE)INFO: Using config.toml to create 20GB disk for portal application space$(NC)"; \
 		echo "$(GREEN)Creating QCOW2 image...$(NC)"; \
 		mkdir -p $(QUADLET_DIR)/output; \
 		echo "$(BLUE)Mounting config file: $(QUADLET_DIR)/config.toml$(NC)"; \
@@ -619,8 +635,8 @@ info: ## Show configuration and status
 	@echo "$(YELLOW)RHDH Port:$(NC)       $(PORT)"
 	@echo ""
 	@echo "$(GREEN)Logically Bound Images:$(NC)"
-	@echo "$(YELLOW)RHDH Image:$(NC)      registry.redhat.io/rhdh/rhdh-hub-rhel9:1.6"
-	@echo "$(YELLOW)Quadlet Files:$(NC)   rhdh.container"
+	@echo "$(YELLOW)Portal Image:$(NC)    registry.redhat.io/rhdh/rhdh-hub-rhel9:1.6"
+	@echo "$(YELLOW)Quadlet Files:$(NC)   portal.container"
 	@echo "$(YELLOW)Bound Location:$(NC)  /usr/lib/bootc/bound-images.d/"
 
 # Backward compatibility aliases
@@ -665,7 +681,7 @@ list-quadlet-images: ## List all container images used in the quadlet setup
 	@echo "  registry.redhat.io/rhel9/rhel-bootc:latest           $(YELLOW)# Containerfile base image$(NC)"
 	@echo ""
 	@echo "$(BLUE)Application Images (Logically Bound):$(NC)"
-	@echo "  registry.redhat.io/rhdh/rhdh-hub-rhel9:1.6           $(YELLOW)# RHDH application$(NC)"
+	@echo "  registry.redhat.io/rhdh/rhdh-hub-rhel9:1.6           $(YELLOW)# Portal application$(NC)"
 	@echo "  registry.redhat.io/rhel9/postgresql-15:latest        $(YELLOW)# PostgreSQL database$(NC)"
 	@echo ""
 	@echo "$(BLUE)Build Tools:$(NC)"
@@ -701,8 +717,8 @@ test-image-config: ## Test bootc image configuration without VM
 	@echo "$(BLUE)1. Checking logically bound images:$(NC)"
 	@podman run --rm localhost/$(IMAGE_NAME):$(IMAGE_TAG) ls -la /usr/lib/bootc/bound-images.d/ || echo "$(RED)❌ Failed$(NC)"
 	@echo ""
-	@echo "$(BLUE)2. Verifying RHDH image reference:$(NC)"
-	@podman run --rm localhost/$(IMAGE_NAME):$(IMAGE_TAG) cat /usr/share/containers/systemd/rhdh.image || echo "$(RED)❌ Failed$(NC)"
+	@echo "$(BLUE)2. Verifying portal image reference:$(NC)"
+	@podman run --rm localhost/$(IMAGE_NAME):$(IMAGE_TAG) cat /usr/share/containers/systemd/portal.image || echo "$(RED)❌ Failed$(NC)"
 	@echo ""
 	@echo "$(BLUE)3. Testing QCOW2 image:$(NC)"
 	@if [ -f $(QUADLET_DIR)/output/qcow2/disk.qcow2 ]; then \
@@ -716,15 +732,15 @@ test-image-config: ## Test bootc image configuration without VM
 # PostgreSQL Database Management
 postgres-setup: ## Setup PostgreSQL data directory and permissions
 	@echo "$(GREEN)Setting up PostgreSQL data directory...$(NC)"
-	@sudo mkdir -p /var/lib/rhdh/postgres-data
-	@sudo chown 26:26 /var/lib/rhdh/postgres-data  # PostgreSQL UID/GID
-	@sudo chmod 700 /var/lib/rhdh/postgres-data
-	@echo "$(GREEN)✅ PostgreSQL data directory created at /var/lib/rhdh/postgres-data$(NC)"
+	@sudo mkdir -p /var/lib/portal/postgres-data
+	@sudo chown 26:26 /var/lib/portal/postgres-data  # PostgreSQL UID/GID
+	@sudo chmod 700 /var/lib/portal/postgres-data
+	@echo "$(GREEN)✅ PostgreSQL data directory created at /var/lib/portal/postgres-data$(NC)"
 
 postgres-start: postgres-setup ## Start PostgreSQL container service
 	@echo "$(GREEN)Starting PostgreSQL container service...$(NC)"
 	@sudo cp postgres.container /etc/containers/systemd/
-	@sudo cp .portal.env /etc/rhdh/ || true
+	@sudo cp .portal.env /etc/portal/ || true
 	@sudo systemctl daemon-reload
 	@sudo systemctl start postgres.service
 	@sudo systemctl enable postgres.service
@@ -740,19 +756,19 @@ postgres-status: ## Check PostgreSQL container status
 	@sudo systemctl status postgres.service --no-pager -l || echo "$(YELLOW)Service not found$(NC)"
 	@echo ""
 	@echo "$(GREEN)PostgreSQL Container Status:$(NC)"
-	@podman ps -a | grep rhdh-postgres || echo "$(YELLOW)Container not found$(NC)"
+	@podman ps -a | grep portal-postgres || echo "$(YELLOW)Container not found$(NC)"
 	@echo ""
 	@echo "$(GREEN)PostgreSQL Health Check:$(NC)"
-	@podman exec rhdh-postgres pg_isready -U rhdh_user 2>/dev/null || echo "$(YELLOW)Database not ready or container not running$(NC)"
+	@podman exec portal-postgres pg_isready -U portal_user 2>/dev/null || echo "$(YELLOW)Database not ready or container not running$(NC)"
 
 postgres-logs: ## Show PostgreSQL container logs
 	@echo "$(GREEN)PostgreSQL Container Logs:$(NC)"
-	@podman logs rhdh-postgres --tail 50 2>/dev/null || echo "$(YELLOW)Container not running$(NC)"
+	@podman logs portal-postgres --tail 50 2>/dev/null || echo "$(YELLOW)Container not running$(NC)"
 
 postgres-connect: ## Connect to PostgreSQL database
 	@echo "$(GREEN)Connecting to PostgreSQL database...$(NC)"
-	@echo "$(YELLOW)Use password: secure_rhdh_password_123$(NC)"
-	@podman exec -it rhdh-postgres psql -U rhdh_user -d rhdh_backstage
+	@echo "$(YELLOW)Use password from .portal.env: POSTGRES_PASSWORD$(NC)"
+	@podman exec -it portal-postgres psql -U portal_user -d portal_backstage
 
 postgres-destroy: ## Stop and remove PostgreSQL container and data
 	@echo "$(GREEN)Destroying PostgreSQL setup...$(NC)"
@@ -760,7 +776,7 @@ postgres-destroy: ## Stop and remove PostgreSQL container and data
 	@sudo systemctl disable postgres.service 2>/dev/null || true
 	@sudo rm -f /etc/containers/systemd/postgres.container
 	@sudo systemctl daemon-reload
-	@podman rm -f rhdh-postgres 2>/dev/null || true
-	@echo "$(YELLOW)⚠️  PostgreSQL data directory preserved at /var/lib/rhdh/postgres-data$(NC)"
-	@echo "$(YELLOW)⚠️  To completely remove data: sudo rm -rf /var/lib/rhdh/postgres-data$(NC)"
+	@podman rm -f portal-postgres 2>/dev/null || true
+	@echo "$(YELLOW)⚠️  PostgreSQL data directory preserved at /var/lib/portal/postgres-data$(NC)"
+	@echo "$(YELLOW)⚠️  To completely remove data: sudo rm -rf /var/lib/portal/postgres-data$(NC)"
 	@echo "$(GREEN)✅ PostgreSQL container destroyed$(NC)"

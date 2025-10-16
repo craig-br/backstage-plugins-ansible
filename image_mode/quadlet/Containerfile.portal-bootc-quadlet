@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
-# RHEL 9 Image Mode with RHDH and Ansible self-service portal using Logically Bound Images
+# RHEL 9 Image Mode with Ansible Self-Service Automation Portal using Logically Bound Images
 # This Containerfile creates a RHEL 9 bootc-based image that uses Podman Quadlet
-# and logically bound images for RHDH, avoiding multi-stage builds.
+# and logically bound images for the portal application, avoiding multi-stage builds.
 # ---------------------------------------------------------------------------
 
 FROM registry.redhat.io/rhel9/rhel-bootc:latest
@@ -21,9 +21,9 @@ RUN dnf install -y nodejs npm python3 curl sudo podman && \
     dnf clean all
 
 # Create users and required directories, set up access
-RUN useradd -r -u 1001 -g root -d /opt/app-root/src -s /sbin/nologin rhdh && \
-    mkdir -p /opt/app-root/src /opt/app-root/src/dynamic-plugins-root /etc/rhdh /var/lib/rhdh /etc/containers && \
-    echo "rhdh ALL=(root) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /usr/bin/mkdir" > /etc/sudoers.d/rhdh && \
+RUN useradd -r -u 1001 -g root -d /opt/app-root/src -s /sbin/nologin portal && \
+    mkdir -p /opt/app-root/src /opt/app-root/src/dynamic-plugins-root /etc/portal /var/lib/portal /etc/containers && \
+    echo "portal ALL=(root) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /usr/bin/mkdir" > /etc/sudoers.d/portal && \
     # Install SSH server for remote access \
     dnf install -y openssh-server && \
     systemctl enable sshd && \
@@ -54,7 +54,7 @@ RUN if [ -n "${SSH_PUBLIC_KEY_FILE}" ]; then \
         echo "No SSH_PUBLIC_KEY_FILE provided, skipping SSH key setup"; \
     fi
 
-COPY ${SSH_PUBLIC_KEY_FILE:-quadlet/Containerfile.rhdh-bootc-quadlet} /tmp/ssh_key_temp
+COPY ${SSH_PUBLIC_KEY_FILE:-Containerfile.portal-bootc-quadlet} /tmp/ssh_key_temp
 RUN if [ -n "${SSH_PUBLIC_KEY_FILE}" ] && [ -f /tmp/ssh_key_temp ] && grep -q "ssh-" /tmp/ssh_key_temp 2>/dev/null; then \
         mv /tmp/ssh_key_temp /home/${ADMIN_USER}/.ssh/authorized_keys && \
         chmod 600 /home/${ADMIN_USER}/.ssh/authorized_keys && \
@@ -83,68 +83,67 @@ RUN if [ "${SSH_SECURITY_MODE}" = "keys-only" ]; then \
     fi
 
 # Copy configuration and scripts (from local build context)
-COPY ./configs /etc/rhdh/configs
-# COPY ./default.env /etc/rhdh/default.env  # Not needed for Quadlet - using .portal.env only
-COPY ./quadlet/.portal.env /etc/rhdh/.portal.env
-COPY ./local-plugins /var/lib/rhdh/local-plugins
-COPY ./scripts/prepare-and-install-dynamic-plugins.sh /usr/local/bin/
-COPY ./scripts/wait-for-plugins-and-start.sh /usr/local/bin/
-COPY ./scripts/detect-and-set-base-url.sh /usr/local/bin/
+COPY configs /etc/portal/configs
+COPY .portal.env /etc/portal/.portal.env
+COPY local-plugins /var/lib/portal/local-plugins
+COPY scripts/prepare-and-install-dynamic-plugins.sh /usr/local/bin/
+COPY scripts/wait-for-plugins-and-start.sh /usr/local/bin/
+COPY scripts/detect-and-set-base-url.sh /usr/local/bin/
 
 # Copy registry authentication for bootc upgrade support
-COPY ./quadlet/files/auth.json /etc/containers/auth.json
+COPY files/auth.json /etc/containers/auth.json
 
 # Clean architecture: prepare script runs inside container where all files exist
 
 # Copy Podman Quadlet files to systemd location 
 # Using fixed container file that doesn't depend on image service
-COPY ./quadlet/rhdh.container /usr/share/containers/systemd/rhdh.container
-COPY ./quadlet/postgres.container /usr/share/containers/systemd/postgres.container
-COPY ./quadlet/rhdh-network.network /usr/share/containers/systemd/rhdh-network.network
+COPY portal.container /usr/share/containers/systemd/portal.container
+COPY postgres.container /usr/share/containers/systemd/postgres.container
+COPY portal-network.network /usr/share/containers/systemd/portal-network.network
 
 # PostgreSQL uses the same .portal.env file (already copied above)
 
 # Create logically bound images by symlinking container files to bootc bound-images directory
-# This enables both RHDH and PostgreSQL containers to be managed by bootc with automatic image pulling
+# This enables both portal and PostgreSQL containers to be managed by bootc with automatic image pulling
 RUN mkdir -p /usr/lib/bootc/bound-images.d && \
-    ln -s /usr/share/containers/systemd/rhdh.container /usr/lib/bootc/bound-images.d/rhdh.container && \
+    ln -s /usr/share/containers/systemd/portal.container /usr/lib/bootc/bound-images.d/portal.container && \
     ln -s /usr/share/containers/systemd/postgres.container /usr/lib/bootc/bound-images.d/postgres.container
 
-# Set permissions for RHDH directories and scripts
+# Set permissions for portal directories and scripts
 RUN chmod +x /usr/local/bin/prepare-and-install-dynamic-plugins.sh /usr/local/bin/wait-for-plugins-and-start.sh /usr/local/bin/detect-and-set-base-url.sh && \
     # Create all required directories at BUILD TIME (bootc-native approach) \
-    mkdir -p /var/lib/rhdh/{dynamic-plugins-root,generated,config,.npm,scripts} && \
+    mkdir -p /var/lib/portal/{dynamic-plugins-root,generated,config,.npm,scripts} && \
     # Create PostgreSQL data directory with proper permissions \
-    mkdir -p /var/lib/rhdh/postgres-data && \
-    chown 26:26 /var/lib/rhdh/postgres-data && \
-    chmod 700 /var/lib/rhdh/postgres-data && \
+    mkdir -p /var/lib/portal/postgres-data && \
+    chown 26:26 /var/lib/portal/postgres-data && \
+    chmod 700 /var/lib/portal/postgres-data && \
     # Copy scripts for container and host access \
-    cp /usr/local/bin/prepare-and-install-dynamic-plugins.sh /var/lib/rhdh/scripts/ && \
-    cp /usr/local/bin/wait-for-plugins-and-start.sh /var/lib/rhdh/scripts/ && \
-    cp /usr/local/bin/detect-and-set-base-url.sh /var/lib/rhdh/scripts/ && \
-    chmod +x /var/lib/rhdh/scripts/*.sh && \
-    cp /etc/rhdh/configs/dynamic-plugins/dynamic-plugins.override.yaml /var/lib/rhdh/config/dynamic-plugins.yaml && \
-    ln -sf /var/lib/rhdh/config/dynamic-plugins.yaml /var/lib/rhdh/dynamic-plugins-root/dynamic-plugins.yaml && \
+    cp /usr/local/bin/prepare-and-install-dynamic-plugins.sh /var/lib/portal/scripts/ && \
+    cp /usr/local/bin/wait-for-plugins-and-start.sh /var/lib/portal/scripts/ && \
+    cp /usr/local/bin/detect-and-set-base-url.sh /var/lib/portal/scripts/ && \
+    chmod +x /var/lib/portal/scripts/*.sh && \
+    cp /etc/portal/configs/dynamic-plugins/dynamic-plugins.override.yaml /var/lib/portal/config/dynamic-plugins.yaml && \
+    ln -sf /var/lib/portal/config/dynamic-plugins.yaml /var/lib/portal/dynamic-plugins-root/dynamic-plugins.yaml && \
     # Create build-time symlinks to avoid runtime read-only filesystem issues \
-    ln -sf /var/lib/rhdh/config/dynamic-plugins.yaml /var/lib/rhdh/dynamic-plugins.yaml && \
+    ln -sf /var/lib/portal/config/dynamic-plugins.yaml /var/lib/portal/dynamic-plugins.yaml && \
     # Fix symlink conflicts in prepare script (volume mounts provide the files) \
-    sed -i 's|LINK_TARGET="/var/lib/rhdh/dynamic-plugins.yaml"|LINK_TARGET="/opt/app-root/src/dynamic-plugins.yaml"|' /var/lib/rhdh/scripts/prepare-and-install-dynamic-plugins.sh && \
-    sed -i '41,50s/^/# /' /var/lib/rhdh/scripts/prepare-and-install-dynamic-plugins.sh && \
-    sed -i '53,55s/^/# /' /var/lib/rhdh/scripts/prepare-and-install-dynamic-plugins.sh && \
+    sed -i 's|LINK_TARGET="/var/lib/portal/dynamic-plugins.yaml"|LINK_TARGET="/opt/app-root/src/dynamic-plugins.yaml"|' /var/lib/portal/scripts/prepare-and-install-dynamic-plugins.sh && \
+    sed -i '41,50s/^/# /' /var/lib/portal/scripts/prepare-and-install-dynamic-plugins.sh && \
+    sed -i '53,55s/^/# /' /var/lib/portal/scripts/prepare-and-install-dynamic-plugins.sh && \
     # Set all permissions at build time \
-    chown -R 1001:0 /opt/app-root /var/lib/rhdh /etc/rhdh && \
-    chmod -R g=u /opt/app-root /var/lib/rhdh /etc/rhdh && \
+    chown -R 1001:0 /opt/app-root /var/lib/portal /etc/portal && \
+    chmod -R g=u /opt/app-root /var/lib/portal /etc/portal && \
     # Ensure quadlet files have correct permissions \
-    chmod 644 /usr/share/containers/systemd/rhdh.container
+    chmod 644 /usr/share/containers/systemd/portal.container
 
-# Note: RHDH environment preparation is now done at BUILD TIME (bootc-native approach)
+# Note: Portal environment preparation is now done at BUILD TIME (bootc-native approach)
 
 # Clean architecture: Dynamic plugins setup moved to wait-for-plugins-and-start.sh
 
 # Health check helper for both host and container
 RUN printf '%s\n' \
   '#!/bin/bash' \
-  'echo "=== RHDH + PostgreSQL Health Check ==="' \
+  'echo "=== Portal + PostgreSQL Health Check ==="' \
   '# Check if PostgreSQL quadlet container is running' \
   'if systemctl is-active --quiet postgres.service; then' \
   '    echo "✓ PostgreSQL Quadlet service is active"' \
@@ -154,13 +153,13 @@ RUN printf '%s\n' \
   '    exit 1' \
   'fi' \
   '# Check PostgreSQL database health' \
-  'podman exec rhdh-postgres pg_isready -U rhdh_user >/dev/null 2>&1 && echo "✓ PostgreSQL database is ready" || { echo "✗ PostgreSQL database not ready"; exit 1; }' \
-  '# Check if RHDH quadlet container is running' \
-  'if systemctl is-active --quiet rhdh.service; then' \
+  'podman exec portal-postgres pg_isready -U portal_user >/dev/null 2>&1 && echo "✓ PostgreSQL database is ready" || { echo "✗ PostgreSQL database not ready"; exit 1; }' \
+  '# Check if portal quadlet container is running' \
+  'if systemctl is-active --quiet portal.service; then' \
   '    echo "✓ portal Quadlet service is active"' \
   'else' \
   '    echo "✗ portal Quadlet service is not active"' \
-  '    systemctl status rhdh.service --no-pager || true' \
+    '    systemctl status portal.service --no-pager || true' \
   '    exit 1' \
   'fi' \
   '# Check portal application health' \
@@ -172,17 +171,17 @@ RUN printf '%s\n' \
 # Script to manage logically bound images
 RUN printf '%s\n' \
   '#!/bin/bash' \
-  'echo "=== Managing RHDH + PostgreSQL Logically Bound Images ==="' \
+  'echo "=== Managing Portal + PostgreSQL Logically Bound Images ==="' \
   'echo "Bound images directory: /usr/lib/bootc/bound-images.d/"' \
   'ls -la /usr/lib/bootc/bound-images.d/ || echo "No bound images found"' \
   'echo "Expected bound images:"' \
-  'echo "  - rhdh.container -> portal application"' \
+  'echo "  - portal.container -> portal application"' \
   'echo "  - postgres.container -> PostgreSQL database"' \
   'echo "Available images in bootc storage:"' \
   'podman --storage-opt=additionalimagestore=/usr/lib/bootc/storage images || echo "No images in bootc storage yet"' \
   'echo "Container services status:"' \
   'systemctl is-active postgres.service >/dev/null 2>&1 && echo "  ✓ PostgreSQL service active" || echo "  ✗ PostgreSQL service inactive"' \
-  'systemctl is-active rhdh.service >/dev/null 2>&1 && echo "  ✓ portal service active" || echo "  ✗ portal service inactive"' \
+  'systemctl is-active portal.service >/dev/null 2>&1 && echo "  ✓ portal service active" || echo "  ✗ portal service inactive"' \
   > /usr/local/bin/manage-bound-images.sh && chmod +x /usr/local/bin/manage-bound-images.sh
 
 # Expose application ports (handled by quadlet containers, but declared for clarity)

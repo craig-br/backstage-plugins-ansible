@@ -1,402 +1,438 @@
-# Quadlet Deployment
+# TECH PREVIEW Installing and Configuring Ansible Self-Service Automation Portal on RHEL 9
 
-self-service automation portal with PostgreSQL database using Podman Quadlet and RHEL 9 bootc.
+**Target Platform**: Red Hat Enterprise Linux 9.6 or later (x86\_64 architecture)
 
-## Quick Start - Environment Setup Required
+## Overview
 
-Before building or deploying, you must create configuration files from the examples.
+The [Ansible self-service automation portal](https://www.redhat.com/en/technologies/management/ansible/self-service-automation) extends Red Hat Ansible Automation Platform with a simple interface that allows users to launch pre-approved automation through guided workflows—without requiring technical expertise. The portal maintains full control and compliance by integrating directly with your existing Ansible Automation Platform setup, using the same security controls, user logins, and automation logic.
 
-### Required Setup
+This guide covers the installation and configuration for deploying self-service automation portal on Red Hat Enterprise Linux (RHEL) 9 using RHEL image mode with Podman Quadlet.
 
-```bash
-cd /opt/ansible-self-service-portal/image_mode/quadlet
+### Deployment Architecture
 
-# Copy all example files (creates hidden files starting with .)
+This deployment uses Podman Quadlet to manage containerized services as native systemd units:
+
+- **Portal Container**: Self-service automation portal application providing the self-service portal interface (port 7007\)  
+- **PostgreSQL Container (default)**: PostgreSQL 15 database for catalog and state persistence (port 5432, internal only)  
+- **Bound Images**: Container images automatically managed by bootc for atomic updates
+
+## Prerequisites
+
+**System Requirements:**
+- Red Hat Enterprise Linux (RHEL) 9.6 or later (x86_64 architecture)
+- Minimum 8 GB RAM for building container images
+- Minimum 30 GB free disk space for builds and output images
+- 4 CPU cores (recommended)
+- Active Red Hat Enterprise Linux and Ansible Automation Platform subscription
+- Root or sudo access
+
+**Required Access:**
+- Red Hat registry credentials for `registry.redhat.io`
+- Ansible Automation Platform 2.5 or later instance access
+- User with Ansible Automation Platform administrator privileges
+
+**Network:**
+- Internet connectivity for downloading container images and packages
+- Port 7007 for the portal web interface (can be changed, see [Changing the Default Port](#changing-the-default-port-optional))
+- Port 5432 for PostgreSQL (internal container network only)
+- Port 22 for SSH access to the virtual machine
+
+## Step 1: Obtain the Installation Files
+
+Download and extract the installation files to a directory with 20+ GB free space.
+
+```shell
+tar -xzf self-service-portal-rhel-installer.tar.gz
+cd self-service-portal-rhel-installer
+```
+
+All commands in this guide assume you are in the installation directory.
+
+## Step 2: Update RHEL System (Recommended)
+
+Update your Red Hat Enterprise Linux 9.6 or later system to the latest packages:
+
+```shell
+sudo dnf update -y
+sudo reboot  # Reboot if the kernel was updated
+```
+
+For complete instructions, see the [RHEL 9 System Update Guide](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/managing_software_with_the_dnf_tool/assembly_updating-software-packages_managing-software-with-the-dnf-tool).
+
+## Step 3: Configure Repository Access (Cloud Systems Only)
+
+**This step is required for cloud systems only (AWS, GCP, Azure).** If you are running on-premises, skip this step.
+
+Cloud Red Hat Update Infrastructure (RHUI) repositories do not work inside containers. This step configures your system to use Content Delivery Network (CDN) repositories instead.
+
+**To check if you have RHUI repositories:**
+
+```shell
+dnf repolist | grep -i rhui
+```
+
+If the command returns repositories with "rhui" in the name, such as `rhel-9-appstream-rhui-rpms`, complete the following steps:
+
+```shell
+# Enable subscription-manager
+sudo subscription-manager config --rhsm.manage_repos=1 --rhsm.auto_enable_yum_plugins=1
+
+# Disable RHUI repos
+sudo dnf config-manager --set-disabled rhel-9-appstream-rhui-rpms rhel-9-baseos-rhui-rpms rhui-client-config-server-9
+
+# Enable CDN repos
+sudo subscription-manager repos --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhel-9-for-x86_64-appstream-rpms
+```
+
+## Step 4: Install Packages and Authenticate
+
+Install required build tools and authenticate to the Red Hat container registry.
+
+```shell
+sudo dnf install -y podman container-tools make
+```
+
+Authenticate to the Red Hat container registry:
+
+```shell
+podman login --authfile files/auth.json registry.redhat.io
+```
+
+The `podman login` command stores your Red Hat credentials in `files/auth.json`, which will be embedded into the bootc image for pulling container images during deployment.
+
+## Step 5: Configure Environment
+
+Copy the example environment files and customize them for your deployment. These files configure the portal connection to Ansible Automation Platform, database settings, and virtual machine access credentials. The example files include all available options with descriptions.
+
+```shell
 cp portal.env.example .portal.env
 cp credentials.env.example .credentials.env
 ```
 
-### Edit with Your Values
+Both files are hidden files (prefixed with a period) and are automatically excluded from Git version control to protect sensitive information.
 
-Edit each hidden file in your editor:
-- `.portal.env` - Portal, database, AAP, GitHub, GitLab configuration
-- `.credentials.env` - VM user credentials (only needed for building)
+### A. Configure Portal (.portal.env)
 
-### Why Hidden Files?
+Edit the `.portal.env` file to configure build settings, Ansible Automation Platform integration, database settings, and optional integrations.
 
-- **Hidden by default** - Not shown in `ls` output (cleaner workspace)
-- **Automatically git-ignored** - Prevents accidental commits
-- **Clear separation** - Templates (`.example`) vs actual configs (hidden)
-- **Standard practice** - Common pattern for sensitive configuration
+**Build Configuration:**
 
-### Benefits of Consolidated Configuration
+The `.portal.env` file includes build configuration options that control the image name and VM settings. Most users can keep the default values:
 
-- **Single source of truth** - All portal and database config in `.portal.env`
-- **No password duplication** - Database password defined once, referenced automatically
-- **Simpler setup** - Copy and edit one file instead of two
-- **Fewer errors** - Impossible to have mismatched passwords between portal and database
-
-## Overview
-
-This deployment approach uses **logically bound images** with Podman Quadlet for:
-- **Automatic image management** via bootc
-- **Native systemd integration** for container services  
-- **Atomic updates** for both system and applications
-- **PostgreSQL database** for persistent data storage
-
-## Prerequisites
-
-- **Podman** v5.4.1+ with rootful access (`sudo`)
-- **Red Hat Registry** authentication (see Authentication section below)
-- **8GB+ RAM** and network connectivity
-
-## Red Hat Registry Authentication
-
-This deployment requires images from `registry.redhat.io`. Authentication is needed at **two levels**:
-
-### 1. Superuser Authentication (Required for Building)
-```bash
-# REQUIRED: Authenticate as root for bootc-image-builder
-sudo podman login registry.redhat.io
-
-# Also authenticate as user for convenience
-podman login registry.redhat.io
+```shell
+# Build Configuration (optional - defaults are suitable for most deployments)
+IMAGE_NAME=rhaap-portal-image
+IMAGE_TAG=latest
+VM_NAME=rhaap-portal-vm
+VM_MEMORY=4096
+VM_VCPUS=2
 ```
 
-### 2. Embedded Auth File (Required for VM Upgrades)
-Update the embedded `auth.json` file before building:
+These settings control:
+- `IMAGE_NAME`: The name of the container image created during the build
+- `IMAGE_TAG`: The version tag for the container image
+- `VM_NAME`: The name assigned to test virtual machines
+- `VM_MEMORY`: Memory allocated to virtual machines (in MB)
+- `VM_VCPUS`: Number of CPU cores for virtual machines
 
-```bash
-# Option A: Copy root's auth.json (after sudo podman login)
-sudo cp /root/.config/containers/auth.json ../auth.json
+**Base URL Configuration:**
 
-# Option B: Create auth.json manually with your credentials
-cat > ../auth.json << 'EOF'
-{
-    "auths": {
-        "registry.redhat.io": {
-            "auth": "BASE64_ENCODED_CREDENTIALS"
-        }
-    }
-}
-EOF
+The portal's `BASE_URL` is automatically detected when the VM starts up based on the VM's IP address. You can keep the default value (`http://localhost:7007`) during the build - it will be updated automatically at deployment time. Manual configuration is only needed if using a specific hostname or proxy.
+
+**Required - Ansible Automation Platform Integration:**
+
+```shell
+AAP_HOST_URL=https://<your-aap-instance.example.com>
+AAP_TOKEN=<your-aap-api-token-here>
+OAUTH_CLIENT_ID=<your-oauth-client-id-here>
+OAUTH_CLIENT_SECRET=<your-oauth-client-secret-here>
 ```
 
-### Service Account Method (CI/CD)
-```bash
-# REQUIRED: Authenticate as root with service account (for bootc-image-builder)
-sudo podman login registry.redhat.io --username="your-service-account" --password="your-token"
+To obtain these credentials from Ansible Automation Platform:
+1. **OAuth Application**: Navigate to **Administration** → **Applications** and create a new OAuth2 application. Copy the Client ID and Client Secret.
+2. **API Token**: Navigate to **Users** → **Tokens** and create a new token with Platform Administrator privileges.
 
-# Also authenticate as user for convenience
-podman login registry.redhat.io --username="your-service-account" --password="your-token"
+**Required - Backend Secret:**
 
-# Update embedded auth.json with service account credentials
-echo '{"auths":{"registry.redhat.io":{"auth":"'$(echo -n "your-service-account:your-token" | base64 -w 0)'"}}}' > ../auth.json
+```shell
+BACKEND_SECRET=<your-secure-backend-secret-here>
 ```
 
-### Verify Authentication
-```bash
-# Test access to required images (must use sudo - same as bootc-image-builder)
-sudo podman pull registry.redhat.io/rhel9/rhel-bootc:latest --quiet && echo "✅ Root registry access confirmed"
+This value must be a secure random string. You can generate a secure string by running the command: `openssl rand -base64 32`
+
+**Database Configuration:**
+
+By default, the deployment includes a PostgreSQL 15 database container. You can optionally connect to an existing external PostgreSQL database instead.
+
+**Option 1: Local PostgreSQL Container (Default)**
+
+The default configuration deploys a PostgreSQL 15 container alongside the portal. This is suitable for testing, development, or single-node deployments:
+
+```shell
+USE_EXTERNAL_POSTGRES=false
+POSTGRES_PASSWORD=<your-secure-database-password-here>
 ```
 
-> **Critical**: `bootc-image-builder` runs as **root**, so `sudo podman login` is **required** for building. The embedded `auth.json` enables VM upgrade operations without manual authentication.
+**Option 2: External PostgreSQL Database**
 
-### Superuser Access Required
+Use an existing PostgreSQL database for production or high-availability deployments:
 
-This deployment uses **Podman Quadlet** and **bootc** for system-level container management. Most commands require `sudo` because they interact with system-level container and virtualization infrastructure.
-
-> **Architecture Details**: For complete technical details about why superuser access is required and the architectural benefits, see [Architecture Guide](ARCHITECTURE.md)
-
-## Deploy VM with PostgreSQL
-
-```bash
-# Complete deployment (builds bootc image + creates VM)
-make deploy-vm-local
-
-# Monitor deployment
-make vm-status
-
-# Access portal (after 3-5 minutes)
-# Open http://VM-IP:7007 in browser
-# SSH: ssh admin@VM-IP (password: admin123)
+```shell
+USE_EXTERNAL_POSTGRES=true
+POSTGRES_HOST=<your-database-host.example.com>
+POSTGRES_PORT=5432
+POSTGRES_USER=<your-database-username>
+POSTGRES_PASSWORD=<your-secure-database-password-here>
+POSTGRES_DB=portal_backstage
+BACKEND_DATABASE_CONNECTION_SSL=true
 ```
 
-## Available Commands
+You can generate a secure password for either option by running the command: `openssl rand -base64 32`
 
-### Complete Workflows
-```bash
-make deploy-vm-local    # Complete local development deployment workflow  
-make deploy-vm-registry # Complete registry-based deployment workflow
+**Optional - GitHub/GitLab Integration:**
+
+Required for importing custom templates from private repositories or accessing self-hosted instances.
+
+To create tokens:
+- **GitHub**: Navigate to [Settings → Developer settings → Personal access tokens](https://github.com/settings/tokens) and create a token with `repo` scope (for private repos) or `public_repo` scope (for public repos only).
+- **GitLab**: Navigate to [User Settings → Access Tokens](https://gitlab.com/-/profile/personal_access_tokens) and create a token with `read_api` scope.
+
+```shell
+# GitHub (for private repositories or GitHub Enterprise)
+GITHUB_URL=https://github.com  # Change for GitHub Enterprise
+GITHUB_TOKEN=ghp_<your-github-token-here>  # Scope: repo or public_repo
+
+# GitLab (for private repositories or self-hosted GitLab)
+GITLAB_URL=https://gitlab.com  # Change for self-hosted GitLab
+GITLAB_TOKEN=glpat-<your-gitlab-token-here>  # Scope: read_api
 ```
 
-### Build and Image Creation
-```bash
-make build-local        # Build bootc image locally using build-quadlet.sh
-make qcow2-local        # Create QCOW2 from local image (requires sudo/root)
-make validate           # Validate Quadlet configuration files
+### B. Configure Virtual Machine Credentials (.credentials.env)
+
+Configure secure access credentials for the virtual machine. These credentials are embedded at build time and cannot be changed without rebuilding the image. SSH key authentication is strongly recommended for production deployments.
+
+Generate secure passwords using the following command:
+```shell
+openssl rand -base64 32
 ```
 
-### VM Management
-```bash
-make vm-create-local    # Create VM from local QCOW2 (requires libvirt)
-make vm-start           # Start VM
-make vm-stop            # Stop VM gracefully
-make vm-status          # Show VM status and info
-make vm-ip              # Get VM IP address
-make vm-destroy-local   # Destroy local VM and cleanup
+Edit `.credentials.env` with your values:
+```shell
+ADMIN_USER=prodadmin
+ADMIN_PASSWORD=<your-secure-admin-password-here>
+ROOT_PASSWORD=<your-secure-root-password-here>
+SSH_PUBLIC_KEY_FILE=files/<your-ssh-key-name>.pub
+SSH_SECURITY_MODE=keys-only
 ```
 
-### Testing and Validation
-```bash
-make test-vm            # Test portal in VM (requires VM to be running)
-make info               # Show configuration and status
+**SSH Key Setup:**
+
+You can use an existing SSH key pair or generate a new one. Only the SSH public key (`.pub` file) will be embedded in the image. Never copy the private key to the build directory.
+
+If you need to generate a new SSH key:
+
+```shell
+ssh-keygen -t ed25519 -f ~/.ssh/portal_vm_key
 ```
 
-### Image Management
-```bash
-make pull-all-images    # Check and pull all container images used in quadlet setup
-make list-quadlet-images # List all container images used in the quadlet setup
-make check-image-status # Check availability status of all quadlet images
+Copy your SSH public key to the files directory:
+
+```shell
+cp ~/.ssh/<your-ssh-key>.pub files/
 ```
 
-### PostgreSQL Management
-```bash
-make postgres-setup     # Setup PostgreSQL data directory and permissions
-make postgres-start     # Start PostgreSQL container service
-make postgres-stop      # Stop PostgreSQL container service
-make postgres-status    # Check PostgreSQL container status
-make postgres-logs      # Show PostgreSQL container logs
-make postgres-connect   # Connect to PostgreSQL database
-make postgres-destroy   # Stop and remove PostgreSQL container and data
+Update the `SSH_PUBLIC_KEY_FILE` variable in the configuration above to match your key filename.
+
+**SSH Security Modes:**
+- `keys-only` - SSH key authentication only (recommended for production)
+- `keys-and-password` - Both SSH key and password authentication enabled
+- `password-only` - Password authentication only (not recommended for production)
+
+### C. Change the Default Port (Optional)
+
+By default, the portal listens on port 7007. To configure the portal to use a different port, complete the following steps before building the image:
+
+**1. Edit the Quadlet service file:**
+
+```shell
+vi portal.container
 ```
 
-### Cleanup
-```bash
-make clean              # Clean up images and temporary files
-make clean-outputs      # Clean output directories
-make clean-all          # Complete cleanup including VM
+Change the `PublishPort` line:
+```
+PublishPort=8080:7007
 ```
 
-## Architecture
+**2. Update the base URL in `.portal.env`:**
 
-### Container Services
-- **Portal**: `registry.redhat.io/rhdh/rhdh-hub-rhel9:1.6` (container: `rhdh`)
-- **PostgreSQL**: `registry.redhat.io/rhel9/postgresql-15:latest` (container: `rhdh-postgres`)
-- **Network**: `rhdh-network` (isolated bridge network)
-- **PostgreSQL Storage**: Named volume `postgres-data` mounted to `/var/lib/pgsql/data`
-- **Portal Storage**: Multiple host paths mounted for configuration and plugins
+The `BASE_URL` is automatically detected at VM startup. If you change the port, update the port number in `.portal.env`:
 
-### Key Files
-- `Containerfile.rhdh-bootc-quadlet` - Bootc image definition
-- `rhdh.container` - Portal service configuration (creates `rhdh.service`)
-- `postgres.container` - PostgreSQL service configuration (creates `postgres.service`)
-- `rhdh-network.network` - Network definition (creates `rhdh-network-network.service`)
-- `.portal.env` - Environment variables (portal + database)
-- `config.toml` - Disk configuration for VM
-
-### Generated Services
-When deployed, Quadlet automatically creates these systemd services:
-- `rhdh.service` - Portal application container
-- `postgres.service` - PostgreSQL database container  
-- `rhdh-network-network.service` - Isolated network for containers
-
-### Logically Bound Images
-Images are **referenced** (not copied) in the bootc image:
-- Automatically pulled by bootc during deployment
-- Stored in `/usr/lib/bootc/storage`
-- Updated atomically via `bootc upgrade`
-
-## Configuration
-
-### Environment Variables
-Edit `.portal.env` for all configuration (portal + database):
-
-```bash
-# Core Portal Configuration
-BASE_URL=http://localhost:7007  # Auto-detected at startup
-AAP_HOST_URL=https://your-aap-instance.com
-AAP_TOKEN=your-aap-token
-OAUTH_CLIENT_ID=your-oauth-client-id
-OAUTH_CLIENT_SECRET=your-oauth-client-secret
-BACKEND_SECRET=your-backend-secret-key-here-must-be-set
-
-# Database Configuration
-POSTGRES_HOST=rhdh-postgres
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=secure_admin_password_123
-POSTGRES_DB=rhdh_backstage
-
-# PostgreSQL Container Configuration (same file)
-POSTGRESQL_DATABASE=${POSTGRES_DB}
-POSTGRESQL_USER=rhdh_user
-POSTGRESQL_PASSWORD=secure_rhdh_password_123
-POSTGRESQL_ADMIN_PASSWORD=${POSTGRES_PASSWORD}  # Automatically synced
+```shell
+BASE_URL=http://localhost:8080
 ```
 
-**Key Point**: `POSTGRES_PASSWORD` is defined once and automatically used by PostgreSQL via `${POSTGRES_PASSWORD}` reference. Both portal and PostgreSQL read from the same `.portal.env` file.
+After deployment, this will automatically become `http://<vm-ip>:8080` when the VM starts.
 
-### Database Configuration
-PostgreSQL is configured by default. For external databases or advanced setup:
-- **[PostgreSQL Setup Guide](EXTERNAL-POSTGRES-SETUP.md)** - External database configuration
-- **[Portal PostgreSQL Docs](https://docs.redhat.com/en/documentation/red_hat_developer_hub/1.6/html/configuring_red_hat_developer_hub/configuring-external-postgresql-databases)** - Official PostgreSQL configuration guide
+## Step 6: Build Images
 
-### Network Configuration
-VM automatically detects IP address and configures CORS settings. Manual override:
-```bash
-BASE_URL=http://specific-ip:7007
+Build the bootc container image and convert it to a bootable disk format for deployment.
+
+```shell
+# Build bootc image (10-15 minutes)
+sudo make build-local
+
+# Create disk image (choose one):
+sudo make qcow2-local  # For VMs: output/qcow2/disk.qcow2
+sudo make iso-local    # For bare metal: output/image/install.iso
 ```
 
-## Deployment Process
+## Upgrading
 
-1. **Image Build**: Creates bootc image with Quadlet definitions
-2. **VM Creation**: Converts bootc image to QCOW2 disk image
-3. **Service Startup**: Systemd starts postgres.service and rhdh.service
-4. **Image Management**: bootc automatically manages bound images
+Upgrade to a new version of the portal by building updated images and deploying them to your environment.
 
-## Troubleshooting
+### Step 1: Backup Database
 
-### Quick Diagnostics
-```bash
-# Check VM status and get IP
-make vm-status
+Create a backup of your database before upgrading:
 
-# Get VM IP address
-make vm-ip
-
-# Validate configuration
-make validate
-
-# Test portal accessibility
-make test-vm
+```shell
+ssh admin@<vm-ip> "sudo podman exec portal-postgres pg_dump -U postgres portal_backstage" > backup-$(date +%Y%m%d).sql
 ```
 
-### Common Issues
+### Step 2: Extract New Version
 
-| Issue | Solution |
-|-------|----------|
-| **Authentication failed** | Run both `podman login registry.redhat.io` and `sudo podman login registry.redhat.io` |
-| **Image pull fails** | Verify registry access: See Authentication section above |
-| **Build fails** | Check rootful podman: `sudo podman version` |
-| **Permission denied** | Use `sudo` - Quadlet/bootc requires system-level access |
-| **VM won't start** | Check VM resources: `make vm-status` |
-| **Portal not accessible** | Wait 3-5 minutes, check `make test-vm` |
-| **Database errors** | See [PostgreSQL Setup Guide](EXTERNAL-POSTGRES-SETUP.md#troubleshooting) |
+Extract the new version to a temporary location:
 
-### Service Debugging
-```bash
-# Get VM IP address
-make vm-ip
-
-# SSH into VM (use IP from above command)
-ssh admin@VM-IP
-
-# Check service status (on VM)
-sudo systemctl status postgres.service
-sudo systemctl status rhdh.service
-
-# View service logs (on VM)
-sudo journalctl -u postgres.service -f
-sudo journalctl -u rhdh.service -f
-
-# Check containers (on VM)
-sudo podman ps -a | grep -E "(rhdh|postgres)"
+```shell
+tar -xzf ansible-self-service-portal-<new-version>.tar.gz
+cd ansible-self-service-portal
 ```
 
-## Production Considerations
+### Step 3: Update Configuration
 
-### Security
-- Change default passwords in `.portal.env` environment variables
-- Configure TLS certificates for HTTPS
-- Review firewall settings and network security
-- Use external secret management for production
+Copy your existing configuration files:
 
-### Performance
-- Allocate adequate VM resources (4+ vCPUs, 8GB+ RAM)
-- Monitor disk space for PostgreSQL data
-- Consider external PostgreSQL for high availability
+```shell
+# Copy your existing configuration (update path to your current installation)
+cp /path/to/old-installation/.portal.env .
+cp /path/to/old-installation/.credentials.env .
 
-### Backup
-```bash
-# Backup PostgreSQL data
-sudo podman exec rhdh-postgres pg_dump -U postgres rhdh_backstage > backup.sql
-
-# Backup PostgreSQL data volume
-sudo podman volume export postgres-data --output postgres-data-backup.tar
-
-# Backup VM disk image
-cp output/qcow2/disk.qcow2 backup/disk-$(date +%Y%m%d).qcow2
+# Review for any new configuration options
+diff portal.env.example .portal.env
 ```
 
-## Advanced Operations
+### Step 4: Build Updated Images
 
-### Updates
-```bash
-# Update bootc system and bound images (on VM)
-sudo bootc upgrade
+Build the new bootc image and create the disk image:
 
-# Manual image update
-sudo podman pull --storage-opt=additionalimagestore=/usr/lib/bootc/storage registry.redhat.io/rhdh/rhdh-hub-rhel9:1.6
-sudo systemctl restart rhdh.service
+```shell
+sudo make build-local
+sudo make qcow2-local
 ```
 
-### Registry Operations
+The upgraded QCOW2 image is now available in `output/qcow2/disk.qcow2`. Deploy this image using your preferred deployment method.
 
-#### Push to Container Registry
-```bash
-# Complete workflow: build and push to registry
-make publish
+### Step 5: Deploy and Migrate Data
 
-# Or step-by-step:
-make login          # Login to registry (default: quay.io)
-make build          # Build with registry tagging
-make push           # Push to registry
+Deploy the new image to your target environment. The deployment process depends on your infrastructure:
+
+**For virtual machines:**
+- Deploy a new VM using the updated `output/qcow2/disk.qcow2` image
+- If using a local PostgreSQL container, restore your database backup
+
+**For bare metal:**
+- Build an ISO image: `sudo make iso-local`
+- Deploy the ISO to your target system
+
+**Database migration (local PostgreSQL only):**
+
+If using a local PostgreSQL container, restore your backup after deploying the new image:
+
+```shell
+# Copy backup to new system
+scp backup-<date>.sql admin@<new-system-ip>:~/
+
+# SSH into new system
+ssh admin@<new-system-ip>
+
+# Restore database
+cat backup-<date>.sql | sudo podman exec -i portal-postgres psql -U postgres -d portal_backstage
 ```
 
-#### Configure Your Registry
-Edit Makefile variables for your registry:
-```makefile
-REGISTRY := quay.io                    # Change to your registry
-NAMESPACE := your-username             # Change to your namespace/org
-```
+If using an external database, no migration is needed—the new deployment will connect to the existing database.
 
-#### Deploy from Registry
-```bash
-# Deploy VM using pushed registry image
-make deploy-vm-registry
-```
+## Appendix: Configurable Fields
 
-#### Supported Registries
-- **Quay.io** (default): `quay.io/your-username/rhdh-bootc-quadlet:latest`
-- **Docker Hub**: `docker.io/your-username/rhdh-bootc-quadlet:latest`
-- **GitHub Container Registry**: `ghcr.io/your-username/rhdh-bootc-quadlet:latest`
-- **Private Registries**: Any OCI-compatible registry
+Reference guide for all configurable environment variables and settings.
 
-> **Use Cases**: Share bootc images with teams, CI/CD deployments, backup storage, multi-environment deployments
+### Portal Environment Variables (.portal.env)
 
-### Custom Disk Size
-Edit `config.toml`:
-```toml
-[[customizations.filesystem]]
-mountpoint = "/"
-minsize = "20GiB"
-```
+**Build Configuration:**
 
-## Success Checklist
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `IMAGE_NAME` | Container image name | `rhaap-portal-image` |
+| `IMAGE_TAG` | Container image version tag | `latest` |
+| `VM_NAME` | Virtual machine name | `rhaap-portal-vm` |
+| `VM_MEMORY` | VM memory allocation (MB) | `4096` |
+| `VM_VCPUS` | VM CPU cores | `2` |
+| `REGISTRY` | Container registry for pushing images | `localhost` |
+| `NAMESPACE` | Registry namespace (if required) | - |
 
-1. **VM Status**: `make vm-status` shows VM running
-2. **IP Address**: `make vm-ip` returns valid IP
-3. **Portal Test**: `make test-vm` connects successfully  
-4. **Web Access**: Open `http://VM-IP:7007` in browser
-5. **Services**: SSH to VM and check `sudo systemctl status rhdh.service postgres.service`
+**Required Configuration:**
 
----
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `AAP_HOST_URL` | Ansible Automation Platform URL | `https://aap.example.com` |
+| `AAP_TOKEN` | AAP API authentication token | Generated from AAP |
+| `OAUTH_CLIENT_ID` | OAuth application client ID | From AAP Applications |
+| `OAUTH_CLIENT_SECRET` | OAuth application secret | From AAP Applications |
+| `BACKEND_SECRET` | Backend authentication secret | Generate with `openssl rand -base64 32` |
+| `POSTGRES_PASSWORD` | PostgreSQL database password | Generate with `openssl rand -base64 32` |
 
-## Documentation
+**Optional Configuration:**
 
-- **[Installation Guide](INSTALLATION_GUIDE.md)** - Detailed installation and configuration
-- **[Environment Setup](ENV_SETUP.md)** - Environment configuration guide
-- **[Custom Credentials](CUSTOM_CREDENTIALS.md)** - VM credential customization
-- **[SSH Security Guide](SSH_SECURITY_GUIDE.md)** - SSH security modes
-- **[PostgreSQL Setup Guide](EXTERNAL-POSTGRES-SETUP.md)** - Database configuration and troubleshooting
-- **[Architecture Guide](ARCHITECTURE.md)** - Technical details and system design
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORTAL_ENVIRONMENT` | Environment mode | `production` |
+| `BASE_URL` | Portal base URL (auto-detected at VM startup) | `http://localhost:7007` |
+| `LOG_LEVEL` | Logging level | `info` |
+| `GITHUB_URL` | GitHub server URL | `https://github.com` |
+| `GITHUB_TOKEN` | GitHub access token (private repos) | - |
+| `GITLAB_URL` | GitLab server URL | `https://gitlab.com` |
+| `GITLAB_TOKEN` | GitLab access token (private repos) | - |
+
+**Database Configuration:**
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `USE_EXTERNAL_POSTGRES` | Use external database | `false` |
+| `POSTGRES_HOST` | Database hostname | `portal-postgres` |
+| `POSTGRES_PORT` | Database port | `5432` |
+| `POSTGRES_USER` | Database username | `postgres` |
+| `POSTGRES_DB` | Database name | `portal_backstage` |
+| `BACKEND_DATABASE_CONNECTION_SSL` | Enable SSL for database | `false` |
+
+### VM Credentials (.credentials.env)
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `ADMIN_USER` | VM admin username | `prodadmin` |
+| `ADMIN_PASSWORD` | Admin user password | `<your-secure-password>` |
+| `ROOT_PASSWORD` | Root user password | `<your-secure-password>` |
+| `SSH_PUBLIC_KEY_FILE` | Path to SSH public key | `files/<your-ssh-key>.pub` |
+| `SSH_SECURITY_MODE` | SSH authentication mode | `keys-only` (recommended) |
+
+**Note:** Generate secure passwords using: `openssl rand -base64 32`
+
+**SSH Security Modes:**
+- `keys-only` - SSH key authentication only (recommended for production)
+- `keys-and-password` - Both SSH key and password authentication enabled
+- `password-only` - Password authentication only (not recommended)
+
+### Network Ports
+
+| Port | Service | Exposure | Description |
+|------|---------|----------|-------------|
+| 7007 | HTTP | Host | Portal web interface (customizable) |
+| 5432 | PostgreSQL | Internal | Database (container network only) |
+| 22 | SSH | Host | VM remote access |  

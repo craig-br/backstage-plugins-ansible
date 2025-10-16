@@ -1,28 +1,28 @@
 # Podman Quadlet .container file for PostgreSQL
 [Unit]
-Description=PostgreSQL Database for RHDH
+Description=PostgreSQL Database for Ansible Self-Service Automation Portal
 After=network-online.target
 Wants=network-online.target
 
 [Container]
 Image=registry.redhat.io/rhel9/postgresql-15:latest
-ContainerName=rhdh-postgres
+ContainerName=portal-postgres
 SecurityLabelDisable=true
 
 # Use bootc storage for logically bound images
 GlobalArgs=--storage-opt=additionalimagestore=/usr/lib/bootc/storage
 
-EnvironmentFile=/etc/rhdh/.portal.env
+EnvironmentFile=/etc/portal/.portal.env
 
 # Persistent storage
 Volume=postgres-data:/var/lib/pgsql/data:Z
 
 # Network
-Network=rhdh-network
+Network=portal-network
 PublishPort=5432:5432
 
 # Health check
-HealthCmd=/bin/bash -c 'pg_isready -U rhdh_user -d rhdh_backstage'
+HealthCmd=/bin/bash -c 'pg_isready -U portal_user -d portal_backstage'
 HealthInterval=30s
 HealthTimeout=10s
 HealthRetries=3
@@ -30,7 +30,7 @@ HealthRetries=3
 [Service]
 # Only start if using local PostgreSQL (not external)
 # Check USE_EXTERNAL_POSTGRES in the environment file
-ExecCondition=/bin/bash -c '! grep -q "^USE_EXTERNAL_POSTGRES=true" /etc/rhdh/.portal.env'
+ExecCondition=/bin/bash -c '! grep -q "^USE_EXTERNAL_POSTGRES=true" /etc/portal/.portal.env'
 Restart=always
 RestartSec=10
 TimeoutStartSec=300

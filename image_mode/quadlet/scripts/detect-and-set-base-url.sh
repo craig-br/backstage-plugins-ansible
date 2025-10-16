@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # Detect VM IP and update BASE_URL in .portal.env
-# This script runs before RHDH container starts via systemd ExecStartPre
+# This script runs before portal container starts via systemd ExecStartPre
 
 set -euo pipefail
 
-ENV_FILE="/etc/rhdh/.portal.env"
-BACKUP_FILE="/etc/rhdh/.portal.env.backup"
+ENV_FILE="/etc/portal/.portal.env"
+BACKUP_FILE="/etc/portal/.portal.env.backup"
 
 echo "🔍 Detecting VM IP for BASE_URL configuration..."
 

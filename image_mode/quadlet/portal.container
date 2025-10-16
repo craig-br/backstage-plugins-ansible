@@ -1,0 +1,68 @@
+# Podman Quadlet .container file for Ansible Self-Service Automation Portal (with PostgreSQL dependency)
+# This file defines how to run the portal container as a systemd service
+[Unit]
+Description=self-service automation portal with Ansible self-service portal
+After=network-online.target postgres.service
+Wants=network-online.target
+Requires=postgres.service
+
+[Container]
+Image=registry.redhat.io/rhdh/rhdh-hub-rhel9:1.6
+ContainerName=portal
+SecurityLabelDisable=true
+
+# Use bootc storage for logically bound images
+GlobalArgs=--storage-opt=additionalimagestore=/usr/lib/bootc/storage
+
+# System environment variables (internal - do not modify)
+Environment=SEGMENT_WRITE_KEY=gGVM6sYRK0D0ndVX22BOtS7NRcxPej8t
+Environment=ENABLE_AUTH_PROVIDER_MODULE_OVERRIDE=true
+Environment=NODE_OPTIONS=--no-node-snapshot
+
+# User configuration from file
+EnvironmentFile=/etc/portal/.portal.env
+
+# Mount configuration and persistent data
+Volume=/etc/portal/configs:/opt/app-root/src/configs:Z
+Volume=/var/lib/portal/local-plugins:/opt/app-root/src/local-plugins:Z
+Volume=/var/lib/portal/config:/var/lib/portal/config:Z
+Volume=/var/lib/portal/dynamic-plugins-root:/opt/app-root/src/dynamic-plugins-root:Z
+Volume=/var/lib/portal/generated:/opt/app-root/src/generated:Z
+Volume=/var/lib/portal/.npm:/opt/app-root/src/.npm:Z
+Volume=/var/lib/portal/scripts/wait-for-plugins-and-start.sh:/opt/app-root/src/wait-for-plugins-and-start.sh:Z
+Volume=/var/lib/portal/scripts/prepare-and-install-dynamic-plugins.sh:/usr/local/bin/prepare-and-install-dynamic-plugins.sh:Z
+Volume=/var/lib/portal/config/dynamic-plugins.yaml:/opt/app-root/src/dynamic-plugins.yaml:Z
+
+# Network and ports
+# Format: HostPort:ContainerPort
+# To change the port: Edit this file and change HostPort (e.g., 8080:7007)
+# Container always listens on 7007 internally, only HostPort can be changed
+# Note: Quadlet does not support environment variable substitution for PublishPort
+# After changing port, also update BASE_URL in .portal.env to match
+PublishPort=7007:7007
+
+# User and working directory
+User=1001:0
+WorkingDir=/opt/app-root/src
+
+# Use the proper portal entrypoint script (loads env and handles plugin setup)
+Entrypoint=/opt/app-root/src/wait-for-plugins-and-start.sh
+
+# Health check
+HealthCmd=/bin/bash -c 'curl -f http://localhost:7007 >/dev/null 2>&1'
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+
+# Network
+Network=portal-network
+
+[Service]
+# Detect VM IP and update BASE_URL before starting container (run with full privileges)
+ExecStartPre=+/usr/local/bin/detect-and-set-base-url.sh
+Restart=always
+RestartSec=15
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target default.target
