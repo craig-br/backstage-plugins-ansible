@@ -33,9 +33,11 @@ This deployment uses Podman Quadlet to manage containerized services as native s
 
 **Network:**
 - Internet connectivity for downloading container images and packages
-- Port 7007 for the portal web interface (can be changed, see [Changing the Default Port](#changing-the-default-port-optional))
+- Port 7007 for the portal web interface (can be changed, see [Optional Configurations](#optional-configurations))
 - Port 5432 for PostgreSQL (internal container network only)
 - Port 22 for SSH access to the virtual machine
+
+> **Note for Cloud Deployments:** If running on AWS, GCP, or Azure, you must configure repository access before building. See [Cloud Systems: Repository Configuration](#cloud-systems-repository-configuration) for details.
 
 ## Step 1: Obtain the Installation Files
 
@@ -59,32 +61,7 @@ sudo reboot  # Reboot if the kernel was updated
 
 For complete instructions, see the [RHEL 9 System Update Guide](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/managing_software_with_the_dnf_tool/assembly_updating-software-packages_managing-software-with-the-dnf-tool).
 
-## Step 3: Configure Repository Access (Cloud Systems Only)
-
-**This step is required for cloud systems only (AWS, GCP, Azure).** If you are running on-premises, skip this step.
-
-Cloud Red Hat Update Infrastructure (RHUI) repositories do not work inside containers. This step configures your system to use Content Delivery Network (CDN) repositories instead.
-
-**To check if you have RHUI repositories:**
-
-```shell
-dnf repolist | grep -i rhui
-```
-
-If the command returns repositories with "rhui" in the name, such as `rhel-9-appstream-rhui-rpms`, complete the following steps:
-
-```shell
-# Enable subscription-manager
-sudo subscription-manager config --rhsm.manage_repos=1 --rhsm.auto_enable_yum_plugins=1
-
-# Disable RHUI repos
-sudo dnf config-manager --set-disabled rhel-9-appstream-rhui-rpms rhel-9-baseos-rhui-rpms rhui-client-config-server-9
-
-# Enable CDN repos
-sudo subscription-manager repos --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhel-9-for-x86_64-appstream-rpms
-```
-
-## Step 4: Install Packages and Authenticate
+## Step 3: Install Packages and Authenticate
 
 Install required build tools and authenticate to the Red Hat container registry.
 
@@ -100,7 +77,7 @@ podman login --authfile files/auth.json registry.redhat.io
 
 The `podman login` command stores your Red Hat credentials in `files/auth.json`, which will be embedded into the bootc image for pulling container images during deployment.
 
-## Step 5: Configure Environment
+## Step 4: Configure Environment
 
 Copy the example environment files and customize them for your deployment. These files configure the portal connection to Ansible Automation Platform, database settings, and virtual machine access credentials. The example files include all available options with descriptions.
 
@@ -189,23 +166,7 @@ BACKEND_DATABASE_CONNECTION_SSL=true
 
 You can generate a secure password for either option by running the command: `openssl rand -base64 32`
 
-**Optional - GitHub/GitLab Integration:**
-
-Required for importing custom templates from private repositories or accessing self-hosted instances.
-
-To create tokens:
-- **GitHub**: Navigate to [Settings → Developer settings → Personal access tokens](https://github.com/settings/tokens) and create a token with `repo` scope (for private repos) or `public_repo` scope (for public repos only).
-- **GitLab**: Navigate to [User Settings → Access Tokens](https://gitlab.com/-/profile/personal_access_tokens) and create a token with `read_api` scope.
-
-```shell
-# GitHub (for private repositories or GitHub Enterprise)
-GITHUB_URL=https://github.com  # Change for GitHub Enterprise
-GITHUB_TOKEN=ghp_<your-github-token-here>  # Scope: repo or public_repo
-
-# GitLab (for private repositories or self-hosted GitLab)
-GITLAB_URL=https://gitlab.com  # Change for self-hosted GitLab
-GITLAB_TOKEN=glpat-<your-gitlab-token-here>  # Scope: read_api
-```
+For optional integrations (GitHub/GitLab, custom ports), see [Optional Configurations](#optional-configurations).
 
 ### B. Configure Virtual Machine Credentials (.credentials.env)
 
@@ -248,32 +209,7 @@ Update the `SSH_PUBLIC_KEY_FILE` variable in the configuration above to match yo
 - `keys-and-password` - Both SSH key and password authentication enabled
 - `password-only` - Password authentication only (not recommended for production)
 
-### C. Change the Default Port (Optional)
-
-By default, the portal listens on port 7007. To configure the portal to use a different port, complete the following steps before building the image:
-
-**1. Edit the Quadlet service file:**
-
-```shell
-vi portal.container
-```
-
-Change the `PublishPort` line:
-```
-PublishPort=8080:7007
-```
-
-**2. Update the base URL in `.portal.env`:**
-
-The `BASE_URL` is automatically detected at VM startup. If you change the port, update the port number in `.portal.env`:
-
-```shell
-BASE_URL=http://localhost:8080
-```
-
-After deployment, this will automatically become `http://<vm-ip>:8080` when the VM starts.
-
-## Step 6: Build Images
+## Step 5: Build Images
 
 Build the bootc container image and convert it to a bootable disk format for deployment.
 
@@ -359,6 +295,78 @@ cat backup-<date>.sql | sudo podman exec -i portal-postgres psql -U postgres -d 
 ```
 
 If using an external database, no migration is needed—the new deployment will connect to the existing database.
+
+## Optional Configurations
+
+### GitHub/GitLab Integration
+
+Required for importing custom templates from private repositories or accessing self-hosted instances.
+
+To create tokens:
+- **GitHub**: Navigate to [Settings → Developer settings → Personal access tokens](https://github.com/settings/tokens) and create a token with `repo` scope (for private repos) or `public_repo` scope (for public repos only).
+- **GitLab**: Navigate to [User Settings → Access Tokens](https://gitlab.com/-/profile/personal_access_tokens) and create a token with `read_api` scope.
+
+Add these to your `.portal.env` file:
+
+```shell
+# GitHub (for private repositories or GitHub Enterprise)
+GITHUB_URL=https://github.com  # Change for GitHub Enterprise
+GITHUB_TOKEN=ghp_<your-github-token-here>  # Scope: repo or public_repo
+
+# GitLab (for private repositories or self-hosted GitLab)
+GITLAB_URL=https://gitlab.com  # Change for self-hosted GitLab
+GITLAB_TOKEN=glpat-<your-gitlab-token-here>  # Scope: read_api
+```
+
+### Changing the Default Port
+
+By default, the portal listens on port 7007. To configure the portal to use a different port, complete the following steps before building the image:
+
+**1. Edit the Quadlet service file:**
+
+```shell
+vi portal.container
+```
+
+Change the `PublishPort` line:
+```
+PublishPort=8080:7007
+```
+
+**2. Update the base URL in `.portal.env`:**
+
+The `BASE_URL` is automatically detected at VM startup. If you change the port, update the port number in `.portal.env`:
+
+```shell
+BASE_URL=http://localhost:8080
+```
+
+After deployment, this will automatically become `http://<vm-ip>:8080` when the VM starts.
+
+## Cloud Systems: Repository Configuration
+
+**This configuration is required for cloud systems only (AWS, GCP, Azure).** If you are running on-premises, skip this section.
+
+Cloud Red Hat Update Infrastructure (RHUI) repositories do not work inside containers. This step configures your system to use Content Delivery Network (CDN) repositories instead.
+
+**To check if you have RHUI repositories:**
+
+```shell
+dnf repolist | grep -i rhui
+```
+
+If the command returns repositories with "rhui" in the name, such as `rhel-9-appstream-rhui-rpms`, complete the following steps before building:
+
+```shell
+# Enable subscription-manager
+sudo subscription-manager config --rhsm.manage_repos=1 --rhsm.auto_enable_yum_plugins=1
+
+# Disable RHUI repos
+sudo dnf config-manager --set-disabled rhel-9-appstream-rhui-rpms rhel-9-baseos-rhui-rpms rhui-client-config-server-9
+
+# Enable CDN repos
+sudo subscription-manager repos --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhel-9-for-x86_64-appstream-rpms
+```
 
 ## Appendix: Configurable Fields
 
