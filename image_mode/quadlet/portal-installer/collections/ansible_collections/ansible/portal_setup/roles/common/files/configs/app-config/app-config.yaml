@@ -14,9 +14,8 @@ app:
   title: Self-service automation portal
   analytics:
     segment:
-      # highlight-next-line
-      testMode: true #
-      writeKey: "dummy-key-for-testing"
+      # Internal Red Hat product analytics - not user-configurable
+      writeKey: "uCMHvkR5n5q2v57LNXHwvTYlGV8lqFR9"
 auth:
   environment: ${PORTAL_ENVIRONMENT}
   omitIdentityTokenOwnershipClaim: true
