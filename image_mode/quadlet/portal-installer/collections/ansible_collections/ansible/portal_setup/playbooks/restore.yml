@@ -1,0 +1,28 @@
+---
+# Restore portal database from backup
+- name: Restore Portal Database
+  hosts: portal_build_host
+  gather_facts: true
+  become: false
+
+  vars_prompt:
+    - name: portal_restore_file
+      prompt: "Enter the full path to the backup file to restore"
+      private: false
+
+    - name: confirm_restore
+      prompt: "WARNING: This will overwrite the current database. Type 'yes' to continue"
+      private: false
+
+  tasks:
+    - name: Validate confirmation
+      ansible.builtin.assert:
+        that:
+          - confirm_restore == 'yes'
+        fail_msg: "Restore cancelled by user"
+
+    - name: Execute restore
+      ansible.builtin.include_role:
+        name: ansible.portal_setup.restore
+
+

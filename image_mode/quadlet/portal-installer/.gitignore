@@ -1,0 +1,41 @@
+# Ansible Portal Installer - Sensitive Files
+# Prevent accidentally committing secrets
+
+# Inventory files with secrets
+inventory.local
+inventory.*.local
+
+# External variables files
+vars.yml
+vars.*.yml
+
+# SSH keys
+files/*.pub
+files/*.pem
+files/id_*
+
+# Registry auth
+files/auth.json
+
+# Environment files
+.portal.env
+.credentials.env
+
+# Build artifacts
+output/
+bundle/
+backups/
+
+# Build artifacts (legacy - now in files/ directory)
+portal.container
+postgres.container
+portal-network.network
+portal_ssh_key.pub
+
+# Ansible artifacts
+*.retry
+ansible.log
+ansible-navigator.log
+artifacts/
+facts/
+.ansible/

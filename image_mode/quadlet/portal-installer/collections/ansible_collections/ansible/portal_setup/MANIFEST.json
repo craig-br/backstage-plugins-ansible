@@ -1,0 +1,43 @@
+{
+ "collection_info": {
+  "namespace": "ansible",
+  "name": "portal_setup",
+  "version": "1.0.0",
+  "authors": [
+   "Red Hat <ansible-info@redhat.com>"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "application",
+   "infrastructure",
+   "tools",
+   "ansible",
+   "automation",
+   "portal",
+   "bootc",
+   "rhel",
+   "container"
+  ],
+  "description": "Ansible collection for building and deploying Self-Service Automation Portal bootc images",
+  "license": [
+   "Apache-2.0"
+  ],
+  "license_file": null,
+ "dependencies": {
+  "containers.podman": ">=1.10.0",
+  "community.general": ">=3.0.0"
+ },
+ "repository": "https://github.com/ansible/",
+ "documentation": "https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform",
+ "homepage": "https://www.redhat.com/en/technologies/management/ansible/self-service-automation",
+ "issues": "https://access.redhat.com/support/"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "0d23e6fe8cca02684e2a27f1ecbeca1af17c054916dd4adbdcfe150a06abfa9f",
+  "format": 1
+ },
+ "format": 1
+}

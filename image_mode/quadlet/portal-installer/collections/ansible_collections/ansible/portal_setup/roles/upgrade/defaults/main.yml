@@ -1,0 +1,25 @@
+---
+# Upgrade role default variables
+portal_upgrade_backup: true
+portal_upgrade_backup_dir: "{{ portal_build_dir }}/backups"
+portal_rollback_enabled: true
+portal_previous_image_tag: "previous"
+
+# Image settings
+portal_image_name: "{{ image_name | default('rhaap-portal-image') }}"
+portal_new_image_tag: "{{ image_tag | default('latest') }}"
+
+# Upgrade method: 'image_rebuild' (default) or 'bootc' (on-VM upgrade)
+# - image_rebuild: Rebuilds the bootc image on build host (requires image conversion)
+# - bootc: Performs bootc upgrade on deployed VM (requires portal_target_host)
+portal_upgrade_method: "image_rebuild"
+
+# Target host for bootc upgrade (required when portal_upgrade_method == 'bootc')
+# Should be set to the hostname or IP of the deployed VM
+# portal_target_host: "portal-vm.example.com"
+
+# Registry configuration for upgrade operations
+portal_registry_url: "{{ registry_url | default('registry.redhat.io') }}"
+portal_registry_username: "{{ registry_username | default('') }}"
+portal_registry_password: "{{ registry_password | default('') }}"
+

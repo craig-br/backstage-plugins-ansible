@@ -1,0 +1,36 @@
+---
+# Preflight role default variables
+# Minimum system requirements
+# Base requirement + additional space per image format
+portal_min_disk_space_gb: 30
+portal_space_per_format_gb: 12  # Each format needs ~12GB temp space
+portal_min_ram_gb: 8
+portal_min_cpus: 4
+
+# Image format for calculating required disk space
+portal_image_formats: "{{ image_formats | default(['qcow2']) }}"
+
+# Required tools
+portal_required_packages:
+  - podman
+
+# Build directory is set in playbook pre_tasks
+
+# Registry settings
+portal_registry_url: "{{ registry_url | default('registry.redhat.io') }}"
+portal_registry_username: "{{ registry_username | default('') }}"
+portal_registry_password: "{{ registry_password | default('') }}"
+
+# AAP settings for validation
+portal_aap_host_url: "{{ aap_host_url | default('') }}"
+portal_aap_token: "{{ aap_token | default('') }}"
+
+# SSH key validation
+portal_ssh_public_key_file: "{{ ssh_public_key_file | default('') }}"
+
+# Required inventory variables for validation
+backend_secret: "{{ backend_secret | default('') }}"
+postgres_password: "{{ postgres_password | default('') }}"
+admin_password: "{{ admin_password | default('') }}"
+
+

@@ -1,0 +1,50 @@
+---
+# Self-Service Automation Portal Installer
+# Main orchestration playbook for building and deploying portal images
+- name: Install Self-Service Automation Portal
+  hosts: portal_build_host
+  gather_facts: true
+  become: false
+
+  pre_tasks:
+    - name: Capture user's working directory
+      ansible.builtin.set_fact:
+        portal_build_dir: "{{ lookup('env', 'PWD') }}"
+      when: portal_build_dir is not defined
+
+  tasks:
+    - name: Run preflight checks
+      ansible.builtin.include_role:
+        name: ansible.portal_setup.preflight
+      tags:
+        - preflight
+
+    - name: Setup common configuration
+      ansible.builtin.include_role:
+        name: ansible.portal_setup.common
+
+    - name: Build bootc container image
+      ansible.builtin.include_role:
+        name: ansible.portal_setup.bootc_build
+
+    - name: Convert bootc image to disk formats
+      ansible.builtin.include_role:
+        name: ansible.portal_setup.image_convert
+
+    - name: Installation complete
+      ansible.builtin.debug:
+        msg:
+          - "=========================================="
+          - "Portal Installation Complete!"
+          - "=========================================="
+          - ""
+          - "Your portal images are ready in: {{ portal_output_dir | default(playbook_dir + '/output') }}"
+          - "Image files: {{ portal_image_name }}-{{ portal_image_tag }}.{qcow2,vmdk,raw,iso}"
+          - ""
+          - "Next steps:"
+          - "  1. Deploy the image to your target environment"
+          - "  2. Boot the VM/system from the image"
+          - "  3. Access the portal at: {{ portal_base_url | default('https://<vm-ip>:7007') }}"
+          - "=========================================="
+
+

@@ -1,0 +1,135 @@
+# Self-Service Automation Portal - Runtime Configuration Overrides
+# 
+# This file allows you to modify portal behavior WITHOUT rebuilding the image.
+# Copy this file to /etc/portal/app-config.override.yaml on your portal VM.
+# The portal automatically loads this file at startup if present.
+#
+# NOTE: Most settings are configured during image build via the inventory file.
+# Use this file ONLY for runtime adjustments or fine-tuning after deployment.
+
+# =============================================================================
+# AAP Synchronization Configuration
+# =============================================================================
+# Fine-tune how the portal syncs data from Ansible Automation Platform
+
+# catalog:
+  # providers:
+    # rhaap:
+      # production:
+        # Which AAP organizations to synchronize (comma-separated)
+        # Default: All organizations
+        # orgs: Default
+        
+        # sync:
+          # Organization, Users, and Teams synchronization
+          # orgsUsersTeams:
+            # schedule:
+              # How often to sync (minutes)
+              # frequency: { minutes: 60 }
+              # Maximum time to wait for sync to complete
+              # timeout: { minutes: 15 }
+          
+          # Job Template synchronization
+          # jobTemplates:
+            # Enable or disable job template sync
+            # enabled: true
+            
+            # Filter by survey status (true/false, or omit to sync all)
+            # true = only templates with surveys
+            # false = only templates without surveys
+            # omit this line = sync all templates
+            # surveyEnabled: true
+            
+            # Filter by job template labels (sync only templates with these labels)
+            # Empty array [] = sync all templates
+            # labels: ['production', 'approved']
+            # labels: []
+            
+            # schedule:
+              # How often to sync job templates (minutes)
+              # frequency: { minutes: 60 }
+              # Maximum time to wait for sync to complete
+              # timeout: { minutes: 15 }
+
+# =============================================================================
+# Authentication Session Configuration
+# =============================================================================
+# Adjust user session timeout and behavior
+
+# auth:
+#   providers:
+#     rhaap:
+#       production:
+#         # User session duration (default: 60 minutes)
+#         sessionDuration:
+#           minutes: 60
+
+# =============================================================================
+# Proxy Configuration
+# =============================================================================
+# Configure backend proxy settings for external service communication
+
+# backend:
+#   baseUrl: ${BASE_URL}
+#   proxy:
+#     # Add custom proxy endpoints here
+#     # '/custom-api':
+#     #   target: https://api.example.com
+#     #   changeOrigin: true
+
+# =============================================================================
+# Logging Configuration
+# =============================================================================
+# Adjust logging levels for troubleshooting
+
+# backend:
+#   log:
+#     # Log level: error, warn, info, debug
+#     level: info
+
+# =============================================================================
+# RBAC Permissions (Advanced)
+# =============================================================================
+# Fine-tune role-based access control
+
+# permission:
+#   rbac:
+#     policies-csv-file: /etc/portal/rbac/custom-policies.csv
+#     policyFileReload: true
+
+# =============================================================================
+# GitHub/GitLab Integration (Advanced)
+# =============================================================================
+# Configure organization catalog imports
+
+# catalog:
+#   providers:
+#     githubOrg:
+#       id: development
+#       githubUrl: https://github.com
+#       orgs: ['my-org']
+#       schedule:
+#         frequency: { hours: 1 }
+#         timeout: { minutes: 5 }
+#     
+#     gitlabOrg:
+#       id: development
+#       gitlabUrl: https://gitlab.com
+#       group: my-group
+#       schedule:
+#         frequency: { hours: 1 }
+#         timeout: { minutes: 5 }
+
+# =============================================================================
+# Performance Tuning (Advanced)
+# =============================================================================
+
+# backend:
+#   # Database connection pool settings
+#   database:
+#     connection:
+#       # Maximum number of connections
+#       max: 20
+#       # Connection timeout
+#       acquireConnectionTimeout: 60000
+

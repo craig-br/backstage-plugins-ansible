@@ -1,0 +1,105 @@
+---
+# Convert bootc image to disk formats
+
+# Determine full image reference with smart registry detection
+# If image_name contains '/' assume it has a registry prefix, otherwise add 'localhost/'
+- name: Determine full image reference
+  ansible.builtin.set_fact:
+    portal_image_full_ref: "{{ (portal_image_name if '/' in portal_image_name else 'localhost/' + portal_image_name) + ':' + portal_image_tag }}"
+  become: true
+
+- name: Verify bootc image exists
+  ansible.builtin.command:
+    cmd: podman image inspect {{ portal_image_full_ref }}
+  register: source_image_info
+  become: true
+  changed_when: false
+
+- name: Validate source image exists
+  ansible.builtin.assert:
+    that:
+      - source_image_info.rc == 0
+    fail_msg: "Source bootc image not found: {{ portal_image_full_ref }}"
+    success_msg: "Source bootc image found"
+
+- name: Create output directories
+  ansible.builtin.file:
+    path: "{{ portal_output_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ portal_image_formats }}"
+  become: true
+
+- name: Pull bootc-image-builder
+  ansible.builtin.command:
+    cmd: podman pull {{ bootc_image_builder }}
+  become: true
+  when: bootc_builder_pull
+  changed_when: true
+
+- name: Convert bootc image to disk format (this may take 15-30 minutes per format)
+  ansible.builtin.command:
+    argv:
+      - podman
+      - run
+      - --rm
+      - --privileged
+      - --security-opt
+      - label=type:unconfined_t
+      - -v
+      - "{{ portal_container_storage_path }}:/var/lib/containers/storage"
+      - -v
+      - "{{ portal_output_dir }}:/output:Z"
+      - "{{ bootc_image_builder }}"
+      - --type
+      - "{{ portal_image_format_map[item] }}"
+      - --local
+      - "{{ portal_image_full_ref }}"
+  loop: "{{ portal_image_formats }}"
+  become: true
+  async: 1800
+  poll: 15
+  register: conversion_results
+  changed_when: true
+
+- name: Verify output images created
+  ansible.builtin.find:
+    paths: "{{ portal_output_dir }}/{{ item }}"
+    patterns: "disk.*"
+  loop: "{{ portal_image_formats }}"
+  register: output_images
+  become: true
+
+- name: Rename output images with unique names
+  ansible.builtin.command:
+    cmd: mv "{{ portal_output_dir }}/{{ item }}/disk.{{ item }}" "{{ portal_output_dir }}/{{ item }}/{{ portal_image_name }}-{{ portal_image_tag }}.{{ item }}"
+  loop: "{{ portal_image_formats }}"
+  become: true
+  changed_when: true
+
+- name: Create manifest file with image details for each format
+  ansible.builtin.template:
+    src: manifest.json.j2
+    dest: "{{ portal_output_dir }}/{{ item }}/manifest.json"
+    mode: "0644"
+  loop: "{{ portal_image_formats }}"
+  become: true
+
+- name: Clean up container storage after successful build
+  ansible.builtin.shell: |
+    # Remove dangling images (untagged)
+    podman image prune -f
+    # Remove unused containers, networks, and build cache
+    podman system prune -f --volumes
+  become: true
+  when: portal_cleanup_after_build | default(true)
+  changed_when: true
+  register: cleanup_result
+
+- name: Display cleanup results
+  ansible.builtin.debug:
+    msg: "Container storage cleaned up to free disk space"
+  when: 
+    - portal_cleanup_after_build | default(true)
+    - cleanup_result is succeeded
+

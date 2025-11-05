@@ -1,0 +1,45 @@
+---
+# Common role tasks
+- name: Set portal build facts
+  ansible.builtin.set_fact:
+    portal_build_timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+    portal_installer_version: "1.0.0"
+    portal_files_dir: "{{ portal_build_dir }}/files"
+    portal_output_dir: "{{ portal_build_dir }}/output"
+
+- name: Create required directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ portal_files_dir }}"
+    - "{{ portal_output_dir }}"
+    - "{{ portal_build_dir }}/configs"
+    - "{{ portal_build_dir }}/configs/dynamic-plugins"
+    - "{{ portal_build_dir }}/configs/app-config"
+    - "{{ portal_build_dir }}/local-plugins"
+    - "{{ portal_build_dir }}/scripts"
+
+- name: Generate portal environment file
+  ansible.builtin.template:
+    src: portal.env.j2
+    dest: "{{ portal_build_dir }}/.portal.env"
+    mode: "0600"
+
+# Note: auth.json is NOT generated for build context - it will be injected
+# temporarily during upgrades by the upgrade playbook for improved security
+
+- name: Copy portal configuration files
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ portal_build_dir }}/{{ item.dest }}"
+    mode: "{{ item.mode | default('0644') }}"
+  loop:
+    - { src: "configs/", dest: "configs/" }
+    - { src: "local-plugins/", dest: "local-plugins/" }
+    - { src: "scripts/", dest: "scripts/", mode: "0755" }
+    - { src: "portal.container", dest: "files/portal.container" }
+    - { src: "postgres.container", dest: "files/postgres.container" }
+    - { src: "portal-network.network", dest: "files/portal-network.network" }
+

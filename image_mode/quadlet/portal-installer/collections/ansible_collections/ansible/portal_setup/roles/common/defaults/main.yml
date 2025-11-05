@@ -1,0 +1,57 @@
+---
+# Common role default variables
+# Build directory is set in the playbook pre_tasks to capture user's working directory
+# portal_files_dir and portal_output_dir are set as facts in tasks/main.yml
+portal_image_name: "{{ image_name | default('rhaap-portal-image') }}"
+portal_image_tag: "{{ image_tag | default('latest') }}"
+
+# Portal runtime configuration
+portal_http_port: "{{ http_port | default(7007) }}"
+portal_environment: production  # Internal default, not customer-configurable
+portal_base_url: ""  # Empty = auto-detect at boot
+portal_log_level: "info"
+
+# AAP configuration
+aap_host: "{{ aap_host_url }}"
+aap_api_token: "{{ aap_token }}"
+oauth_id: "{{ oauth_client_id }}"
+oauth_secret: "{{ oauth_client_secret }}"
+
+# Database configuration
+use_external_db: "{{ use_external_postgres | default(false) }}"
+db_host: "{{ postgres_host | default('portal-postgres') }}"
+db_port: "{{ postgres_port | default('5432') }}"
+db_user: "{{ postgres_user | default('postgres') }}"
+db_password: "{{ postgres_password }}"
+db_name: "{{ postgres_db | default('portal') }}"
+db_ssl: "{{ backend_database_connection_ssl | default(false) }}"
+
+# VM credentials
+vm_admin_user: "{{ admin_user | default('admin') }}"
+vm_admin_password: "{{ admin_password }}"
+vm_ssh_key_file: "{{ ssh_public_key_file }}"
+vm_ssh_mode: "{{ ssh_security_mode | default('keys-only') }}"
+
+# Backend secret
+backend_auth_secret: "{{ backend_secret }}"
+
+# Optional integrations
+github_integration_url: "{{ github_url | default('github.com') }}"
+github_integration_token: "{{ github_token | default('') }}"
+gitlab_integration_url: "{{ gitlab_url | default('gitlab.com') }}"
+gitlab_integration_token: "{{ gitlab_token | default('') }}"
+
+# Registry configuration (following AAP pattern)
+portal_registry_url: "{{ registry_url | default('registry.redhat.io') }}"
+portal_registry_username: "{{ registry_username | default('') }}"
+portal_registry_password: "{{ registry_password | default('') }}"
+portal_registry_auth: "{{ registry_auth | default(true) }}"
+portal_registry_tls_verify: "{{ registry_tls_verify | default(true) }}"
+
+# Portal sync configuration
+portal_job_template_sync_enabled: true
+portal_job_template_sync_minutes: 60
+portal_users_teams_sync_minutes: 60
+portal_sync_timeout_minutes: 15
+
+

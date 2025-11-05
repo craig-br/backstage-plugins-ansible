@@ -1,0 +1,14 @@
+---
+# Compatible with AAP 2.5 (ansible-core 2.16) and AAP 2.6 (ansible-core 2.17)
+requires_ansible: ">=2.16.0"
+plugin_routing:
+  modules:
+    redirect: ansible.portal_setup
+  module_utils:
+    redirect: ansible.portal_setup
+action_groups:
+  portal_installer:
+    - containers.podman.podman_image
+    - containers.podman.podman_image_info
+    - containers.podman.podman_container
+

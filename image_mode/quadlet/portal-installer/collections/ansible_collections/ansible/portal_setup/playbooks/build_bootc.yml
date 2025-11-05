@@ -1,0 +1,29 @@
+---
+# Build bootc container image only
+- name: Build Portal Bootc Image
+  hosts: portal_build_host
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Run preflight checks
+      ansible.builtin.include_role:
+        name: ansible.portal_setup.preflight
+      tags:
+        - preflight
+
+    - name: Setup common configuration
+      ansible.builtin.include_role:
+        name: ansible.portal_setup.common
+
+    - name: Build bootc container image
+      ansible.builtin.include_role:
+        name: ansible.portal_setup.bootc_build
+
+    - name: Build complete
+      ansible.builtin.debug:
+        msg:
+          - "Bootc image built successfully: {{ portal_image_name | default('rhaap-portal-image') }}:{{ portal_image_tag | default('latest') }}"
+          - "To create disk images: ansible-playbook create_image.yml"
+
+

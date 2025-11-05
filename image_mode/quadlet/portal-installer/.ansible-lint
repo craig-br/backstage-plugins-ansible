@@ -1,0 +1,60 @@
+---
+# Ansible-lint configuration
+# Compatible with AAP 2.5 (ansible-core 2.16) and AAP 2.6 (ansible-core 2.17)
+
+profile: production
+
+# Exclude paths
+exclude_paths:
+  - .cache/
+  - .git/
+  - .github/
+  - tests/output/
+  - output/
+  - backups/
+  - facts/
+  - artifacts/
+  - "*.log"
+  - collections/ansible_collections/ansible/portal_setup/roles/common/files/configs/app-config/
+
+# Enable checking of formatting and syntax
+strict: false
+
+# Skip specific rules if needed
+skip_list:
+  - experimental  # Allow experimental features
+  - galaxy[version-incorrect]  # Allow flexible versioning during development
+  - var-naming[no-role-prefix]  # Shared variables across roles intentional
+  - yaml[empty-lines]  # Allow extra blank lines for readability
+  - yaml[trailing-spaces]  # Will be cleaned up separately
+
+# Warn only for these rules
+warn_list:
+  - no-changed-when  # Warn about tasks without changed_when
+  - command-instead-of-module  # Warn when shell/command could be replaced
+  - yaml[line-length]  # Warn about long lines
+  - risky-file-permissions  # Warn about file permissions
+  - risky-shell-pipe  # Warn about missing pipefail
+  - no-handler  # Warn about tasks that should be handlers
+
+# Enable offline mode (don't check Galaxy)
+offline: false
+
+# Mock modules and roles for offline linting
+mock_modules:
+  - containers.podman.podman_image
+  - containers.podman.podman_container
+  - containers.podman.podman_image_info
+  - containers.podman.podman_tag
+  - community.general.archive
+
+mock_roles:
+  - ansible.portal_setup.preflight
+  - ansible.portal_setup.common
+  - ansible.portal_setup.bootc_build
+  - ansible.portal_setup.image_convert
+  - ansible.portal_setup.backup
+  - ansible.portal_setup.restore
+  - ansible.portal_setup.upgrade
+
+

@@ -1,0 +1,13 @@
+---
+# Backup portal database
+- name: Backup Portal Database
+  hosts: portal_build_host
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Execute backup
+      ansible.builtin.include_role:
+        name: ansible.portal_setup.backup
+
+

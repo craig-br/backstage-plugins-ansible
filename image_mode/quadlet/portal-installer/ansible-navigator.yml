@@ -1,0 +1,58 @@
+---
+# Ansible Navigator Configuration
+# Documentation: https://ansible.readthedocs.io/projects/navigator/
+
+ansible-navigator:
+  # Execution environment configuration
+  execution-environment:
+    enabled: true
+    image: registry.redhat.io/ansible-automation-platform-25/ee-supported-rhel9:latest
+    pull:
+      policy: missing
+    container-engine: podman
+    volume-mounts:
+      - src: "{{ lookup('env', 'PWD') }}"
+        dest: /runner
+        options: Z
+      - src: "{{ lookup('env', 'PWD') }}/files"
+        dest: /runner/files
+        options: Z
+
+  # Ansible configuration
+  ansible:
+    config: ./ansible.cfg
+    inventory:
+      entries:
+        - ./inventory
+
+  # Playbook settings
+  playbook-artifact:
+    enable: true
+    save-as: ./artifacts/playbook-artifact-{time_stamp}.json
+
+  # Logging
+  logging:
+    level: info
+    append: true
+    file: ./ansible-navigator.log
+
+  # Mode (stdout or interactive)
+  mode: stdout
+
+  # Editor for when viewing files
+  editor:
+    command: vi
+    console: true
+
+  # Color settings
+  color:
+    enable: true
+    osc4: true
+
+  # Time zone
+  time-zone: UTC
+
+  # Format for output
+  format: yaml
+
+

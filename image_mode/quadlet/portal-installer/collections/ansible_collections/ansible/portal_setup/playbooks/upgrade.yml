@@ -1,0 +1,19 @@
+---
+# Upgrade portal to new version
+- name: Upgrade Self-Service Automation Portal
+  hosts: portal_build_host
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Run preflight checks
+      ansible.builtin.include_role:
+        name: ansible.portal_setup.preflight
+      tags:
+        - preflight
+
+    - name: Execute upgrade process
+      ansible.builtin.include_role:
+        name: ansible.portal_setup.upgrade
+
+

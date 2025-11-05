@@ -1,0 +1,64 @@
+---
+# Database restore tasks
+- name: Validate restore file specified
+  ansible.builtin.assert:
+    that:
+      - portal_restore_file | length > 0
+    fail_msg: "Restore file must be specified with portal_restore_file variable"
+    success_msg: "Restore file: {{ portal_restore_file }}"
+
+- name: Check if restore file exists
+  ansible.builtin.stat:
+    path: "{{ portal_restore_file }}"
+  register: restore_file_stat
+
+- name: Validate restore file exists
+  ansible.builtin.assert:
+    that:
+      - restore_file_stat.stat.exists
+    fail_msg: "Restore file not found: {{ portal_restore_file }}"
+    success_msg: "Restore file found"
+
+- name: Check if using external database
+  ansible.builtin.set_fact:
+    using_external_db: "{{ use_external_postgres | default(false) }}"
+
+- name: Extract compressed backup if needed
+  ansible.builtin.unarchive:
+    src: "{{ portal_restore_file }}"
+    dest: "{{ portal_backup_dir }}"
+    remote_src: true
+  when: portal_restore_file.endswith('.gz')
+  register: extract_result
+
+- name: Set SQL file path
+  ansible.builtin.set_fact:
+    sql_file_path: "{{ extract_result.dest }}/{{ extract_result.files[0] if extract_result is changed else portal_restore_file }}"
+
+- name: Restore to local PostgreSQL database
+  ansible.builtin.shell:
+    cmd: >
+      podman exec -i {{ restore_postgres_container }}
+      psql -U {{ restore_postgres_user }} {{ restore_postgres_db }} <
+      {{ sql_file_path }}
+  when: not using_external_db
+  become: true
+  register: restore_local_result
+  changed_when: restore_local_result.rc == 0
+
+- name: Restore to external PostgreSQL database
+  ansible.builtin.shell:
+    cmd: >
+      PGPASSWORD='{{ restore_postgres_password }}'
+      psql -h {{ restore_postgres_host }}
+      -p {{ restore_postgres_port }}
+      -U {{ restore_postgres_user }}
+      {{ restore_postgres_db }} <
+      {{ sql_file_path }}
+  environment:
+    PGPASSWORD: "{{ restore_postgres_password }}"
+  when: using_external_db
+  register: restore_external_result
+  changed_when: restore_external_result.rc == 0
+  no_log: true
+

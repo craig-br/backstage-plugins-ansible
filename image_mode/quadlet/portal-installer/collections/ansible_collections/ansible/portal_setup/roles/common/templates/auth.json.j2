@@ -1,0 +1,9 @@
+{
+  "auths": {
+    "{{ portal_registry_url | default('registry.redhat.io') }}": {
+      "auth": "{{ (portal_registry_username + ':' + portal_registry_password) | b64encode }}"
+    }
+  }
+}
+
+

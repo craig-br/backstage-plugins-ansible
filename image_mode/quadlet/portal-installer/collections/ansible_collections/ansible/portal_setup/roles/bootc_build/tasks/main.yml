@@ -1,0 +1,108 @@
+---
+# Build bootc container image
+- name: Generate Containerfile from template
+  ansible.builtin.template:
+    src: Containerfile.j2
+    dest: "{{ portal_build_dir }}/Containerfile"
+    mode: "0644"
+  register: containerfile_generated
+
+- name: Validate Containerfile generated successfully
+  ansible.builtin.assert:
+    that:
+      - containerfile_generated is succeeded
+    fail_msg: "Containerfile generation failed"
+    success_msg: "Containerfile generated successfully"
+
+- name: Copy SSH public key to build context
+  ansible.builtin.copy:
+    src: "{{ ssh_public_key_file | expanduser }}"
+    dest: "{{ portal_files_dir }}/portal_ssh_key.pub"
+    mode: "0644"
+  when: ssh_public_key_file is defined and ssh_public_key_file | length > 0
+
+- name: Authenticate to container registry
+  ansible.builtin.command:
+    argv:
+      - podman
+      - login
+      - "{{ portal_registry_url }}"
+      - --username
+      - "{{ portal_registry_username }}"
+      - --password-stdin
+    stdin: "{{ portal_registry_password }}"
+  become: true
+  no_log: true
+  changed_when: false
+  when: (portal_registry_username | default('')) | length > 0 and (portal_registry_password | default('')) | length > 0
+
+- name: Build bootc container image (this may take 10-20 minutes)
+  ansible.builtin.command:
+    argv:
+      - podman
+      - build
+      - "--pull={{ 'always' if portal_pull_images else 'missing' }}"
+      - "--build-arg"
+      - "ADMIN_USER={{ vm_admin_user | default('admin') }}"
+      - "--build-arg"
+      - "ADMIN_PASSWORD={{ admin_password }}"
+      - "--build-arg"
+      - "SSH_PUBLIC_KEY_FILE={{ 'files/portal_ssh_key.pub' if (ssh_public_key_file is defined and ssh_public_key_file | length > 0) else '' }}"
+      - "--build-arg"
+      - "SSH_SECURITY_MODE={{ vm_ssh_mode | default('keys-only') }}"
+      - "-f"
+      - "{{ portal_build_dir }}/Containerfile"
+      - "-t"
+      - "{{ portal_image_name }}:{{ portal_image_tag }}"
+      - "{{ portal_build_dir }}"
+    chdir: "{{ portal_build_dir }}"
+  become: true
+  async: 1200
+  poll: 10
+  register: image_build_result
+  changed_when: true
+  no_log: true
+
+- name: Verify bootc image built successfully
+  ansible.builtin.command:
+    cmd: podman image inspect {{ portal_image_name }}:{{ portal_image_tag }}
+  register: bootc_image_info
+  become: true
+  changed_when: false
+
+- name: Validate image exists
+  ansible.builtin.assert:
+    that:
+      - bootc_image_info.rc == 0
+    fail_msg: "Bootc image build failed"
+    success_msg: "Bootc image built successfully"
+
+- name: Clean up build artifacts from files directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ portal_files_dir }}/portal.container"
+    - "{{ portal_files_dir }}/postgres.container"
+    - "{{ portal_files_dir }}/portal-network.network"
+    - "{{ portal_files_dir }}/portal_ssh_key.pub"
+  when: portal_cleanup_build_artifacts | default(true)
+
+- name: Tag image with build timestamp (for upgrades)
+  ansible.builtin.command:
+    cmd: podman tag {{ portal_image_name }}:{{ portal_image_tag }} {{ portal_image_name }}:{{ ansible_date_time.iso8601_basic_short }}
+  become: true
+  when: portal_image_tag == 'latest'
+  changed_when: true
+
+- name: Pull bound container images for bootc-image-builder resolution
+  ansible.builtin.command:
+    cmd: podman pull {{ item }}
+  become: true
+  changed_when: true
+  register: bound_image_pull_result
+  retries: 3
+  delay: 10
+  until: bound_image_pull_result.rc == 0
+  loop: "{{ portal_bound_images }}"
+

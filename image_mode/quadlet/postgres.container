@@ -22,7 +22,7 @@ Network=portal-network
 PublishPort=5432:5432
 
 # Health check
-HealthCmd=/bin/bash -c 'pg_isready -U portal_user -d portal_backstage'
+HealthCmd=/bin/bash -c 'pg_isready -U portal_user -d portal'
 HealthInterval=30s
 HealthTimeout=10s
 HealthRetries=3

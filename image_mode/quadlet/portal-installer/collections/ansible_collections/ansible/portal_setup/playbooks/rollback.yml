@@ -1,0 +1,55 @@
+---
+# Rollback to previous portal version
+- name: Rollback Portal to Previous Version
+  hosts: portal_build_host
+  gather_facts: true
+  become: false
+
+  vars_prompt:
+    - name: confirm_rollback
+      prompt: "WARNING: This will rollback to the previous image version. Type 'yes' to continue"
+      private: false
+
+  tasks:
+    - name: Validate confirmation
+      ansible.builtin.assert:
+        that:
+          - confirm_rollback == 'yes'
+        fail_msg: "Rollback cancelled by user"
+
+    - name: Check if previous image exists
+      containers.podman.podman_image_info:
+        name: "{{ image_name | default('rhaap-portal-image') }}:previous"
+      register: previous_image
+      become: true
+
+    - name: Validate previous image exists
+      ansible.builtin.assert:
+        that:
+          - previous_image.images | length > 0
+        fail_msg: "No previous image found for rollback. Cannot proceed."
+
+    - name: Tag previous image as latest
+      containers.podman.podman_tag:
+        image: "{{ image_name | default('rhaap-portal-image') }}:previous"
+        target_names:
+          - "{{ image_name | default('rhaap-portal-image') }}:latest"
+      become: true
+
+    - name: Recreate disk images from rolled-back image
+      ansible.builtin.include_role:
+        name: ansible.portal_setup.image_convert
+
+    - name: Rollback complete
+      ansible.builtin.debug:
+        msg:
+          - "=========================================="
+          - "Rollback Completed Successfully"
+          - "=========================================="
+          - "Portal image rolled back to previous version"
+          - "Disk images recreated in: {{ playbook_dir }}/output"
+          - ""
+          - "If you also need to restore the database:"
+          - "  ansible-playbook restore.yml"
+
+

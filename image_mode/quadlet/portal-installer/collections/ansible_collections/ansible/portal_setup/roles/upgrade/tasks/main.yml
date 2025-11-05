@@ -1,0 +1,87 @@
+---
+# Upgrade portal image tasks
+- name: Tag current image as previous for rollback
+  containers.podman.podman_tag:
+    image: "{{ portal_image_name }}:latest"
+    target_names:
+      - "{{ portal_image_name }}:{{ portal_previous_image_tag }}"
+  become: true
+  when: portal_rollback_enabled
+  failed_when: false
+
+- name: Backup database before upgrade
+  ansible.builtin.include_role:
+    name: ansible.portal_setup.backup
+  when: portal_upgrade_backup
+
+# Bootc upgrade workflow (on deployed VM)
+- name: Inject registry authentication for bootc upgrade
+  ansible.builtin.template:
+    src: ../../common/templates/auth.json.j2
+    dest: /etc/containers/auth.json
+    mode: "0600"
+    owner: root
+    group: root
+  delegate_to: "{{ portal_target_host }}"
+  become: true
+  when:
+    - portal_upgrade_method == 'bootc'
+    - portal_target_host is defined
+    - (portal_registry_username | default('')) | length > 0
+    - (portal_registry_password | default('')) | length > 0
+  tags:
+    - upgrade
+    - bootc-upgrade
+
+- name: Perform bootc system upgrade
+  ansible.builtin.command:
+    cmd: bootc upgrade
+  delegate_to: "{{ portal_target_host }}"
+  become: true
+  register: bootc_upgrade_result
+  when:
+    - portal_upgrade_method == 'bootc'
+    - portal_target_host is defined
+  tags:
+    - upgrade
+    - bootc-upgrade
+  changed_when: true
+
+- name: Remove registry authentication after upgrade
+  ansible.builtin.file:
+    path: /etc/containers/auth.json
+    state: absent
+  delegate_to: "{{ portal_target_host }}"
+  become: true
+  when:
+    - portal_upgrade_method == 'bootc'
+    - portal_target_host is defined
+  tags:
+    - upgrade
+    - bootc-upgrade
+
+# Image rebuild workflow (default)
+- name: Build new bootc image
+  ansible.builtin.include_role:
+    name: ansible.portal_setup.bootc_build
+  vars:
+    portal_image_tag: "{{ portal_new_image_tag }}"
+  when: portal_upgrade_method == 'image_rebuild'
+
+- name: Convert new image to disk formats
+  ansible.builtin.include_role:
+    name: ansible.portal_setup.image_convert
+  vars:
+    portal_image_tag: "{{ portal_new_image_tag }}"
+  when: portal_upgrade_method == 'image_rebuild'
+
+- name: Tag new image as latest
+  containers.podman.podman_tag:
+    image: "{{ portal_image_name }}:{{ portal_new_image_tag }}"
+    target_names:
+      - "{{ portal_image_name }}:latest"
+  become: true
+  when:
+    - portal_upgrade_method == 'image_rebuild'
+    - portal_new_image_tag != 'latest'
+

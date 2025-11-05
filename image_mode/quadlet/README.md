@@ -160,7 +160,7 @@ POSTGRES_HOST=<your-database-host.example.com>
 POSTGRES_PORT=5432
 POSTGRES_USER=<your-database-username>
 POSTGRES_PASSWORD=<your-secure-database-password-here>
-POSTGRES_DB=portal_backstage
+POSTGRES_DB=portal
 BACKEND_DATABASE_CONNECTION_SSL=true
 ```
 
@@ -231,7 +231,7 @@ Upgrade to a new version of the portal by building updated images and deploying 
 Create a backup of your database before upgrading:
 
 ```shell
-ssh admin@<vm-ip> "sudo podman exec portal-postgres pg_dump -U postgres portal_backstage" > backup-$(date +%Y%m%d).sql
+ssh admin@<vm-ip> "sudo podman exec portal-postgres pg_dump -U postgres portal" > backup-$(date +%Y%m%d).sql
 ```
 
 ### Step 2: Extract New Version
@@ -291,7 +291,7 @@ scp backup-<date>.sql admin@<new-system-ip>:~/
 ssh admin@<new-system-ip>
 
 # Restore database
-cat backup-<date>.sql | sudo podman exec -i portal-postgres psql -U postgres -d portal_backstage
+cat backup-<date>.sql | sudo podman exec -i portal-postgres psql -U postgres -d portal
 ```
 
 If using an external database, no migration is needed—the new deployment will connect to the existing database.
@@ -417,7 +417,7 @@ Reference guide for all configurable environment variables and settings.
 | `POSTGRES_HOST` | Database hostname | `portal-postgres` |
 | `POSTGRES_PORT` | Database port | `5432` |
 | `POSTGRES_USER` | Database username | `postgres` |
-| `POSTGRES_DB` | Database name | `portal_backstage` |
+| `POSTGRES_DB` | Database name | `portal` |
 | `BACKEND_DATABASE_CONNECTION_SSL` | Enable SSL for database | `false` |
 
 ### VM Credentials (.credentials.env)

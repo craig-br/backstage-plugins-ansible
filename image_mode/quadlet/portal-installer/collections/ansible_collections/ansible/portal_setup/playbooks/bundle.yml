@@ -1,0 +1,101 @@
+---
+# Bundle playbook - Download container images for offline installation
+# Similar to AAP's ansible.containerized_installer.bundle playbook
+- name: Create Offline Installation Bundle
+  hosts: portal_build_host
+  gather_facts: true
+  become: false
+
+  vars:
+    bundle_dir: "{{ portal_build_dir | default(playbook_dir) }}/bundle"
+    bundle_images_dir: "{{ bundle_dir }}/images"
+    required_images:
+      - "{{ portal_registry_url }}/rhel9/rhel-bootc:latest"
+      - "{{ portal_registry_url }}/rhel9/postgresql-15:latest"
+      - "{{ portal_registry_url }}/rhel9/bootc-image-builder:latest"
+
+  tasks:
+    - name: Create bundle directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ bundle_dir }}"
+        - "{{ bundle_images_dir }}"
+
+    - name: Pull required container images
+      containers.podman.podman_image:
+        name: "{{ item }}"
+        state: present
+        force: true
+      loop: "{{ required_images }}"
+      become: true
+
+    - name: Save images to tar archives
+      ansible.builtin.command:
+        cmd: "podman save -o {{ bundle_images_dir }}/{{ item | regex_replace('[:/]', '_') }}.tar {{ item }}"
+      loop: "{{ required_images }}"
+      become: true
+      changed_when: true
+
+    - name: Create image list file
+      ansible.builtin.copy:
+        content: |
+          # Portal Installer Required Images
+          # All images are Red Hat supported from registry.redhat.io
+          {% for image in required_images %}
+          {{ image }}
+          {% endfor %}
+        dest: "{{ bundle_dir }}/image-list.txt"
+        mode: "0644"
+
+    - name: Create offline installation README
+      ansible.builtin.copy:
+        content: |
+          # Offline Installation Bundle
+          
+          ## Load Images on Disconnected System
+          
+          ```bash
+          # Load each image into podman
+          for img in images/*.tar; do
+            echo "Loading: $(basename $img)"
+            sudo podman load -i "$img"
+          done
+          
+          # Verify images loaded
+          sudo podman images
+          ```
+          
+          ## Configure Inventory
+          
+          Edit your inventory file:
+          
+          ```ini
+          # Option A: Use local images (no registry)
+          registry_auth=false
+          
+          # Option B: Mirror to internal registry
+          registry_url=registry.example.com:5000
+          registry_auth=false
+          registry_tls_verify=false
+          ```
+          
+          ## Run Installation
+          
+          ```bash
+          ansible-navigator run -i inventory.local ansible.portal_setup.install
+          ```
+          
+          For complete instructions, see the main OFFLINE-INSTALL.md documentation.
+        dest: "{{ bundle_dir }}/README.md"
+        mode: "0644"
+
+    - name: Bundle complete
+      ansible.builtin.debug:
+        msg:
+          - "Bundle created: {{ bundle_dir }}"
+          - "Transfer to offline system and follow README.md instructions"
+          - "All images are Red Hat supported from registry.redhat.io"
+

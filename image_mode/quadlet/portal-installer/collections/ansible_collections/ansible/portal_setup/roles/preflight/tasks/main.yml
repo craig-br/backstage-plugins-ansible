@@ -1,0 +1,164 @@
+---
+# Preflight checks for portal installer
+- name: Check ansible-core version
+  ansible.builtin.assert:
+    that:
+      - ansible_version.full is version('2.15.0', '>=')
+    fail_msg: "Ansible version must be 2.15.0 or higher. Current version: {{ ansible_version.full }}"
+    success_msg: "Ansible version {{ ansible_version.full }} meets requirements"
+
+- name: Check operating system
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == 'RedHat'
+      - ansible_facts['distribution'] == 'RedHat'
+      - ansible_facts['distribution_major_version'] | int >= 9
+    fail_msg: "Red Hat Enterprise Linux 9.6 or later is required. Detected: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
+    success_msg: "Operating system: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
+
+- name: Verify RHEL minor version
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['distribution_version'] is version('9.6', '>=')
+    fail_msg: |
+      Red Hat Enterprise Linux 9.6 or later is required.
+      Current version: RHEL {{ ansible_facts['distribution_version'] }}
+      Please upgrade your system with: sudo dnf update -y
+    success_msg: "RHEL version check passed: {{ ansible_facts['distribution_version'] }}"
+
+- name: Check for Red Hat subscription
+  ansible.builtin.command:
+    cmd: subscription-manager identity
+  register: rhel_subscription_check
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: Verify system is genuine RHEL with active subscription
+  ansible.builtin.assert:
+    that:
+      - rhel_subscription_check.rc == 0
+      - "'Red Hat' in rhel_subscription_check.stdout or 'system identity' in rhel_subscription_check.stdout"
+    fail_msg: |
+      This installer requires genuine Red Hat Enterprise Linux with an active subscription.
+      Detected system: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}
+      
+      RHEL-derived distributions (CentOS Stream, Rocky Linux, AlmaLinux, etc.) are NOT supported.
+      
+      To register your RHEL system:
+        sudo subscription-manager register --username <your-rh-username>
+        sudo subscription-manager attach --auto
+    success_msg: "Genuine RHEL system verified with active subscription"
+
+- name: Calculate required disk space based on image formats
+  ansible.builtin.set_fact:
+    portal_required_disk_space: "{{ portal_min_disk_space_gb | int + (portal_image_formats | length * portal_space_per_format_gb | int) }}"
+
+- name: Check available disk space
+  ansible.builtin.shell:
+    cmd: set -o pipefail && df -BG {{ portal_build_dir }} | tail -1 | awk '{print $4}' | sed 's/G//'
+  register: disk_space_check
+  changed_when: false
+
+- name: Validate disk space
+  ansible.builtin.assert:
+    that:
+      - disk_space_check.stdout | int >= portal_required_disk_space | int
+    fail_msg: |
+      Insufficient disk space for {{ portal_image_formats | length }} image format(s).
+      Required: {{ portal_required_disk_space }}GB
+      ({{ portal_min_disk_space_gb }}GB base + {{ portal_image_formats | length }} × {{ portal_space_per_format_gb }}GB per format)
+      Available: {{ disk_space_check.stdout }}GB
+      
+      To free space: sudo podman system prune -af --volumes
+    success_msg: >-
+      Disk space check passed: {{ disk_space_check.stdout }}GB available
+      ({{ portal_required_disk_space }}GB required)
+
+- name: Check available RAM
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['memtotal_mb'] | int >= (portal_min_ram_gb * 1024)
+    fail_msg: "Insufficient RAM. Required: {{ portal_min_ram_gb }}GB, Available: {{ (ansible_facts['memtotal_mb'] / 1024) | round(1) }}GB"
+    success_msg: "RAM check passed: {{ (ansible_facts['memtotal_mb'] / 1024) | round(1) }}GB available"
+
+- name: Check CPU cores
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['processor_vcpus'] | int >= portal_min_cpus
+    fail_msg: "Insufficient CPU cores. Required: {{ portal_min_cpus }}, Available: {{ ansible_facts['processor_vcpus'] }}"
+    success_msg: "CPU check passed: {{ ansible_facts['processor_vcpus'] }} cores available"
+
+- name: Check for required packages
+  ansible.builtin.package:
+    name: "{{ portal_required_packages }}"
+    state: present
+  check_mode: true
+  register: package_check
+  become: true
+
+- name: Validate AAP host URL
+  ansible.builtin.assert:
+    that:
+      - portal_aap_host_url | length > 0
+      - portal_aap_host_url is match('^https?://')
+    fail_msg: "AAP host URL is required and must start with http:// or https://"
+    success_msg: "AAP host URL configured: {{ portal_aap_host_url }}"
+
+- name: Validate AAP token
+  ansible.builtin.assert:
+    that:
+      - portal_aap_token | length > 0
+    fail_msg: "AAP API token is required"
+    success_msg: "AAP API token is configured"
+
+- name: Validate backend secret
+  ansible.builtin.assert:
+    that:
+      - backend_secret is defined
+      - backend_secret | length > 0
+    fail_msg: "backend_secret is required. Example: openssl rand -base64 32"
+    success_msg: "Backend secret is configured"
+
+- name: Validate PostgreSQL password
+  ansible.builtin.assert:
+    that:
+      - postgres_password is defined
+      - postgres_password | length > 0
+    fail_msg: "postgres_password is required. Example: openssl rand -base64 32"
+    success_msg: "PostgreSQL password is configured"
+
+- name: Validate admin password
+  ansible.builtin.assert:
+    that:
+      - admin_password is defined
+      - admin_password | length > 0
+    fail_msg: "admin_password is required. Example: openssl rand -base64 32"
+    success_msg: "Admin password is configured"
+
+- name: Check SSH public key file exists
+  ansible.builtin.stat:
+    path: "{{ portal_ssh_public_key_file | expanduser }}"
+  register: ssh_key_stat
+  when: portal_ssh_public_key_file | length > 0
+
+- name: Validate SSH public key
+  ansible.builtin.assert:
+    that:
+      - ssh_key_stat.stat.exists
+      - ssh_key_stat.stat.isreg
+    fail_msg: "SSH public key file not found: {{ portal_ssh_public_key_file | expanduser }}"
+    success_msg: "SSH public key file found"
+  when: portal_ssh_public_key_file | length > 0
+
+- name: Verify SSH key is readable
+  ansible.builtin.command:
+    cmd: "ssh-keygen -l -f {{ portal_ssh_public_key_file | expanduser }}"
+  register: ssh_key_check
+  changed_when: false
+  when: portal_ssh_public_key_file | length > 0
+
+# Note: auth.json is NOT generated for build context
+# Registry credentials are only injected temporarily during upgrade operations
+# This improves security by not embedding credentials in image layers
+

@@ -1,0 +1,19 @@
+---
+# Backup role default variables
+portal_backup_dir: "{{ portal_build_dir }}/backups"
+portal_backup_timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+portal_backup_filename: "portal-backup-{{ portal_backup_timestamp }}.sql"
+portal_backup_compress: true
+portal_backup_retention_days: 30
+
+# Database connection (from inventory)
+backup_postgres_host: "{{ postgres_host | default('portal-postgres') }}"
+backup_postgres_port: "{{ postgres_port | default('5432') }}"
+backup_postgres_user: "{{ postgres_user | default('postgres') }}"
+backup_postgres_db: "{{ postgres_db | default('portal') }}"
+backup_postgres_password: "{{ postgres_password }}"
+
+# Container name for local postgres
+backup_postgres_container: "portal-postgres"
+
+

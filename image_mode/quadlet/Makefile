@@ -768,7 +768,7 @@ postgres-logs: ## Show PostgreSQL container logs
 postgres-connect: ## Connect to PostgreSQL database
 	@echo "$(GREEN)Connecting to PostgreSQL database...$(NC)"
 	@echo "$(YELLOW)Use password from .portal.env: POSTGRES_PASSWORD$(NC)"
-	@podman exec -it portal-postgres psql -U portal_user -d portal_backstage
+	@podman exec -it portal-postgres psql -U portal_user -d portal
 
 postgres-destroy: ## Stop and remove PostgreSQL container and data
 	@echo "$(GREEN)Destroying PostgreSQL setup...$(NC)"

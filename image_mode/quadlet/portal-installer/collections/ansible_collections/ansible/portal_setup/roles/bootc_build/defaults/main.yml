@@ -1,0 +1,54 @@
+---
+# Bootc build role default variables
+
+# Image naming and tagging
+portal_image_name: "{{ image_name | default('rhaap-portal-image') }}"
+portal_image_tag: "{{ image_tag | default('latest') }}"
+
+# Build configuration
+# portal_build_dir is set in playbook pre_tasks
+portal_pull_images: true
+portal_keep_images: false
+
+# Clean up build artifacts after successful build (default: true)
+# Removes intermediate build artifacts from files/ directory to keep root clean
+portal_cleanup_build_artifacts: true
+
+# Registry configuration for disconnected/custom registries
+portal_registry_url: "{{ registry_url | default('registry.redhat.io') }}"
+portal_registry_username: "{{ registry_username | default('') }}"
+portal_registry_password: "{{ registry_password | default('') }}"
+
+# RHEL bootc base image (full image path: name and tag)
+# Default: RHEL 9 (stable and tested)
+# Options:
+#   rhel9/rhel-bootc:latest  - RHEL 9 latest (default)
+#   rhel9/rhel-bootc:9.6     - RHEL 9.6 specific
+#   rhel9/rhel-bootc:10      - RHEL 10 (when available)
+rhel_bootc_image: "{{ bootc_image | default('rhel9/rhel-bootc:latest') }}"
+
+# User and UID configuration
+vm_admin_user: "{{ admin_user | default('admin') }}"
+portal_user_uid: 1001
+portal_admin_uid: 1000
+
+# Admin credentials
+admin_password: "{{ admin_password }}"  # Required from inventory
+
+# SSH configuration
+ssh_public_key_file: "{{ ssh_public_key_file | default('') }}"
+vm_ssh_mode: "{{ ssh_security_mode | default('keys-only') }}"  # Options: keys-only, keys-and-password, password-only
+
+# Optional: Additional packages to install in bootc image
+# Example: portal_extra_packages: ['vim-enhanced', 'aide', 'audit']
+portal_extra_packages: []
+
+# Bound container images that must be available for bootc-image-builder
+# These images are referenced in quadlet files and must be pulled before conversion
+portal_bound_images:
+  - registry.redhat.io/rhdh/rhdh-hub-rhel9:1.6
+  - registry.redhat.io/rhel9/postgresql-15:latest
+
+
+
+

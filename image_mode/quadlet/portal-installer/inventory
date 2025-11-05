@@ -1,0 +1,184 @@
+# Self-Service Automation Portal Installer Inventory
+# Consult README.md for complete documentation
+
+[portal_build_host]
+localhost ansible_connection=local
+
+[all:vars]
+# ==================================================================
+# REQUIRED CONFIGURATION (must set these)
+# ==================================================================
+
+# ------------------------------------------------------------------
+# AAP Connection
+# ------------------------------------------------------------------
+# Ansible Automation Platform controller URL
+aap_host_url=<set your own>
+
+# AAP API token with Administrator privileges
+# Generate in AAP: Users → Tokens → Create token
+aap_token=<set your own>
+
+# OAuth application credentials for portal authentication
+# Create in AAP: Administration → Applications
+# Redirect URI: https://<portal-hostname>:7007/api/auth/rhaap/handler/frame
+oauth_client_id=<set your own>
+oauth_client_secret=<set your own>
+
+# ------------------------------------------------------------------
+# Security Secrets
+# ------------------------------------------------------------------
+# Portal backend authentication secret (signs JWTs and session tokens)
+# Example: openssl rand -base64 32
+backend_secret=<set your own>
+
+# PostgreSQL database password
+# Example: openssl rand -base64 32
+postgres_password=<set your own>
+
+# Admin user password for VM access (console and SSH)
+# Example: openssl rand -base64 32
+admin_password=<set your own>
+
+# ------------------------------------------------------------------
+# SSH Access
+# ------------------------------------------------------------------
+# SSH public key for admin user (REQUIRED for keys-only mode)
+# Generate with: ssh-keygen -t ed25519 -f ~/.ssh/portal_vm_key
+ssh_public_key_file=~/.ssh/id_ed25519.pub
+
+# ------------------------------------------------------------------
+# Registry Credentials
+# ------------------------------------------------------------------
+# Red Hat Customer Portal credentials (not embedded in bootc image)
+registry_username=<set your own>
+registry_password=<set your own>
+
+# ==================================================================
+# OPTIONAL CONFIGURATION (defaults provided)
+# ==================================================================
+
+# ------------------------------------------------------------------
+# Image Build Options
+# ------------------------------------------------------------------
+# Bootc image name and tag
+portal_image_name=rhaap-portal-image
+portal_image_tag=latest
+
+# Output image formats to create
+# Options: qcow2 (VMs), vmdk (VMware), raw (disk), iso (bare metal)
+# Each format requires ~10-15GB temporary disk space during conversion
+portal_image_formats=['qcow2']
+
+# Automatic cleanup after successful build (removes intermediate artifacts)
+portal_cleanup_after_build=true
+
+# ------------------------------------------------------------------
+# Bootc Image Customization
+# ------------------------------------------------------------------
+# Admin username for VM access
+admin_user=admin
+
+# SSH security mode (keys-only, keys-and-password, password-only)
+# Note: Console access always available with password regardless of SSH mode
+vm_ssh_mode=keys-only
+
+# RHEL bootc base image
+rhel_bootc_image=rhel9/rhel-bootc:9.6
+
+# User IDs for portal service and admin user
+portal_user_uid=1001
+portal_admin_uid=1000
+
+# ------------------------------------------------------------------
+# Portal Sync Configuration
+# ------------------------------------------------------------------
+# AAP organization to synchronize (portal syncs ONE organization only)
+portal_orgs_filter=Default
+
+# Job template synchronization
+portal_job_template_sync_enabled=true
+portal_job_template_sync_minutes=60
+
+# Users and teams synchronization
+portal_users_teams_sync_minutes=60
+
+# Sync operation timeout (minutes)
+portal_sync_timeout_minutes=15
+
+# ------------------------------------------------------------------
+# Registry Configuration
+# ------------------------------------------------------------------
+# Container registry URL
+registry_url=registry.redhat.io
+
+# Registry authentication enabled
+registry_auth=true
+
+# TLS verification for registry
+registry_tls_verify=true
+
+# ==================================================================
+# ADVANCED OPTIONS (commented - uncomment and customize as needed)
+# ==================================================================
+
+# ------------------------------------------------------------------
+# Bootc Image Customization
+# ------------------------------------------------------------------
+# Additional packages to install in bootc image
+# Example: portal_extra_packages=['vim-enhanced','aide','audit','rsyslog-gnutls']
+# portal_extra_packages=[]
+
+# Custom registry for disconnected environments
+# portal_registry_url=registry.corp.example.com
+
+# ------------------------------------------------------------------
+# Portal Sync Configuration
+# ------------------------------------------------------------------
+# Filter templates by survey status (true/false, or omit for all)
+# portal_job_template_survey_enabled=true
+
+# Filter templates by AAP labels
+# portal_job_template_labels=['production','approved']
+
+# ------------------------------------------------------------------
+# Database Configuration
+# ------------------------------------------------------------------
+# External PostgreSQL database (if set, local container will NOT be deployed)
+# postgres_host=db.example.com
+# postgres_port=5432
+# postgres_user=postgres
+# postgres_db=portal
+# backend_database_connection_ssl=true
+
+# ------------------------------------------------------------------
+# Portal Configuration
+# ------------------------------------------------------------------
+# Portal HTTPS listen port (default: 7007)
+# portal_http_port=7007
+
+# Portal base URL (auto-detected from VM IP and port at startup)
+# Override only if using custom DNS name or load balancer
+# base_url=https://portal.example.com
+
+# Application logging level (debug, info, warn, error)
+# log_level=info
+
+# ------------------------------------------------------------------
+# Source Control Integration
+# ------------------------------------------------------------------
+# GitHub integration (required for private repos or GitHub Enterprise)
+# github_url=https://github.com
+# github_token=<set your own>
+
+# GitLab integration (required for private repos or self-hosted GitLab)
+# gitlab_url=https://gitlab.com
+# gitlab_token=<set your own>
+
+# ------------------------------------------------------------------
+# Build Configuration
+# ------------------------------------------------------------------
+# Build directory (defaults to playbook directory)
+# portal_build_dir=/path/to/build/directory
+
+# For offline/disconnected installations, see OFFLINE-INSTALL.md

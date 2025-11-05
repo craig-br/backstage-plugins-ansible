@@ -1,0 +1,23 @@
+---
+# Convert existing bootc image to disk formats
+- name: Create Portal Disk Images
+  hosts: portal_build_host
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Setup common configuration
+      ansible.builtin.include_role:
+        name: ansible.portal_setup.common
+
+    - name: Convert bootc image to disk formats
+      ansible.builtin.include_role:
+        name: ansible.portal_setup.image_convert
+
+    - name: Conversion complete
+      ansible.builtin.debug:
+        msg:
+          - "Disk images created successfully in: {{ portal_output_dir | default(playbook_dir + '/output') }}"
+          - "Formats: {{ portal_image_formats | default(['qcow2']) | join(', ') }}"
+
+

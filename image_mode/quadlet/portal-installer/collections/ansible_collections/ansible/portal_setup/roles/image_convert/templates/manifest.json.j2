@@ -1,0 +1,26 @@
+{
+  "portal_version": "1.0.0",
+  "build_timestamp": "{{ ansible_date_time.iso8601 }}",
+  "source_image": {
+    "name": "{{ portal_image_name }}",
+    "tag": "{{ portal_image_tag }}",
+    "id": "{{ source_image_info.images[0].Id | default('unknown') }}"
+  },
+  "output_images": [
+{% for format in portal_image_formats %}
+    {
+      "format": "{{ format }}",
+      "path": "{{ portal_output_dir }}/{{ format }}/",
+      "type": "{{ portal_image_format_map[format] }}"
+    }{{ "," if not loop.last else "" }}
+{% endfor %}
+  ],
+  "deployment_notes": {
+    "qcow2": "For virtual machines (KVM, OpenStack, etc.)",
+    "raw": "For raw disk deployment",
+    "iso": "For bare metal installation",
+    "vmdk": "For VMware environments"
+  }
+}
+
+

@@ -1,0 +1,68 @@
+---
+# Database backup tasks
+- name: Create backup directory
+  ansible.builtin.file:
+    path: "{{ portal_backup_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Check if using external database
+  ansible.builtin.set_fact:
+    using_external_db: "{{ use_external_postgres | default(false) }}"
+
+- name: Backup local PostgreSQL database
+  ansible.builtin.shell:
+    cmd: >
+      podman exec {{ backup_postgres_container }}
+      pg_dump -U {{ backup_postgres_user }} {{ backup_postgres_db }} >
+      {{ portal_backup_dir }}/{{ portal_backup_filename }}
+  when: not using_external_db
+  become: true
+  register: backup_local_result
+  changed_when: backup_local_result.rc == 0
+
+- name: Backup external PostgreSQL database
+  ansible.builtin.shell:
+    cmd: >
+      PGPASSWORD='{{ backup_postgres_password }}'
+      pg_dump -h {{ backup_postgres_host }}
+      -p {{ backup_postgres_port }}
+      -U {{ backup_postgres_user }}
+      {{ backup_postgres_db }} >
+      {{ portal_backup_dir }}/{{ portal_backup_filename }}
+  environment:
+    PGPASSWORD: "{{ backup_postgres_password }}"
+  when: using_external_db
+  register: backup_external_result
+  changed_when: backup_external_result.rc == 0
+  no_log: true
+
+- name: Compress backup file
+  community.general.archive:
+    path: "{{ portal_backup_dir }}/{{ portal_backup_filename }}"
+    dest: "{{ portal_backup_dir }}/{{ portal_backup_filename }}.gz"
+    format: gz
+    remove: true
+    mode: "0640"
+  when: portal_backup_compress
+
+- name: Get backup file info
+  ansible.builtin.stat:
+    path: "{{ portal_backup_dir }}/{{ portal_backup_filename }}{{ '.gz' if portal_backup_compress else '' }}"
+  register: backup_file_stat
+
+- name: Clean old backups
+  ansible.builtin.find:
+    paths: "{{ portal_backup_dir }}"
+    patterns: "portal-backup-*.sql*"
+    age: "{{ portal_backup_retention_days }}d"
+  register: old_backups
+
+- name: Remove old backup files
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_backups.files }}"
+  when: old_backups.matched > 0
+
+

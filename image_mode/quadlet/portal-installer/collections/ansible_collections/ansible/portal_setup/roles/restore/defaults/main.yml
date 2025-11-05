@@ -1,0 +1,17 @@
+---
+# Restore role default variables
+portal_backup_dir: "{{ portal_build_dir }}/backups"
+portal_restore_file: ""  # Must be specified by user
+portal_restore_force: false
+
+# Database connection (from inventory)
+restore_postgres_host: "{{ postgres_host | default('portal-postgres') }}"
+restore_postgres_port: "{{ postgres_port | default('5432') }}"
+restore_postgres_user: "{{ postgres_user | default('postgres') }}"
+restore_postgres_db: "{{ postgres_db | default('portal') }}"
+restore_postgres_password: "{{ postgres_password }}"
+
+# Container name for local postgres
+restore_postgres_container: "portal-postgres"
+
+

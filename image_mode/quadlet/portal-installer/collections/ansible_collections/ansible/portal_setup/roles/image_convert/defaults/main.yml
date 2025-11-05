@@ -1,0 +1,31 @@
+---
+# Image convert role default variables
+portal_image_name: "{{ image_name | default('rhaap-portal-image') }}"
+portal_image_tag: "{{ image_tag | default('latest') }}"
+# portal_build_dir is set in playbook pre_tasks
+# portal_output_dir is set in common role
+portal_image_formats: "{{ image_formats | default(['qcow2']) }}"
+
+# Cleanup configuration - removes intermediate build artifacts after successful conversion
+portal_cleanup_after_build: true
+
+# Registry configuration
+portal_registry_url: "{{ registry_url | default('registry.redhat.io') }}"
+
+# Red Hat supported bootc-image-builder
+bootc_image_builder: "{{ portal_registry_url }}/rhel9/bootc-image-builder:latest"
+bootc_builder_pull: true
+
+# Format-specific settings
+portal_image_format_map:
+  qcow2: qcow2
+  raw: raw
+  iso: anaconda-iso
+  vmdk: vmdk
+
+# Container storage path - hardcoded for root builds
+# All build operations use become: true, so images are always in /var/lib/containers/storage
+# Note: Ansible facts are gathered before become is applied and are not re-evaluated,
+# making dynamic detection based on ansible_user_id unreliable
+portal_container_storage_path: "/var/lib/containers/storage"
+

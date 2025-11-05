@@ -1,0 +1,174 @@
+# ---------------------------------------------------------------------------
+# RHEL 9 Image Mode with Ansible Self-Service Automation Portal using Logically Bound Images
+# This Containerfile creates a RHEL 9 bootc-based image that uses Podman Quadlet
+# and logically bound images for the portal application, avoiding multi-stage builds.
+# Generated from Ansible inventory configuration
+# ---------------------------------------------------------------------------
+
+FROM {{ portal_registry_url | default('registry.redhat.io') }}/{{ rhel_bootc_image | default('rhel9/rhel-bootc:latest') }}
+
+# Build arguments for customizable credentials
+ARG ADMIN_USER={{ vm_admin_user | default('admin') }}
+ARG ADMIN_PASSWORD
+ARG SSH_PUBLIC_KEY_FILE=""
+ARG SSH_SECURITY_MODE={{ vm_ssh_mode | default('keys-only') }}
+
+# Install required packages including Node.js and Podman for container management
+RUN dnf install -y nodejs npm python3 curl sudo podman openssh-server \
+{% if portal_extra_packages is defined and portal_extra_packages | length > 0 %}
+    {{ portal_extra_packages | join(' ') }} \
+{% endif %}
+    && dnf clean all
+
+# Create users and required directories, set up access
+RUN TEMP_ADMIN_PASSWORD="${ADMIN_PASSWORD}" && \
+    useradd -r -u {{ portal_user_uid | default('1001') }} -g root -d /opt/app-root/src -s /sbin/nologin portal && \
+    mkdir -p /opt/app-root/src /opt/app-root/src/dynamic-plugins-root /etc/portal /var/lib/portal /etc/containers && \
+    echo "portal ALL=(root) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /usr/bin/mkdir" > /etc/sudoers.d/portal && \
+    # Install SSH server for remote access \
+    systemctl enable sshd && \
+    # Create admin user with customizable username (from inventory) \
+    useradd -m -u {{ portal_admin_uid | default('1000') }} -G wheel -s /bin/bash ${ADMIN_USER} && \
+    # Set passwords using temporary variable \
+    echo "${TEMP_ADMIN_PASSWORD}" | passwd --stdin ${ADMIN_USER} && \
+    unset TEMP_ADMIN_PASSWORD && \
+    passwd -u ${ADMIN_USER} && \
+    # Create .ssh directory for admin user \
+    mkdir -p /home/${ADMIN_USER}/.ssh && \
+    chmod 700 /home/${ADMIN_USER}/.ssh && \
+    chown ${ADMIN_USER}:${ADMIN_USER} /home/${ADMIN_USER}/.ssh && \
+    # Configure SSH for both password and key authentication \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#AuthorizedKeysFile/AuthorizedKeysFile/' /etc/ssh/sshd_config && \
+    # Allow wheel group sudo access \
+    echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
+# Copy SSH public key if provided (optional)
+COPY ${SSH_PUBLIC_KEY_FILE:-Containerfile.j2} /tmp/ssh_key_temp
+RUN if [ -n "${SSH_PUBLIC_KEY_FILE}" ] && [ -f /tmp/ssh_key_temp ] && grep -q "ssh-" /tmp/ssh_key_temp 2>/dev/null; then \
+        mv /tmp/ssh_key_temp /home/${ADMIN_USER}/.ssh/authorized_keys && \
+        chmod 600 /home/${ADMIN_USER}/.ssh/authorized_keys && \
+        chown ${ADMIN_USER}:${ADMIN_USER} /home/${ADMIN_USER}/.ssh/authorized_keys && \
+        echo "✓ SSH public key installed for ${ADMIN_USER}"; \
+    else \
+        rm -f /tmp/ssh_key_temp && \
+        echo "ℹ No valid SSH key provided - password authentication will be used"; \
+    fi
+
+# Configure SSH security based on SSH_SECURITY_MODE
+RUN if [ "${SSH_SECURITY_MODE}" = "keys-only" ]; then \
+        echo "Configuring SSH for key-based authentication only (most secure)"; \
+        sed -i 's/^PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config; \
+        sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config; \
+        echo "PasswordAuthentication no" >> /etc/ssh/sshd_config; \
+        echo "⚠️  WARNING: Password SSH disabled - SSH key required for access"; \
+        echo "⚠️  Console access still available with password"; \
+    elif [ "${SSH_SECURITY_MODE}" = "password-only" ]; then \
+        echo "Configuring SSH for password authentication only (least secure)"; \
+        sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config; \
+        echo "⚠️  WARNING: Using password-only SSH - not recommended for production"; \
+    else \
+        echo "Configuring SSH for keys + password fallback (balanced security)"; \
+    fi
+
+# Copy configuration and scripts (from local build context)
+COPY configs /etc/portal/configs
+COPY .portal.env /etc/portal/.portal.env
+COPY local-plugins /var/lib/portal/local-plugins
+COPY scripts/prepare-and-install-dynamic-plugins.sh /usr/local/bin/
+COPY scripts/wait-for-plugins-and-start.sh /usr/local/bin/
+COPY scripts/detect-and-set-base-url.sh /usr/local/bin/
+
+# Copy Podman Quadlet files to systemd location 
+COPY files/portal.container /usr/share/containers/systemd/portal.container
+COPY files/postgres.container /usr/share/containers/systemd/postgres.container
+COPY files/portal-network.network /usr/share/containers/systemd/portal-network.network
+
+# Create logically bound images by symlinking container files to bootc bound-images directory
+RUN mkdir -p /usr/lib/bootc/bound-images.d && \
+    ln -s /usr/share/containers/systemd/portal.container /usr/lib/bootc/bound-images.d/portal.container && \
+    ln -s /usr/share/containers/systemd/postgres.container /usr/lib/bootc/bound-images.d/postgres.container
+
+# Set permissions for portal directories and scripts
+RUN chmod +x /usr/local/bin/prepare-and-install-dynamic-plugins.sh /usr/local/bin/wait-for-plugins-and-start.sh /usr/local/bin/detect-and-set-base-url.sh && \
+    # Create all required directories at BUILD TIME (bootc-native approach) \
+    mkdir -p /var/lib/portal/{dynamic-plugins-root,generated,config,.npm,scripts} && \
+    # Create PostgreSQL data directory with proper permissions \
+    mkdir -p /var/lib/portal/postgres-data && \
+    chown 26:26 /var/lib/portal/postgres-data && \
+    chmod 700 /var/lib/portal/postgres-data && \
+    # Copy scripts for container and host access \
+    cp /usr/local/bin/prepare-and-install-dynamic-plugins.sh /var/lib/portal/scripts/ && \
+    cp /usr/local/bin/wait-for-plugins-and-start.sh /var/lib/portal/scripts/ && \
+    cp /usr/local/bin/detect-and-set-base-url.sh /var/lib/portal/scripts/ && \
+    chmod +x /var/lib/portal/scripts/*.sh && \
+    cp /etc/portal/configs/dynamic-plugins/dynamic-plugins.override.yaml /var/lib/portal/config/dynamic-plugins.yaml && \
+    ln -sf /var/lib/portal/config/dynamic-plugins.yaml /var/lib/portal/dynamic-plugins-root/dynamic-plugins.yaml && \
+    # Create build-time symlinks to avoid runtime read-only filesystem issues \
+    ln -sf /var/lib/portal/config/dynamic-plugins.yaml /var/lib/portal/dynamic-plugins.yaml && \
+    # Fix symlink conflicts in prepare script (volume mounts provide the files) \
+    sed -i 's|LINK_TARGET="/var/lib/portal/dynamic-plugins.yaml"|LINK_TARGET="/opt/app-root/src/dynamic-plugins.yaml"|' /var/lib/portal/scripts/prepare-and-install-dynamic-plugins.sh && \
+    sed -i '41,50s/^/# /' /var/lib/portal/scripts/prepare-and-install-dynamic-plugins.sh && \
+    sed -i '53,55s/^/# /' /var/lib/portal/scripts/prepare-and-install-dynamic-plugins.sh && \
+    # Set all permissions at build time \
+    chown -R {{ portal_user_uid | default('1001') }}:0 /opt/app-root /var/lib/portal /etc/portal && \
+    chmod -R g=u /opt/app-root /var/lib/portal /etc/portal && \
+    # Ensure quadlet files have correct permissions \
+    chmod 644 /usr/share/containers/systemd/portal.container
+
+# Health check helper for both host and container
+RUN printf '%s\n' \
+  '#!/bin/bash' \
+  'echo "=== Portal + PostgreSQL Health Check ==="' \
+  '# Check if PostgreSQL quadlet container is running' \
+  'if systemctl is-active --quiet postgres.service; then' \
+  '    echo "✓ PostgreSQL Quadlet service is active"' \
+  'else' \
+  '    echo "✗ PostgreSQL Quadlet service is not active"' \
+  '    systemctl status postgres.service --no-pager || true' \
+  '    exit 1' \
+  'fi' \
+  '# Check PostgreSQL database health' \
+  'podman exec portal-postgres pg_isready -U portal_user >/dev/null 2>&1 && echo "✓ PostgreSQL database is ready" || { echo "✗ PostgreSQL database not ready"; exit 1; }' \
+  '# Check if portal quadlet container is running' \
+  'if systemctl is-active --quiet portal.service; then' \
+  '    echo "✓ portal Quadlet service is active"' \
+  'else' \
+  '    echo "✗ portal Quadlet service is not active"' \
+  '    systemctl status portal.service --no-pager || true' \
+  '    exit 1' \
+  'fi' \
+  '# Check portal application health' \
+  'curl -f http://localhost:{{ portal_http_port | default('7007') }} >/dev/null 2>&1 && echo "✓ portal backend is healthy" || { echo "✗ portal backend not responding"; exit 1; }' \
+  'curl -f http://localhost:{{ portal_http_port | default('7007') }}/self-service >/dev/null 2>&1 && echo "✓ Ansible self-service portal available" || { echo "✗ self-service portal not available"; exit 1; }' \
+  'echo "=== All services are healthy ==="' \
+  > /usr/local/bin/health-check.sh && chmod +x /usr/local/bin/health-check.sh
+
+# Script to manage logically bound images
+RUN printf '%s\n' \
+  '#!/bin/bash' \
+  'echo "=== Managing Portal + PostgreSQL Logically Bound Images ==="' \
+  'echo "Bound images directory: /usr/lib/bootc/bound-images.d/"' \
+  'ls -la /usr/lib/bootc/bound-images.d/ || echo "No bound images found"' \
+  'echo "Expected bound images:"' \
+  'echo "  - portal.container -> portal application"' \
+  'echo "  - postgres.container -> PostgreSQL database"' \
+  'echo "Available images in bootc storage:"' \
+  'podman --storage-opt=additionalimagestore=/usr/lib/bootc/storage images || echo "No images in bootc storage yet"' \
+  'echo "Container services status:"' \
+  'systemctl is-active postgres.service >/dev/null 2>&1 && echo "  ✓ PostgreSQL service active" || echo "  ✗ PostgreSQL service inactive"' \
+  'systemctl is-active portal.service >/dev/null 2>&1 && echo "  ✓ portal service active" || echo "  ✗ portal service inactive"' \
+  > /usr/local/bin/manage-bound-images.sh && chmod +x /usr/local/bin/manage-bound-images.sh
+
+# Expose application ports (handled by quadlet containers, but declared for clarity)
+EXPOSE {{ portal_http_port | default(7007) | int }} 5432
+
+# Default working directory
+WORKDIR /opt/app-root/src
+
+# bootc images always run systemd as init
+# The portal service will be managed by Podman Quadlet via systemd
+CMD ["/usr/sbin/init"]
+
