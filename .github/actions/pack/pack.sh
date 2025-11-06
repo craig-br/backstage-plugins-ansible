@@ -7,9 +7,9 @@ set -u
 pluginsDir="plugins"
 packDestination="dynamic-plugins-archives"
 finalPackDir="ansible-plugins-pack"
-sourcePackDir="ansible-backstage-plugins-source-code"
+sourcePackDir="ansible-rhdh-plugins-source-code"
 
-OCI_REGISTRY_NAMESPACE=${OCI_REGISTRY_NAMESPACE:-quay.io/ansible/ansible-backstage-plugins}
+OCI_REGISTRY_NAMESPACE=${OCI_REGISTRY_NAMESPACE:-quay.io/ansible/ansible-rhdh-plugins}
 OCI_IMAGE_PUSH=${OCI_IMAGE_PUSH:-false}
 echo OCI_IMAGE_PUSH="$OCI_IMAGE_PUSH"
 echo OCI_REGISTRY_NAMESPACE="$OCI_REGISTRY_NAMESPACE"
@@ -33,12 +33,12 @@ echo "Creating a tarball of the current directory as pack.tar.gz..."
 git archive HEAD -o pack.tar.gz
 echo "Tarball pack.tar.gz created."
 
-# Extract the tarball into a directory called ansible-backstage-plugins-source-code-$VERSION
+# Extract the tarball into a directory called ansible-rhdh-plugins-source-code-$VERSION
 echo "Creating directory $sourcePackDir-$VERSION and extracting pack.tar.gz into it..."
 mkdir $sourcePackDir-$VERSION && tar -xzf pack.tar.gz -C $sourcePackDir-$VERSION/
 echo "Extraction complete. Contents now in $sourcePackDir-$VERSION."
 
-# Repack the directory with the desired name ansible-backstage-plugins-source-code-$VERSION.tar.gz
+# Repack the directory with the desired name ansible-rhdh-plugins-source-code-$VERSION.tar.gz
 echo "Repacking the directory $sourcePackDir-$VERSION into a new tarball ${sourcePackDir}-$VERSION.tar.gz..."
 tar -czvf $sourcePackDir-$VERSION.tar.gz -C $(dirname $sourcePackDir-$VERSION) $(basename $sourcePackDir-$VERSION)
 echo "Tarball ${sourcePackDir}-$VERSION.tar.gz created."

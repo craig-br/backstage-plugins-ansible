@@ -167,7 +167,7 @@ permission:
   rbac:
     # if you want to use a csv file for rbac, uncomment the following lines.
     # Refer default-rbac-policy.csv for the policy file.
-    # policies-csv-file: /Users/audgirka/src/ansible-backstage-plugins/default-rbac-policy.csv
+    # policies-csv-file: /Users/audgirka/src/ansible-rhdh-plugins/default-rbac-policy.csv
     # policyFileReload: true
     admin:
       users:

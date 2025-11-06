@@ -170,7 +170,7 @@ folder run the below command
 
 ### Install and prepare the plugin
 
-Install the frontend plugin dependency in the Ansible plugins path by running the following command from the `ansible-backstage-plugins/plugins/backstage-rhaap-backend` folder.
+Install the frontend plugin dependency in the Ansible plugins path by running the following command from the `ansible-rhdh-plugins/plugins/backstage-rhaap-backend` folder.
 
 ```bash
 yarn install
@@ -182,7 +182,7 @@ To load the frontend plugin with backstage-showcase locally, follow the steps be
 - Run the following commands
 
 ```bash
-pkg=<local-clone-parent-path-replace-me>/ansible-backstage-plugins/plugins/backstage-rhaap
+pkg=<local-clone-parent-path-replace-me>/ansible-rhdh-plugins/plugins/backstage-rhaap
 archive=$(npm pack $pkg)
 tar -xzf "$archive" && rm "$archive"
 mv package $(echo $archive | sed -e 's:\.tgz$::')

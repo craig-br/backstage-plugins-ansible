@@ -1,4 +1,4 @@
-# Codecov configuration for ansible-backstage-plugins
+# Codecov configuration for ansible-rhdh-plugins
 coverage:
   ignore:
     - "packages/**/*"           # Ignore all files in packages directory

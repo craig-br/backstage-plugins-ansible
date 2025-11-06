@@ -1,8 +1,8 @@
 ---
 # cspell:ignore autohide, autofix
 site_name: Ansible Backstage Plugins Documentation
-site_url: https://ansible.github.io/projects/ansible-backstage-plugins/
-repo_url: https://github.com/ansible/ansible-backstage-plugins
+site_url: https://ansible.github.io/projects/ansible-rhdh-plugins/
+repo_url: https://github.com/ansible/ansible-rhdh-plugins
 edit_uri: blob/main/docs/
 copyright: Copyright © 2025 Red Hat, Inc.
 docs_dir: docs
@@ -41,7 +41,7 @@ extra:
   generator: false
   social:
     - icon: fontawesome/solid/scroll
-      link: https://github.com/ansible/ansible-backstage-plugins/releases
+      link: https://github.com/ansible/ansible-rhdh-plugins/releases
       name: Releases
     - icon: simple/mastodon
       link: https://fosstodon.org/@ansible
@@ -56,7 +56,7 @@ extra:
       link: https://forum.ansible.com/c/project/7
       name: Ansible forum
     - icon: fontawesome/brands/github-alt
-      link: https://github.com/ansible/ansible-backstage-plugins
+      link: https://github.com/ansible/ansible-rhdh-plugins
       name: GitHub
 
 nav:

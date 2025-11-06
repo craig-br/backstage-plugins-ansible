@@ -61,8 +61,8 @@ podman build -f docker/Dockerfile . -t redhat-developer/rhdh:local
 ### Build plugins
 
 ```bash
-git clone git@github.com:ansible/ansible-backstage-plugins.git
-cd ansible-backstage-plugins
+git clone git@github.com:ansible/ansible-rhdh-plugins.git
+cd ansible-rhdh-plugins
 
 cat <<EOF >pack_all_ansible_experience.sh
 #!/bin/bash

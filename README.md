@@ -1,4 +1,4 @@
-[![CI](https://github.com/ansible/ansible-backstage-plugins/actions/workflows/pr.yml/badge.svg?branch=main&event=schedule)](https://github.com/ansible/ansible-backstage-plugins/actions/workflows/pr.yml)
+[![CI](https://github.com/ansible/ansible-rhdh-plugins/actions/workflows/pr.yml/badge.svg?branch=main&event=schedule)](https://github.com/ansible/ansible-rhdh-plugins/actions/workflows/pr.yml)
 
 # [Backstage](https://backstage.io)
 
@@ -32,11 +32,11 @@ Prerequisite: Make sure that the AWS account is configured locally using the AWS
 
 ### Downloading the plugins tar from GitHub releases.
 
-Download the plugin .tar files from the [GitHub release page](https://github.com/ansible/ansible-backstage-plugins/releases).
+Download the plugin .tar files from the [GitHub release page](https://github.com/ansible/ansible-rhdh-plugins/releases).
 to the following location:
 
 ```bash
-DYNAMIC_PLUGIN_ROOT_DIR=<ansible-backstage-plugins-local-path-changeme>/.tmp/dynamic-plugin-root
+DYNAMIC_PLUGIN_ROOT_DIR=<ansible-rhdh-plugins-local-path-changeme>/.tmp/dynamic-plugin-root
 cd $DYNAMIC_PLUGIN_ROOT_DIR
 <download-plugin-tar-here>
 ```
@@ -44,9 +44,9 @@ cd $DYNAMIC_PLUGIN_ROOT_DIR
 ### (Or) Baking the plugins for setup
 
 ```bash
-DYNAMIC_PLUGIN_ROOT_DIR=<ansible-backstage-plugins-local-path-changeme>/.tmp/dynamic-plugin-root
-git clone git@github.com:ansible/ansible-backstage-plugins.git
-cd ansible-backstage-plugins
+DYNAMIC_PLUGIN_ROOT_DIR=<ansible-rhdh-plugins-local-path-changeme>/.tmp/dynamic-plugin-root
+git clone git@github.com:ansible/ansible-rhdh-plugins.git
+cd ansible-rhdh-plugins
 ./.github/actions/pack/pack.sh
 ls -l $DYNAMIC_PLUGIN_ROOT_DIR
 echo "Integrity Hash: $INTEGRITY_HASH"
@@ -69,7 +69,7 @@ The built plugins can packed as OCI image and pushed to container image registry
 To use this, set needed environ vars and run `pack.sh`.
 
 ```bash
-cd ansible-backstage-plugins
+cd ansible-rhdh-plugins
 export OCI_REGISTRY_NAMESPACE=quay.io/my-namespace/
 export OCI_REGISTRY_USERNAME=TODO
 export OCI_REGISTRY_PASSWORD=TODO

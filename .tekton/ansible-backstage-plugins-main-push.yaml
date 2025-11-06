@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
   annotations:
-    build.appstudio.openshift.io/repo: https://github.com/ansible/ansible-backstage-plugins?rev={{revision}}
+    build.appstudio.openshift.io/repo: https://github.com/ansible/ansible-rhdh-plugins?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
@@ -12,9 +12,9 @@ metadata:
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: ansible-plugins
-    appstudio.openshift.io/component: ansible-backstage-plugins-main
+    appstudio.openshift.io/component: ansible-rhdh-plugins-main
     pipelines.appstudio.openshift.io/type: build
-  name: ansible-backstage-plugins-main-on-push
+  name: ansible-rhdh-plugins-main-on-push
   namespace: ansible-plugins-tenant
 spec:
   params:
@@ -23,7 +23,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/ansible/ansible-backstage-plugins:main
+    value: quay.io/ansible/ansible-rhdh-plugins:main
   - name: image-expires-after
     value: 14d
   - name: dockerfile
@@ -447,7 +447,7 @@ spec:
     - name: sast-snyk-check
       params:
       - name: PROJECT_NAME
-        value: 'ansible-backstage-plugins'
+        value: 'ansible-rhdh-plugins'
       - name: image-digest
         value: $(tasks.build-image-index.results.IMAGE_DIGEST)
       - name: image-url
@@ -685,7 +685,7 @@ spec:
     - name: netrc
       optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-ansible-backstage-plugins-main
+    serviceAccountName: build-pipeline-ansible-rhdh-plugins-main
   workspaces:
   - name: git-auth
     secret:

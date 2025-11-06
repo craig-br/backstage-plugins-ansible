@@ -14,7 +14,7 @@ This is a monorepo for Ansible plugins for Backstage/Red Hat Developer Hub (RHDH
 
 ## Project Structure
 ```
-ansible-backstage-plugins/
+ansible-rhdh-plugins/
 ├── packages/           # Core Backstage app and backend
 ├── plugins/           # Ansible-specific plugins
 │   ├── backstage-rhaap/                    # Frontend plugin
@@ -179,7 +179,7 @@ yarn workspace @ansible/plugin-backstage-rhaap start
 yarn workspace backend build-image
 
 # Dynamic Plugin Export
-yarn export-dynamic --tag quay.io/ansible/ansible-backstage-plugins:$TAG
+yarn export-dynamic --tag quay.io/ansible/ansible-rhdh-plugins:$TAG
 ```
 
 Remember: This is a Backstage plugin ecosystem focused on Ansible automation. Always consider the Backstage plugin architecture and AAP integration patterns when making changes.

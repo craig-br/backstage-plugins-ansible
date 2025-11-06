@@ -8,7 +8,7 @@ To test plugins for ansible experience you need:
 The container image and built plugins are tested using rhdh-local repo.
 
 You also need to create token and OAuth2 app in AAP.
-Instructions are in repo `ansible-backstage-plugins`, in individual plugin Readme.
+Instructions are in repo `ansible-rhdh-plugins`, in individual plugin Readme.
 
 - AAP token, see `plugins/catalog-backend-module-rhaap/README.md` (fork `kcagran`, branch `rhaap-catalog-sync`)
 - AAP OAuth2 app, see `plugins/auth-backend-module-rhaap-provider/README.md` (fork `kcagran`, branch `rhaap-oauth2`)
@@ -40,8 +40,8 @@ git checkout rh-plugins-auth-only
 ## Build plugins
 
 ```bash
-git clone git@github.com:ansible/ansible-backstage-plugins.git
-cd ansible-backstage-plugins
+git clone git@github.com:ansible/ansible-rhdh-plugins.git
+cd ansible-rhdh-plugins
 
 cat <<EOF >pack_all_ansible_experience.sh
 #!/bin/bash
@@ -71,7 +71,7 @@ cp env.sample .env
 # change image if needed
 nano .env
 
-cp ../ansible-backstage-plugins/dynamic-plugins-archives/* local-plugins/
+cp ../ansible-rhdh-plugins/dynamic-plugins-archives/* local-plugins/
 
 docker compose up
 ```

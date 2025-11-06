@@ -1,5 +1,5 @@
 {
-  "name": "ansible-backstage-plugins-e2e",
+  "name": "ansible-rhdh-plugins-e2e",
   "version": "1.0.0",
   "description": "Enhanced E2E tests for Ansible Backstage plugins",
   "scripts": {

@@ -90,8 +90,8 @@ jobs:
         id: sonar-args
         run: |
             echo "SONAR_ARGS=-Dsonar.organization=ansible \
-            -Dsonar.projectKey=ansible_ansible-backstage-plugins \
-            -Dsonar.projectName='ansible-backstage-plugins' \
+            -Dsonar.projectKey=ansible_ansible-rhdh-plugins \
+            -Dsonar.projectName='ansible-rhdh-plugins' \
             -Dsonar.sources=plugins \
             -Dsonar.tests=plugins \
             -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/*.test.js,**/*.test.jsx \

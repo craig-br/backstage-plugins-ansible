@@ -36,7 +36,7 @@ jobs:
     env:
       NODE_OPTIONS: --max-old-space-size=8192
       IMAGE_REGISTRY: quay.io/ansible
-      IMAGE_NAME: ansible-backstage-plugins
+      IMAGE_NAME: ansible-rhdh-plugins
       PR_IMAGE_PUSH: true
       REGISTRY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       REGISTRY_PASSWORD: ${{ secrets.QUAY_PASS }}
@@ -119,5 +119,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'The image for [${{ env.SHORT_SHA }}](https://github.com/ansible/ansible-backstage-plugins/pull/${{ github.event.number }}/commits/${{ github.event.pull_request.head.sha }}) is available at:\n* [`quay.io/ansible/ansible-backstage-plugins:${{ env.IMAGE_TAG }}`](https://quay.io/ansible/ansible-backstage-plugins:${{ env.IMAGE_TAG }})\n* [`quay.io/ansible/ansible-backstage-plugins:${{ env.COMMIT_IMAGE_TAG }}`](https://quay.io/ansible/ansible-backstage-plugins:${{ env.COMMIT_IMAGE_TAG }})'
+              body: 'The image for [${{ env.SHORT_SHA }}](https://github.com/ansible/ansible-rhdh-plugins/pull/${{ github.event.number }}/commits/${{ github.event.pull_request.head.sha }}) is available at:\n* [`quay.io/ansible/ansible-rhdh-plugins:${{ env.IMAGE_TAG }}`](https://quay.io/ansible/ansible-rhdh-plugins:${{ env.IMAGE_TAG }})\n* [`quay.io/ansible/ansible-rhdh-plugins:${{ env.COMMIT_IMAGE_TAG }}`](https://quay.io/ansible/ansible-rhdh-plugins:${{ env.COMMIT_IMAGE_TAG }})'
             })
