@@ -23,7 +23,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/ansible/ansible-rhdh-plugins:main
+    value: quay.io/redhat-user-workloads/ansible-plugins-tenant/ansible-backstage-plugins:main
   - name: image-expires-after
     value: 14d
   - name: dockerfile
@@ -685,7 +685,7 @@ spec:
     - name: netrc
       optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-ansible-rhdh-plugins-main
+    serviceAccountName: build-pipeline-ansible-backstage-plugins-main
   workspaces:
   - name: git-auth
     secret:
