@@ -28,7 +28,7 @@ if [ "${BUILD_TYPE:-}" = "portal" ]; then
   fi
 
   # Export dynamic plugins for Portal automation
-  $YARN_CMD export-local
+  $YARN_CMD janus-cli package package-dynamic-plugins --export-to ${DYNAMIC_PLUGINS_ROOT:-./dynamic-plugins}
 
 elif [ "${BUILD_TYPE:-}" = "rhdh" ]; then
   echo "Building for RHDH - including only backstage-rhaap and scaffolder-backend-module-backstage-rhaap"
@@ -44,12 +44,12 @@ elif [ "${BUILD_TYPE:-}" = "rhdh" ]; then
   done
 
   # Export only RHDH plugins
-  $YARN_CMD export-local
+  $YARN_CMD janus-cli package package-dynamic-plugins --export-to ${DYNAMIC_PLUGINS_ROOT:-./dynamic-plugins}
 
 else
   echo "Building all plugins (default behavior)"
   # Export all plugins (default behavior)
-  $YARN_CMD export-local
+  $YARN_CMD janus-cli package package-dynamic-plugins --export-to ${DYNAMIC_PLUGINS_ROOT:-./dynamic-plugins}
 fi
 
 echo "Dynamic plugins built successfully"

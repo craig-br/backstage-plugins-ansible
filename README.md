@@ -247,7 +247,7 @@ spec:
       containers:
         - ...
         - name: ansible-devtools-server
-          image: 'ghcr.io/ansible/community-ansible-dev-tools:latest'
+          image: "ghcr.io/ansible/community-ansible-dev-tools:latest"
           command:
             - adt
             - server

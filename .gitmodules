@@ -1,0 +1,4 @@
+[submodule "ansible-backstage-plugins"]
+	path = ansible-backstage-plugins
+	url = https://github.com/ansible/ansible-backstage-plugins.git
+	branch = main

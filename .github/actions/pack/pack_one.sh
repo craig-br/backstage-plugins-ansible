@@ -4,6 +4,7 @@ set -e
 set -u
 
 pluginDir="$1"
+packDestination="${2:-dynamic-plugins-archives}"
 
 function run_cmd_description {
   # Show custom message instead of command.
@@ -27,7 +28,7 @@ function run_cmd {
   run_cmd_description "$cmd" $cmd
 }
 
-mkdir -p dynamic-plugins-archives
+mkdir -p "$packDestination"
 
 echo "Processing $pluginDir..."
 
@@ -41,7 +42,7 @@ run_cmd yarn export-dynamic
 
 echo "Running npm pack in $pluginDir"
 cd dist-dynamic
-pack_json=$(npm pack --pack-destination ../../../dynamic-plugins-archives --json)
+pack_json=$(npm pack --pack-destination "$packDestination" --json)
 echo "Integrity Hash: $pack_json"
 if [ $? -ne 0 ]; then
   echo "npm pack failed in $pluginDir"
@@ -52,7 +53,7 @@ fi
 echo "Creating package.integrity file"
 filename=$(echo "$pack_json" | jq -r '.[0].filename')
 integrity=$(echo "$pack_json" | jq -r '.[0].integrity')
-echo "$integrity" > ../../../dynamic-plugins-archives/"${filename}".integrity
+echo "$integrity" > "$packDestination/${filename}.integrity"
 
 # Return to the original directory
 popd > /dev/null

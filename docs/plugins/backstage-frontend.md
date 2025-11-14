@@ -1,1 +1,0 @@
---8<-- "plugins/backstage-rhaap/README.md"

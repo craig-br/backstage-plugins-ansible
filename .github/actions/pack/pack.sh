@@ -3,11 +3,14 @@
 set -e
 set -u
 
+# Save the parent directory path
+PARENT_DIR="$(pwd)"
+
 # Variables
 pluginsDir="plugins"
-packDestination="dynamic-plugins-archives"
-finalPackDir="ansible-plugins-pack"
-sourcePackDir="ansible-rhdh-plugins-source-code"
+packDestination="$PARENT_DIR/dynamic-plugins-archives"
+finalPackDir="$PARENT_DIR/ansible-plugins-pack"
+sourcePackDir="$PARENT_DIR/ansible-rhdh-plugins-source-code"
 
 OCI_REGISTRY_NAMESPACE=${OCI_REGISTRY_NAMESPACE:-quay.io/ansible/ansible-rhdh-plugins}
 OCI_IMAGE_PUSH=${OCI_IMAGE_PUSH:-false}
@@ -21,6 +24,8 @@ else
     VERSION=${VERSION##*/v}  # for tags
     VERSION=${VERSION##*/}  # for branches/PRs/local-testing
 fi
+
+cd ansible-backstage-plugins
 
 # Check if the plugins directory exists
 if [ ! -d "$pluginsDir" ]; then
@@ -61,9 +66,21 @@ rhdh_plugins=("backstage-rhaap" "scaffolder-backend-module-backstage-rhaap")
 self_service_plugins=("auth-backend-module-rhaap-provider" "catalog-backend-module-rhaap" "self-service" "scaffolder-backend-module-backstage-rhaap")
 
 # Create separate directories for each bundle
-rhdh_pack_dir="rhdh-plugins-archives"
-self_service_pack_dir="self-service-plugins-archives"
+rhdh_pack_dir="$PARENT_DIR/rhdh-plugins-archives"
+self_service_pack_dir="$PARENT_DIR/self-service-plugins-archives"
 mkdir -p "$rhdh_pack_dir" "$self_service_pack_dir"
+
+yarn install
+yarn tsc
+
+# Build the common package first since other plugins depend on it
+echo "Building backstage-rhaap-common (required by other plugins)..."
+if [ -d "plugins/backstage-rhaap-common" ]; then
+  pushd plugins/backstage-rhaap-common > /dev/null
+  yarn build
+  popd > /dev/null
+  echo "backstage-rhaap-common built successfully"
+fi
 
 # Loop through each subdirectory in the ./plugins directory
 for pluginDir in "$pluginsDir"/*; do
@@ -74,7 +91,7 @@ for pluginDir in "$pluginsDir"/*; do
     fi
     
     # Pack the plugin
-    .github/actions/pack/pack_one.sh "$pluginDir"
+    "$PARENT_DIR/.github/actions/pack/pack_one.sh" "$pluginDir" "$packDestination"
     
     # Copy the packed plugin to appropriate directories
     if [[ " ${rhdh_plugins[*]} " == *" ${pluginName} "* ]]; then
