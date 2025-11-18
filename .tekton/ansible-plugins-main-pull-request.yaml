@@ -26,7 +26,7 @@ spec:
   - name: output-image
     value: quay.io/redhat-user-workloads/ansible-plugins-tenant/ansible-plugins:on-pr-{{pull_request_number}}
   - name: image-expires-after
-    value: 2w
+    value: 1w
   - name: dockerfile
     value: Containerfile
   - name: hermetic

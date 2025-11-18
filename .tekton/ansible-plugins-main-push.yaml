@@ -23,9 +23,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/ansible-plugins-tenant/ansible-plugins:{{revision}}
-  - name: image-expires-after
-    value: 2w
+    value: quay.io/redhat-user-workloads/ansible-plugins-tenant/ansible-plugins:{{target_branch}}
   - name: dockerfile
     value: Containerfile
   - name: hermetic
