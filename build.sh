@@ -4,6 +4,9 @@ YARN_CMD="yarn"
 
 # Optimize build performance
 export NODE_OPTIONS="--max-old-space-size=16384"
+PARENT_DIR="$(pwd)"
+
+cd ansible-backstage-plugins
 
 $YARN_CMD install --immutable || {
     echo "Yarn install failed, but continuing with available packages..."
@@ -28,7 +31,7 @@ if [ "${BUILD_TYPE:-}" = "portal" ]; then
   fi
 
   # Export dynamic plugins for Portal automation
-  $YARN_CMD janus-cli package package-dynamic-plugins --export-to ${DYNAMIC_PLUGINS_ROOT:-./dynamic-plugins}
+  $YARN_CMD janus-cli package package-dynamic-plugins --export-to "${PARENT_DIR}/dynamic-plugins"
 
 elif [ "${BUILD_TYPE:-}" = "rhdh" ]; then
   echo "Building for RHDH - including only backstage-rhaap and scaffolder-backend-module-backstage-rhaap"
@@ -44,12 +47,12 @@ elif [ "${BUILD_TYPE:-}" = "rhdh" ]; then
   done
 
   # Export only RHDH plugins
-  $YARN_CMD janus-cli package package-dynamic-plugins --export-to ${DYNAMIC_PLUGINS_ROOT:-./dynamic-plugins}
+  $YARN_CMD janus-cli package package-dynamic-plugins --export-to "${PARENT_DIR}/dynamic-plugins"
 
 else
   echo "Building all plugins (default behavior)"
   # Export all plugins (default behavior)
-  $YARN_CMD janus-cli package package-dynamic-plugins --export-to ${DYNAMIC_PLUGINS_ROOT:-./dynamic-plugins}
+  $YARN_CMD janus-cli package package-dynamic-plugins --export-to "${PARENT_DIR}/dynamic-plugins"
 fi
 
 echo "Dynamic plugins built successfully"
