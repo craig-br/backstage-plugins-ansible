@@ -72,7 +72,7 @@ spec:
     - description: Fully Qualified Output Image
       name: output-image
       type: string
-    - default: "ansible-backstage-plugins"
+    - default: .
       description: Path to the source code of an application's component from where
         to build image.
       name: path-context
