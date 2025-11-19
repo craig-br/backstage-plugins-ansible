@@ -213,6 +213,13 @@ spec:
         resolver: bundles
     - name: prefetch-dependencies
       params:
+      - name: config-file-content
+        value: |
+          ---
+          requests_timeout: 600000
+          subprocess_timeout: 7200
+      - name: log-level
+        value: debug
       - name: input
         value: $(params.prefetch-input)
       - name: SOURCE_ARTIFACT
@@ -221,6 +228,8 @@ spec:
         value: $(params.output-image).prefetch
       - name: ociArtifactExpiresAfter
         value: $(params.image-expires-after)
+      - name: dev-package-managers
+        value: "false"
       runAfter:
       - clone-repository
       taskRef:
