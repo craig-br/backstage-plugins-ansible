@@ -1,0 +1,67 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    ":semanticCommits",
+    ":gitSignOff"
+  ],
+  "baseBranches": ["release-2.0"],
+  "commitMessageSuffix": "({{{baseBranch}}})",
+  "labels": ["dependency"],
+  "prCreation": "status-success",
+  "updateNotScheduled": true,
+  "prHourlyLimit": 10,
+  "prConcurrentLimit": 5,
+  "git-submodules": {
+    "enabled": true,
+    "schedule": ["* * * * *"]
+  },
+  "dockerfile": {
+    "enabled": true,
+    "schedule": ["* 0-5 * * *"]
+  },
+  "tekton": {
+    "enabled": true,
+    "schedule": ["* * * * 6-7"]
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["git-submodules"],
+      "matchUpdateTypes": ["digest"],
+      "automerge": true,
+      "labels": ["submodule-update"],
+      "commitMessageTopic": "submodule ansible-backstage-plugins"
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["digest"],
+      "labels": ["dockerfile-update"],
+      "commitMessageTopic": "base image"
+    },
+    {
+      "matchManagers": ["tekton"],
+      "matchPackageNames": [
+        "/^quay\\.io\\/konflux-ci\\/tekton-catalog\\//"
+      ],
+      "matchUpdateTypes": ["digest"],
+      "automerge": true,
+      "groupName": "Konflux Tekton tasks",
+      "labels": ["tekton-task-update"],
+      "commitMessageTopic": "Konflux Tekton task images",
+      "recreateWhen": "always",
+      "rebaseWhen": "behind-base-branch"
+    },
+    {
+      "matchManagers": ["tekton"],
+      "matchPackageNames": [
+        "/^quay\\.io\\/konflux-ci\\/konflux-vanguard\\//"
+      ],
+      "matchUpdateTypes": ["digest"],
+      "automerge": true,
+      "groupName": "Konflux Vanguard tasks",
+      "labels": ["tekton-task-update"],
+      "commitMessageTopic": "Konflux Vanguard task images",
+      "recreateWhen": "always",
+      "rebaseWhen": "behind-base-branch"
+    }
+  ]
+}
