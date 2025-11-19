@@ -4,7 +4,7 @@
     ":semanticCommits",
     ":gitSignOff"
   ],
-  "baseBranches": ["release-2.0"],
+  "baseBranches": ["main"],
   "commitMessageSuffix": "({{{baseBranch}}})",
   "labels": ["dependency"],
   "prCreation": "status-success",
