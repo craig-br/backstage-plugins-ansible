@@ -96,4 +96,4 @@ screenshots/
 **/screenshots
 
 # Git submodules - tracked separately via .gitmodules
-ansible-backstage-plugins/
+ansible-backstage-plugins
